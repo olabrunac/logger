@@ -32,6 +32,7 @@ export interface MediaItem {
   vote_average?: number;
   director?: string;
   trailer_url?: string;
+  cast?: string;
   page_count?: number;
   publisher?: string;
   book_categories?: string;
