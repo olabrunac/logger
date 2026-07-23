@@ -126,7 +126,11 @@ class CRUDLogEntry(CRUDBase[LogEntry, LogEntryCreate, LogEntryUpdate]):
             .distinct()
         if media_type:
             query = query.filter(MediaItem.media_type == media_type)
-        return query.all()
+        results = query.all()
+        print(f"CRUD: user_id={user_id}, media_type={media_type}, found={len(results)}")
+        for r in results:
+            print(f"  - {r.title} (id={r.id}, type={r.media_type})")
+        return results
 
 
 media_item = CRUDMediaItem(MediaItem)
