@@ -5,7 +5,6 @@ import type { LogEntry, User } from '../types';
 import ActivityGraph from '../components/sections/ActivityGraph';
 import StatsSection from '../components/sections/StatsSection';
 import GenreChart from '../components/sections/GenreChart';
-import HoursPieChart from '../components/sections/HoursPieChart';
 
 interface ProfilePageProps {
   currentUser: User;
@@ -269,9 +268,6 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
       <div className="flex flex-col lg:flex-row lg:items-stretch gap-6">
         <div className="flex-1 min-w-0">
           <ActivityGraph logs={logs} />
-        </div>
-        <div className="lg:w-80 flex-shrink-0">
-          <HoursPieChart logs={logs} />
         </div>
       </div>
       <StatsSection logs={logs} accentColor={accentColor} />
