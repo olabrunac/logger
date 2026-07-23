@@ -35,6 +35,7 @@
 3. **Atividade Recente na sidebar direita**: Remover 1 ícone (está mostrando 6, deve mostrar 5)
 4. **Progresso de temporada (hover)**: Abrir tooltip automaticamente sem precisar de hover
 5. **Bloco "Todos"**: Adicionar botão "Todos" em todas as telas de perfil (MediaTypeProfilePage já tem, ProfilePage não)
+6. **Reviews de mídia**: Recolocar as reviews das mídias (funcionalidade removida/pendente)
 
 ## 📁 Estrutura de Pastas Importantes
 - `backend/app/api/endpoints/media.py` - Endpoints de mídia, top lists, favoritos

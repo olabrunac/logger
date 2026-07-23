@@ -42,3 +42,4 @@ Site pessoal para registrar e acompanhar filmes, séries, jogos e livros, inspir
 3. **Atividade Recente (RightSidebar)**: Mostra 6 itens, deve mostrar 5
 4. **Progresso de Temporada**: Tooltip deve abrir automaticamente no hover
 5. **Botão "Todos"**: Adicionar em `ProfilePage` (já existe em `MediaTypeProfilePage`)
+6. **Reviews de mídia**: Recolocar funcionalidade de reviews nas páginas de mídia
