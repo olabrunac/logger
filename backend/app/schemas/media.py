@@ -37,6 +37,7 @@ class MediaItemInDB(MediaItemBase):
     vote_average: Optional[float] = None
     director: Optional[str] = None
     trailer_url: Optional[str] = None
+    cast: Optional[str] = None
     page_count: Optional[int] = None
     publisher: Optional[str] = None
     book_categories: Optional[str] = None

@@ -46,6 +46,7 @@ class MediaItem(Base):
     vote_average = Column(Float, nullable=True)
     director = Column(String, nullable=True)
     trailer_url = Column(String, nullable=True)
+    cast = Column(String, nullable=True)
     # Google Books enrichment
     page_count = Column(Integer, nullable=True)
     publisher = Column(String, nullable=True)
