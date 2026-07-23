@@ -4,9 +4,10 @@ from sqlalchemy import func
 from typing import List, Any, Optional
 import json
 from app import crud, schemas
+from app.crud import crud_top_list
 from app.api import deps
 from app.services import tmdb_service, igdb_service, google_books_service, steam_service
-from app.models.media import MediaType, LogEntry, EpisodeWatched, Achievement
+from app.models.media import MediaType, LogEntry, EpisodeWatched, Achievement, TopListItem
 import datetime
 
 router = APIRouter()
@@ -69,21 +70,21 @@ def transform_book_result(item: dict) -> dict:
     }
 
 @router.get("/search", response_model=List[schemas.MediaItemCreate])
-def search_media(*, q: str = Query(..., min_length=2), media_type: MediaType, author: Optional[str] = None, year: Optional[int] = None, isbn: Optional[str] = None) -> Any:
+def search_media(*, q: str = Query("", min_length=0), media_type: MediaType, author: Optional[str] = None, year: Optional[int] = None, isbn: Optional[str] = None) -> Any:
     results = []
     if media_type == MediaType.MOVIE:
-        raw_results = tmdb_service.search_media(query=q, media_type="movie", year=year)
+        raw_results = tmdb_service.search_media(query=q or "a", media_type="movie", year=year)
         results = [transform_tmdb_result(item, MediaType.MOVIE) for item in raw_results]
     elif media_type == MediaType.SERIES:
-        raw_results = tmdb_service.search_media(query=q, media_type="tv", year=year)
+        raw_results = tmdb_service.search_media(query=q or "a", media_type="tv", year=year)
         results = [transform_tmdb_result(item, MediaType.SERIES) for item in raw_results]
     elif media_type == MediaType.GAME:
-        raw_results = igdb_service.search_games(query=q)
+        raw_results = igdb_service.search_games(query=q or "a")
         results = [transform_igdb_result(item) for item in raw_results]
         if year:
             results = [r for r in results if r.get("release_date") and r["release_date"].year == year]
     elif media_type == MediaType.BOOK:
-        raw_results = google_books_service.search_books(query=q, author=author, year=year, isbn=isbn)
+        raw_results = google_books_service.search_books(query=q or "a", author=author, year=year, isbn=isbn)
         results = [transform_book_result(item) for item in raw_results]
     return results
 
@@ -327,4 +328,92 @@ def get_game_achievements_proxy(igdb_id: int):
     if not steam_appid:
         return []
     return igdb_service.get_steam_achievements(steam_appid)
+
+
+# --- Top Lists ---
+@router.get("/users/{user_id}/top-list", response_model=List[schemas.TopListItemInDB])
+def get_user_top_list(*, db: Session = Depends(deps.get_db), user_id: int):
+    """Get user's top 5 lists for all media types"""
+    items = crud_top_list.get_user_top_list(db=db, user_id=user_id)
+    return items
+
+
+@router.post("/users/{user_id}/top-list", response_model=schemas.TopListItemInDB)
+def create_top_list_item(*, db: Session = Depends(deps.get_db), user_id: int, item_in: schemas.TopListItemCreate):
+    """Add item to user's top 5 list"""
+    # Check if position is already taken for this user
+    existing = db.query(TopListItem).filter(
+        TopListItem.user_id == user_id,
+        TopListItem.position == item_in.position
+    ).first()
+    if existing:
+        # Move existing item out of the way (or reject - let's reject for simplicity)
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail=f"Position {item_in.position} is already taken")
+    
+    # Check if media item already in user's top list
+    existing_media = db.query(TopListItem).filter(
+        TopListItem.user_id == user_id,
+        TopListItem.media_item_id == item_in.media_item_id
+    ).first()
+    if existing_media:
+        raise HTTPException(status_code=400, detail="This media item is already in your top list")
+    
+    item = TopListItem(user_id=user_id, **item_in.dict())
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+@router.put("/users/{user_id}/top-list/{item_id}", response_model=schemas.TopListItemInDB)
+def update_top_list_item(*, db: Session = Depends(deps.get_db), user_id: int, item_id: int, item_in: schemas.TopListItemUpdate):
+    """Update top list item (reorder)"""
+    item = db.query(TopListItem).filter(TopListItem.id == item_id, TopListItem.user_id == user_id).first()
+    if not item:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Item not found")
+    
+    if item_in.position is not None:
+        # Check if new position is taken
+        existing = db.query(TopListItem).filter(
+            TopListItem.user_id == user_id,
+            TopListItem.position == item_in.position,
+            TopListItem.id != item_id
+        ).first()
+        if existing:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=400, detail=f"Position {item_in.position} is already taken")
+    
+    for field, value in item_in.dict(exclude_unset=True).items():
+        setattr(item, field, value)
+    
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+@router.delete("/users/{user_id}/top-list/{item_id}")
+def delete_top_list_item(*, db: Session = Depends(deps.get_db), user_id: int, item_id: int):
+    """Remove item from top list"""
+    item = db.query(TopListItem).filter(TopListItem.id == item_id, TopListItem.user_id == user_id).first()
+    if not item:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Item not found")
+    
+    db.delete(item)
+    db.commit()
+    return {"message": "Item removed from top list"}
+
+
+@router.post("/users/{user_id}/top-list/reorder")
+def reorder_top_list(*, db: Session = Depends(deps.get_db), user_id: int, items: list[schemas.TopListItemUpdate]):
+    """Bulk reorder top list items"""
+    for item_in in items:
+        if item_in.position is not None:
+            item = db.query(TopListItem).filter(TopListItem.id == item_in.id, TopListItem.user_id == user_id).first()
+            if item:
+                item.position = item_in.position
+    db.commit()
+    return {"message": "Top list reordered successfully"}
 

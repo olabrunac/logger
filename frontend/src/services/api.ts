@@ -15,4 +15,25 @@ export const uploadFile = (url: string, formData: FormData) => {
   return uploadApi.post(url, formData);
 };
 
+// Top List API
+export const getTopList = (userId: number) => {
+  return api.get(`/users/${userId}/top-list`);
+};
+
+export const createTopListItem = (userId: number, data: { media_item_id: number; position: number }) => {
+  return api.post(`/users/${userId}/top-list`, { media_item_id: data.media_item_id, position: data.position });
+};
+
+export const updateTopListItem = (userId: number, itemId: number, data: { position: number }) => {
+  return api.put(`/users/${userId}/top-list/${itemId}`, { position: data.position });
+};
+
+export const deleteTopListItem = (userId: number, itemId: number) => {
+  return api.delete(`/users/${userId}/top-list/${itemId}`);
+};
+
+export const reorderTopList = (userId: number, items: { id: number; position: number }[]) => {
+  return api.put(`/users/${userId}/top-list/reorder`, items);
+};
+
 export default api;

@@ -1,3 +1,5 @@
+import type { MediaItem } from './media';
+
 export interface User {
   id: number;
   username: string;
@@ -47,3 +49,22 @@ export interface LogEntry {
 }
 
 export * from './media';
+
+export interface TopListItem {
+  id: number;
+  user_id: number;
+  media_item_id: number;
+  position: number;
+  created_at: string;
+  updated_at: string;
+  media_item?: MediaItem;
+}
+
+export interface TopListItemCreate {
+  media_item_id: number;
+  position: number;
+}
+
+export interface TopListItemUpdate {
+  position?: number;
+}

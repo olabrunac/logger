@@ -46,6 +46,28 @@ class MediaItemInDB(MediaItemBase):
     class Config:
         from_attributes = True
 
+# --- Top List Schemas ---
+class TopListItemBase(BaseModel):
+    media_item_id: int
+    position: int  # 1 to 5
+
+class TopListItemCreate(TopListItemBase):
+    pass
+
+class TopListItemUpdate(BaseModel):
+    position: Optional[int] = None
+
+class TopListItemInDB(TopListItemBase):
+    id: int
+    user_id: int
+    created_at: datetime
+    updated_at: datetime
+    media_item: Optional["MediaItemInDB"] = None
+    class Config:
+        from_attributes = True
+
+TopListItemInDB.model_rebuild()
+
 # --- Log Schemas ---
 class LogEntryBase(BaseModel):
     log_date: Optional[datetime] = datetime.now()

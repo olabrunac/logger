@@ -39,3 +39,22 @@ export interface MediaItem {
   book_language?: string;
   book_rating?: number;
 }
+
+export interface TopListItem {
+  id: number;
+  user_id: number;
+  media_item_id: number;
+  position: number;
+  created_at: string;
+  updated_at: string;
+  media_item?: MediaItem;
+}
+
+export type TopListItemCreate = {
+  media_item_id: number;
+  position: number;
+};
+
+export type TopListItemUpdate = {
+  position?: number;
+};

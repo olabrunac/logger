@@ -2,9 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api from '../services/api';
 import type { LogEntry, User } from '../types';
-import ActivityGraph from '../components/sections/ActivityGraph';
-import StatsSection from '../components/sections/StatsSection';
-import GenreChart from '../components/sections/GenreChart';
+import TopListsSection from '../components/sections/TopListsSection';
 
 interface ProfilePageProps {
   currentUser: User;
@@ -82,7 +80,7 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
   };
 
   const recentLogs = useMemo(() => {
-    return [...logs].sort((a, b) => b.id - a.id).slice(0, 12);
+    return [...logs].sort((a, b) => b.id - a.id).slice(0, 8);
   }, [logs]);
 
   const accentColor = profileUser?.accent_color || '#ff6b35';
@@ -265,13 +263,11 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
         )}
       </section>
 
-      <div className="flex flex-col lg:flex-row lg:items-stretch gap-6">
-        <div className="flex-1 min-w-0">
-          <ActivityGraph logs={logs} />
-        </div>
-      </div>
-      <StatsSection logs={logs} accentColor={accentColor} />
-      <GenreChart logs={logs} accentColor={accentColor} />
+      <TopListsSection
+        profileUser={profileUser}
+        currentUser={currentUser}
+        accentColor={accentColor}
+      />
 
       {logs.length > 0 && (
         <section>

@@ -93,3 +93,16 @@ class Achievement(Base):
     image_url = Column(String, nullable=True)
     unlocked = Column(Boolean, default=False)
     log = relationship("LogEntry", back_populates="achievements")
+
+
+class TopListItem(Base):
+    __tablename__ = "top_list_item"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
+    media_item_id = Column(Integer, ForeignKey("mediaitem.id"), nullable=False)
+    position = Column(Integer, nullable=False)  # 1 to 5
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+    user = relationship("User", back_populates="top_list_items")
+    media_item = relationship("MediaItem")
