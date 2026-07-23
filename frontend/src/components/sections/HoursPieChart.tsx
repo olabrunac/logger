@@ -52,7 +52,7 @@ const HoursPieChart = ({ logs, mediaType }: HoursPieChartProps) => {
   const cx = 80;
   const cy = 80;
   const outerR = 70;
-  const innerR = 45; // donut mais grosso (3px mais fino o buraco)
+  const innerR = 35; // Mais grosso: diminui o buraco central
   const gap = 1.5;
 
   let currentAngle = 0;
@@ -65,9 +65,9 @@ const HoursPieChart = ({ logs, mediaType }: HoursPieChartProps) => {
   });
 
   return (
-    <div className="flex flex-col items-center gap-3">
-      <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-1">Horas por Mídia</div>
-      <div style={{ position: 'relative', width: 110, height: 110, flexShrink: 0 }}>
+    <div className="flex flex-col gap-3">
+      <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-1 w-full text-left">Horas por Mídia</div>
+      <div style={{ position: 'relative', width: 110, height: 110, flexShrink: 0, margin: '0 auto' }}>
         <svg width="110" height="110" viewBox="0 0 160 160">
           {slices.map((s) => (
             <path
