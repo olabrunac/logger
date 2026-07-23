@@ -44,7 +44,63 @@ def get_tv_season_episodes(tmdb_id: int, season_number: int):
         response = requests.get(url, params=params)
         response.raise_for_status()
         data = response.json()
-        return [{"episode_number": e["episode_number"], "name": e["name"], "air_date": e.get("air_date"), "still_path": e.get("still_path")} for e in data.get("episodes", [])]
+        return [{"episode_number": e["episode_number"], "season_number": e["season_number"], "name": e["name"], "air_date": e.get("air_date"), "still_path": e.get("still_path")} for e in data.get("episodes", [])]
     except requests.exceptions.RequestException as e:
         print(f"Error fetching TMDb episodes: {e}")
         return []
+
+def get_movie_details(tmdb_id: int):
+    if not settings.TMDB_API_KEY:
+        return None
+    url = f"{BASE_URL}/movie/{tmdb_id}"
+    params = {"api_key": settings.TMDB_API_KEY, "language": "pt-BR", "append_to_response": "credits,videos"}
+    try:
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        data = response.json()
+        director = ""
+        for crew in data.get("credits", {}).get("crew", []):
+            if crew.get("job") == "Director":
+                director = crew.get("name", "")
+                break
+        trailer = ""
+        for v in data.get("videos", {}).get("results", []):
+            if v.get("site") == "YouTube" and v.get("type") == "Trailer":
+                trailer = f"https://www.youtube.com/watch?v={v['key']}"
+                break
+        return {
+            "genres": ", ".join(g["name"] for g in data.get("genres", [])),
+            "runtime": data.get("runtime"),
+            "vote_average": data.get("vote_average"),
+            "director": director,
+            "trailer_url": trailer,
+        }
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching TMDb movie details: {e}")
+        return None
+
+def get_tv_details(tmdb_id: int):
+    if not settings.TMDB_API_KEY:
+        return None
+    url = f"{BASE_URL}/tv/{tmdb_id}"
+    params = {"api_key": settings.TMDB_API_KEY, "language": "pt-BR", "append_to_response": "credits"}
+    try:
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        data = response.json()
+        creator = ""
+        for c in data.get("created_by", []):
+            creator = c.get("name", "")
+            break
+        runtime = None
+        if data.get("episode_run_time"):
+            runtime = data["episode_run_time"][0]
+        return {
+            "genres": ", ".join(g["name"] for g in data.get("genres", [])),
+            "runtime": runtime,
+            "vote_average": data.get("vote_average"),
+            "director": creator,
+        }
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching TMDb TV details: {e}")
+        return None

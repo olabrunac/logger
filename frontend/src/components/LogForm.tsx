@@ -1,221 +1,417 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { LogStatus } from '../types';
-import { LogStatusValues } from '../types';
+import type { MediaItem } from '../types/media';
+import { ChevronLeft, ChevronDown, ChevronUp, X, Check, Gamepad2, Film, Tv, Book, Flag, MessageCircle, Skull, Eye, Heart, Clock, Calendar, Star, Repeat } from 'lucide-react';
 
 interface LogFormProps {
   onSubmit: (logDetails: any) => void;
   onCancel: () => void;
   initialData?: any;
+  mediaItem?: MediaItem;
+  isEditing?: boolean;
 }
 
-const LogForm: React.FC<LogFormProps> = ({ onSubmit, onCancel, initialData }) => {
-  const [status, setStatus] = useState<LogStatus>(LogStatusValues[1]); // "completed"
-  const [rating, setRating] = useState<number | string>(initialData?.rating ?? '');
-  const [review, setReview] = useState(initialData?.review ?? '');
-  const [isFavorite, setIsFavorite] = useState(initialData?.is_favorite ?? false);
-  const [isRelog, setIsRelog] = useState(initialData?.is_relog ?? false);
-  const [platform, setPlatform] = useState(initialData?.platform ?? '');
-  const [hoursSpent, setHoursSpent] = useState<number | string>(initialData?.hours_spent ?? '');
+const STATUS_CONFIG: Record<string, { options: { value: LogStatus; label: string; icon: typeof Film }[] }> = {
+  game: {
+    options: [
+      { value: 'in_progress', label: 'Jogando', icon: Gamepad2 },
+      { value: 'completed', label: 'Finalizado', icon: Flag },
+      { value: 'wishlist', label: 'Pretendo Jogar', icon: MessageCircle },
+      { value: 'dropped', label: 'Abandonado', icon: Skull },
+    ],
+  },
+  movie: {
+    options: [
+      { value: 'in_progress', label: 'Assistindo', icon: Eye },
+      { value: 'completed', label: 'Assistido', icon: Flag },
+      { value: 'wishlist', label: 'Pretendo Assistir', icon: Film },
+      { value: 'dropped', label: 'Abandonado', icon: Skull },
+    ],
+  },
+  series: {
+    options: [
+      { value: 'in_progress', label: 'Assistindo', icon: Eye },
+      { value: 'completed', label: 'Finalizado', icon: Flag },
+      { value: 'wishlist', label: 'Pretendo Assistir', icon: Tv },
+      { value: 'dropped', label: 'Abandonado', icon: Skull },
+    ],
+  },
+  book: {
+    options: [
+      { value: 'in_progress', label: 'Lendo', icon: Book },
+      { value: 'completed', label: 'Lido', icon: Flag },
+      { value: 'wishlist', label: 'Pretendo Ler', icon: Book },
+      { value: 'dropped', label: 'Abandonado', icon: Skull },
+    ],
+  },
+};
+
+const PLATFORM_OPTIONS: Record<string, string[]> = {
+  game: ['Steam', 'Epic Games', 'GOG', 'Xbox', 'PlayStation', 'Nintendo', 'Mobile', 'Pirata', 'Não especificado'],
+  movie: ['Netflix', 'Prime Video', 'Disney+', 'HBO Max', 'Apple TV+', 'Cinema', 'Blu-ray', 'Stremio', 'Não especificado'],
+  series: ['Netflix', 'Prime Video', 'Disney+', 'HBO Max', 'Apple TV+', 'Crunchyroll', 'Stremio', 'Não especificado'],
+  book: ['Físico', 'Kindle', 'PDF', 'Audiobook', 'Web', 'Pirata', 'Não especificado'],
+};
+
+const TYPE_META: Record<string, { emoji: string; color: string; label: string }> = {
+  movie: { emoji: '🎬', color: '#fbbf24', label: 'Filme' },
+  series: { emoji: '📺', color: '#ef4444', label: 'Série' },
+  game: { emoji: '🎮', color: '#60a5fa', label: 'Jogo' },
+  book: { emoji: '📚', color: '#4ade80', label: 'Livro' },
+};
+
+const LogForm: React.FC<LogFormProps> = ({ onSubmit, onCancel, initialData, mediaItem, isEditing = false }) => {
+  const mediaType = mediaItem?.media_type || 'game';
+  const meta = TYPE_META[mediaType] || TYPE_META.game;
+  const statusConfig = STATUS_CONFIG[mediaType] || STATUS_CONFIG.game;
+  const platformOptions = PLATFORM_OPTIONS[mediaType] || PLATFORM_OPTIONS.game;
+
+  const [status, setStatus] = useState<LogStatus>(initialData?.status || statusConfig.options[0].value);
+  const [rating, setRating] = useState<number>(initialData?.rating || 0);
+  const [platform, setPlatform] = useState(initialData?.platform || '');
+  const [hoursSpent, setHoursSpent] = useState<string>(initialData?.hours_spent?.toString() || '');
+  const [pagesRead, setPagesRead] = useState<string>(initialData?.pages_read?.toString() || '');
   const [logDate, setLogDate] = useState(initialData?.log_date ? initialData.log_date.split('T')[0] : new Date().toISOString().split('T')[0]);
+  const [isFavorite, setIsFavorite] = useState(initialData?.is_favorite || false);
+  const [relogCount, setRelogCount] = useState<string>(initialData?.relog_count?.toString() || '0');
+  const [showDates, setShowDates] = useState(false);
+  const [showTime, setShowTime] = useState(false);
   const [hoveredStar, setHoveredStar] = useState<number | null>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (initialData) {
       setStatus(initialData.status);
-      setRating(initialData.rating ?? '');
-      setReview(initialData.review ?? '');
-      setIsFavorite(initialData.is_favorite ?? false);
-      setIsRelog(initialData.is_relog ?? false);
-      setPlatform(initialData.platform ?? '');
-      setHoursSpent(initialData.hours_spent ?? '');
+      setRating(initialData.rating || 0);
+      setPlatform(initialData.platform || '');
+      setHoursSpent(initialData.hours_spent?.toString() || '');
+      setPagesRead(initialData.pages_read?.toString() || '');
       setLogDate(initialData.log_date ? initialData.log_date.split('T')[0] : new Date().toISOString().split('T')[0]);
+      setIsFavorite(initialData.is_favorite || false);
+      setRelogCount(initialData.relog_count?.toString() || '0');
     }
   }, [initialData]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onCancel();
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [onCancel]);
+
+  const handleSubmit = () => {
     onSubmit({
       status,
-      rating: rating === '' ? null : Number(rating),
-      review,
-      is_favorite: isFavorite,
-      is_relog: isRelog,
+      rating: rating || null,
       platform: platform || null,
-      hours_spent: hoursSpent === '' ? null : Number(String(hoursSpent).replace(',', '.')),
+      hours_spent: mediaType === 'book' ? (hoursSpent ? Number(String(hoursSpent).replace(',', '.')) : null) : (hoursSpent ? Number(String(hoursSpent).replace(',', '.')) : null),
+      pages_read: mediaType === 'book' ? (pagesRead ? Number(pagesRead) : null) : undefined,
       log_date: logDate ? new Date(logDate).toISOString() : new Date().toISOString(),
+      is_favorite: isFavorite,
+      relog_count: mediaType === 'movie' ? Number(relogCount) || 0 : undefined,
     });
   };
 
   const renderStars = () => {
-    const currentRating = rating === '' ? 0 : Number(rating);
-    const displayRating = hoveredStar !== null ? hoveredStar : currentRating;
-
-    return Array.from({ length: 5 }, (_, i) => {
-      const starValue = i + 1;
-      const fillPercent = displayRating >= starValue ? 100
-        : displayRating >= starValue - 0.5 ? 50
-        : 0;
-
-      return (
-        <button
-          key={starValue}
-          type="button"
-          onClick={(e) => {
-            const rect = e.currentTarget.getBoundingClientRect();
-            const clickX = e.clientX - rect.left;
-            const isLeftHalf = clickX < rect.width / 2;
-            setRating(isLeftHalf ? starValue - 0.5 : starValue);
-          }}
-          onMouseEnter={(e) => {
-            const rect = e.currentTarget.getBoundingClientRect();
-            const hoverX = e.clientX - rect.left;
-            const isLeftHalf = hoverX < rect.width / 2;
-            setHoveredStar(isLeftHalf ? starValue - 0.5 : starValue);
-          }}
-          onMouseLeave={() => setHoveredStar(null)}
-          style={{
-            background: 'none',
-            border: 'none',
-            fontSize: '1.75rem',
-            cursor: 'pointer',
-            padding: '0 0.125rem',
-            lineHeight: 1,
-            position: 'relative',
-            transition: 'transform var(--transition)',
-            transform: hoveredStar !== null ? 'scale(1.15)' : 'scale(1)',
-          }}
-          aria-label={`${starValue} estrelas`}
-        >
-          <span style={{ color: 'var(--border)' }}>★</span>
-          {fillPercent > 0 && (
-            <span style={{
-              position: 'absolute',
-              left: 0,
-              top: 0,
-              width: `${fillPercent}%`,
-              overflow: 'hidden',
-              color: 'var(--rating-gold)',
-            }}>★</span>
-          )}
-        </button>
-      );
-    });
+    const displayRating = hoveredStar !== null ? hoveredStar : rating;
+    return (
+      <div className="flex items-center gap-1">
+        {Array.from({ length: 5 }, (_, i) => {
+          const starValue = i + 1;
+          const fillPercent = displayRating >= starValue ? 100
+            : displayRating >= starValue - 0.5 ? 50 : 0;
+          return (
+            <button
+              key={starValue}
+              type="button"
+              onClick={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const clickX = e.clientX - rect.left;
+                const isLeftHalf = clickX < rect.width / 2;
+                setRating(isLeftHalf ? starValue - 0.5 : starValue);
+              }}
+              onMouseEnter={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const hoverX = e.clientX - rect.left;
+                const isLeftHalf = hoverX < rect.width / 2;
+                setHoveredStar(isLeftHalf ? starValue - 0.5 : starValue);
+              }}
+              onMouseLeave={() => setHoveredStar(null)}
+              className="relative w-10 h-10 transition-transform hover:scale-110"
+              aria-label={`${starValue} estrelas`}
+            >
+              <Star size={36} className="absolute inset-0" style={{ color: 'rgba(255,255,255,0.1)' }} />
+              {fillPercent > 0 && (
+                <div className="absolute inset-0 overflow-hidden" style={{ width: `${fillPercent}%` }}>
+                  <Star size={36} fill="#F5C518" style={{ color: '#F5C518' }} />
+                </div>
+              )}
+            </button>
+          );
+        })}
+        <span className="ml-2 text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          <span className="text-white font-bold">{rating || 0}</span> / 5
+        </span>
+      </div>
+    );
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      <div className="form-group">
-        <label className="form-label">Status</label>
-        <select
-          value={status}
-          onChange={(e) => setStatus(e.target.value as LogStatus)}
-          className="form-select"
-        >
-          {LogStatusValues.map((s) => (
-            <option key={s} value={s}>
-              {s.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())}
-            </option>
-          ))}
-        </select>
-      </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}>
+      <div ref={modalRef} className="w-full max-w-[480px] max-h-[90vh] overflow-y-auto rounded-2xl" style={{ background: '#151821' }}>
 
-      <div className="form-group">
-        <label className="form-label">Nota (0-5)</label>
-        <div className="rating-input">
-          <div className="rating-stars">
-            {renderStars()}
-          </div>
-          <span className="rating-value">
-            {rating !== '' ? Number(rating).toFixed(1) : '—'}
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+          <button onClick={onCancel} className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors" style={{ color: 'rgba(255,255,255,0.5)' }}>
+            <ChevronLeft size={20} />
+          </button>
+          <span className="text-base font-bold text-white">
+            {isEditing ? 'Editar' : 'Adicionar'} {meta.label}
           </span>
+          <button onClick={onCancel} className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors" style={{ color: 'rgba(255,255,255,0.5)' }}>
+            <X size={20} />
+          </button>
         </div>
-        <p className="form-hint">Clique nas estrelas para avaliar (meias estrelas disponíveis)</p>
-      </div>
 
-      <div className="form-row">
-        <div className="form-group">
-          <label className="form-label">Plataforma</label>
-          <input
-            type="text"
-            value={platform}
-            onChange={(e) => setPlatform(e.target.value)}
-            placeholder="Ex: PS5, Steam, Netflix, Kindle..."
-            className="form-input"
-          />
+        <div className="p-6 space-y-6">
+
+          {/* Favorite toggle in media info */}
+          {mediaItem && (
+            <div className="flex gap-4">
+              {mediaItem.cover_image_url ? (
+                <img src={mediaItem.cover_image_url} alt="" className="w-[70px] h-[93px] rounded-lg object-cover flex-shrink-0" />
+              ) : (
+                <div className="w-[70px] h-[93px] rounded-lg flex items-center justify-center flex-shrink-0 text-2xl" style={{ background: meta.color + '22' }}>
+                  {meta.emoji}
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <div className="text-white font-bold text-base truncate flex-1">{mediaItem.title}</div>
+                  <button
+                    type="button"
+                    onClick={() => setIsFavorite(!isFavorite)}
+                    className="flex-shrink-0 transition-colors"
+                    style={{ color: isFavorite ? '#FA3380' : 'rgba(255,255,255,0.3)' }}
+                  >
+                    <Heart size={20} fill={isFavorite ? '#FA3380' : 'none'} />
+                  </button>
+                </div>
+                {mediaItem.release_date && (
+                  <div className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                    {mediaItem.release_date}
+                  </div>
+                )}
+                {mediaItem.genres && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {mediaItem.genres.split(', ').slice(0, 4).map((genre: string) => (
+                      <span key={genre} className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}>
+                        {genre}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Status */}
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-wider mb-3" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              Status
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              {statusConfig.options.map((opt) => {
+                const Icon = opt.icon;
+                const isActive = status === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setStatus(opt.value)}
+                    className="flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all"
+                    style={{
+                      background: isActive ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.03)',
+                      opacity: isActive ? 1 : 0.5,
+                      border: isActive ? `1px solid ${meta.color}44` : '1px solid transparent',
+                    }}
+                  >
+                    <Icon size={22} style={{ color: isActive ? meta.color : 'rgba(255,255,255,0.4)' }} />
+                    <span className="text-[9px] font-medium text-center leading-tight" style={{ color: isActive ? '#fff' : 'rgba(255,255,255,0.4)' }}>
+                      {opt.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Rating */}
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-wider mb-3" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              Avaliação
+            </div>
+            <div className="flex items-center justify-between p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)' }}>
+              {renderStars()}
+            </div>
+          </div>
+
+          {/* Platform */}
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-wider mb-3" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              {mediaType === 'game' ? 'Plataforma' : mediaType === 'book' ? 'Formato' : 'Onde Assistir'}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {platformOptions.map((p) => {
+                const selected = platform.split(', ').filter(Boolean);
+                const isActive = selected.includes(p);
+                return (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => {
+                      if (mediaType === 'book') {
+                        if (isActive) {
+                          setPlatform(selected.filter((s: string) => s !== p).join(', '));
+                        } else if (selected.length < 2) {
+                          setPlatform([...selected, p].join(', '));
+                        }
+                      } else {
+                        setPlatform(isActive ? '' : p);
+                      }
+                    }}
+                    className="text-xs px-3 py-1.5 rounded-full transition-all font-medium"
+                    style={{
+                      background: isActive ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.05)',
+                      color: isActive ? '#3B82F6' : 'rgba(255,255,255,0.5)',
+                      border: isActive ? '1px solid rgba(59,130,246,0.4)' : '1px solid transparent',
+                      opacity: mediaType === 'book' && !isActive && selected.length >= 2 ? 0.4 : 1,
+                    }}
+                  >
+                    {p}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Accordions */}
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={() => setShowDates(!showDates)}
+              className="w-full flex items-center justify-between p-3 rounded-xl transition-colors"
+              style={{ background: 'rgba(255,255,255,0.03)' }}
+            >
+              <div className="flex items-center gap-3">
+                <Calendar size={18} style={{ color: 'rgba(255,255,255,0.4)' }} />
+                <span className="text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>Adicionar data</span>
+              </div>
+              {showDates ? <ChevronUp size={16} style={{ color: 'rgba(255,255,255,0.3)' }} /> : <ChevronDown size={16} style={{ color: 'rgba(255,255,255,0.3)' }} />}
+            </button>
+            {showDates && (
+              <div className="px-3 pb-3">
+                <input
+                  type="date"
+                  value={logDate}
+                  onChange={(e) => setLogDate(e.target.value)}
+                  className="w-full text-sm p-2 rounded-lg outline-none"
+                  style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.08)' }}
+                />
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setShowTime(!showTime)}
+              className="w-full flex items-center justify-between p-3 rounded-xl transition-colors"
+              style={{ background: 'rgba(255,255,255,0.03)' }}
+            >
+              <div className="flex items-center gap-3">
+                <Clock size={18} style={{ color: 'rgba(255,255,255,0.4)' }} />
+                <span className="text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                  {mediaType === 'book' ? 'Páginas e tempo' : 'Adicionar tempo'}
+                </span>
+              </div>
+              {showTime ? <ChevronUp size={16} style={{ color: 'rgba(255,255,255,0.3)' }} /> : <ChevronDown size={16} style={{ color: 'rgba(255,255,255,0.3)' }} />}
+            </button>
+            {showTime && (
+              <div className="px-3 pb-3 space-y-2">
+                {mediaType === 'book' ? (
+                  <>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={pagesRead}
+                      onChange={(e) => setPagesRead(e.target.value)}
+                      placeholder="Páginas"
+                      className="w-full text-sm p-2 rounded-lg outline-none"
+                      style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.08)' }}
+                    />
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.5"
+                      value={hoursSpent}
+                      onChange={(e) => setHoursSpent(e.target.value)}
+                      placeholder="Horas"
+                      className="w-full text-sm p-2 rounded-lg outline-none"
+                      style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.08)' }}
+                    />
+                  </>
+                ) : (
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    value={hoursSpent}
+                    onChange={(e) => setHoursSpent(e.target.value)}
+                    placeholder="Horas"
+                    className="w-full text-sm p-2 rounded-lg outline-none"
+                    style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.08)' }}
+                  />
+                )}
+              </div>
+            )}
+
+            {mediaType === 'movie' && (
+              <div className="px-3 pb-1 pt-1">
+                <div className="flex items-center gap-3">
+                  <Repeat size={16} style={{ color: 'rgba(255,255,255,0.4)' }} />
+                  <span className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>Vezes assistido</span>
+                  <div className="flex items-center gap-2 ml-auto">
+                    <button type="button" onClick={() => setRelogCount(String(Math.max(0, Number(relogCount) - 1)))}
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-sm font-bold" style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}>-</button>
+                    <span className="text-sm font-bold w-6 text-center" style={{ color: '#fff' }}>{Number(relogCount) + 1}x</span>
+                    <button type="button" onClick={() => setRelogCount(String(Number(relogCount) + 1))}
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-sm font-bold" style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}>+</button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
         </div>
-        <div className="form-group">
-          <label className="form-label">Horas gastas</label>
-          <input
-            type="number"
-            min="0"
-            step="0.5"
-            value={hoursSpent}
-            onChange={(e) => setHoursSpent(e.target.value)}
-            placeholder="0"
-            className="form-input"
-            style={{ width: '100%' }}
-          />
+
+        {/* Footer */}
+        <div className="p-6 pt-0 space-y-3">
+          <button
+            type="button"
+            onClick={handleSubmit}
+            className="w-full h-12 rounded-full flex items-center justify-center gap-2 text-white font-bold text-sm transition-all"
+            style={{ background: '#3B82F6' }}
+          >
+            <Check size={18} />
+            {isEditing ? 'Salvar Alterações' : 'Salvar'}
+          </button>
+          <p className="text-center text-[10px]" style={{ color: 'rgba(255,255,255,0.2)' }}>
+            Você pode editar todos os detalhes depois
+          </p>
         </div>
       </div>
-
-      <div className="form-row">
-        <div className="form-group">
-          <label className="form-label">Data do log</label>
-          <input
-            type="date"
-            value={logDate}
-            onChange={(e) => setLogDate(e.target.value)}
-            className="form-input"
-          />
-        </div>
-      </div>
-
-      <div className="form-group">
-        <label className="form-label">Review</label>
-        <textarea
-          value={review}
-          onChange={(e) => setReview(e.target.value)}
-          rows={4}
-          placeholder="Escreva sua opinião, pensamentos, destaques..."
-          className="form-textarea"
-        />
-      </div>
-
-      <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-        <label className="favorite-toggle">
-          <input
-            type="checkbox"
-            checked={isFavorite}
-            onChange={(e) => setIsFavorite(e.target.checked)}
-          />
-          <svg width="24" height="24" viewBox="0 0 24 24" fill={isFavorite ? '#ef4444' : 'none'} stroke="currentColor" strokeWidth="2">
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-          </svg>
-          <span>Favorito</span>
-        </label>
-
-        <label className="favorite-toggle" style={{ color: isRelog ? 'var(--accent)' : 'inherit' }}>
-          <input
-            type="checkbox"
-            checked={isRelog}
-            onChange={(e) => setIsRelog(e.target.checked)}
-          />
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-          </svg>
-          <span>Rejogado/Reassistido/Relido</span>
-        </label>
-      </div>
-
-      <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
-        <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
-          {initialData ? 'Atualizar Log' : 'Salvar Log'}
-        </button>
-        <button type="button" onClick={onCancel} className="btn btn-secondary" style={{ flex: 1 }}>
-          Cancelar
-        </button>
-      </div>
-    </form>
+    </div>
   );
 };
 

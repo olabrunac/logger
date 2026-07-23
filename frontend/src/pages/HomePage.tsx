@@ -14,13 +14,12 @@ const TYPE_META: Record<MediaType, { emoji: string; color: string }> = {
   book: { emoji: '📚', color: '#4ade80' },
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  in_progress: 'Em progresso',
-  completed: 'Completo',
-  dropped: 'Abandonado',
-  wishlist: 'Desejo',
-  soon: 'Em breve',
-  platinated: 'Platinado',
+const STATUS_ICONS: Record<string, string> = {
+  completed: '✓',
+  in_progress: '•••',
+  dropped: '💀',
+  wishlist: '★',
+  soon: '…',
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -160,14 +159,39 @@ const HomePage = ({ user }: HomePageProps) => {
                     </div>
                   )}
                   {log.status && (
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full text-white" style={{background: STATUS_COLORS[log.status] || 'rgba(100,100,100,0.85)'}}>
-                      {STATUS_LABELS[log.status] || log.status}
+                    <span className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style={{background: STATUS_COLORS[log.status] || 'rgba(100,100,100,0.85)'}}>
+                      {STATUS_ICONS[log.status] || log.status[0].toUpperCase()}
+                    </span>
+                  )}
+                  {log.media_item.media_type === 'game' && log.unlocked_achievements != null && log.total_achievements != null && log.total_achievements > 0 && (
+                    <span className="h-6 px-1.5 flex items-center justify-center text-[9px] font-bold backdrop-blur-sm rounded-full" style={{ background: log.unlocked_achievements === log.total_achievements ? 'rgba(250,204,21,0.85)' : 'rgba(0,0,0,0.7)', color: log.unlocked_achievements === log.total_achievements ? '#000' : '#fff' }}>
+                      {log.unlocked_achievements === log.total_achievements ? '100%' : `${log.unlocked_achievements}/${log.total_achievements}`}
                     </span>
                   )}
                 </div>
                 {log.platform && (
                   <div className="absolute top-2 right-2 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
                     {log.platform}
+                  </div>
+                )}
+                {log.media_item.media_type === 'movie' && (log.relog_count ?? 0) > 0 && (
+                  <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
+                    {(log.relog_count ?? 0) + 1}x
+                  </div>
+                )}
+                {log.media_item.media_type === 'series' && log.watched_episodes != null && log.total_episodes != null && log.total_episodes > 0 && (
+                  <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
+                    {log.watched_episodes}/{log.total_episodes}
+                  </div>
+                )}
+                {log.media_item.media_type === 'game' && log.hours_spent != null && log.hours_spent > 0 && (
+                  <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
+                    {log.hours_spent}h
+                  </div>
+                )}
+                {log.media_item.media_type === 'book' && log.hours_spent != null && log.hours_spent > 0 && (
+                  <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
+                    {log.hours_spent}h
                   </div>
                 )}
               </Link>

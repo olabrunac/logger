@@ -5,6 +5,7 @@ import SearchMedia from '../components/SearchMedia';
 import LogForm from '../components/LogForm';
 import api from '../services/api';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { ChevronLeft } from 'lucide-react';
 
 const NewLogPage: React.FC = () => {
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
@@ -92,32 +93,28 @@ const NewLogPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <Link to={editingLog ? `/log/${editingLog.id}` : '/'} className="mdf-btn-ghost text-sm inline-flex items-center gap-2">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M15 18l-6-6 6-6" />
-        </svg>
-        {editingLog ? 'Voltar ao log' : 'Voltar'}
-      </Link>
-
       {!selectedMedia ? (
-        <SearchMedia onSelectMedia={handleSelectMedia} />
-      ) : (
         <div>
-          <h2 className="font-display text-2xl font-bold" style={{ marginBottom: '1.5rem' }}>
-            {editingLog ? 'Editar Log' : 'Novo Log'}: {selectedMedia.title}
-          </h2>
-          <LogForm
-            onSubmit={handleLogSubmit}
-            onCancel={() => {
-              if (editingLog) {
-                navigate(`/log/${editingLog.id}`);
-              } else {
-                setSelectedMedia(null);
-              }
-            }}
-            initialData={editingLog || undefined}
-          />
+          <Link to={editingLog ? '/log/' + editingLog.id : '/'} className="mdf-btn-ghost text-sm inline-flex items-center gap-2">
+            <ChevronLeft size={16} />
+            {editingLog ? 'Voltar ao log' : 'Voltar'}
+          </Link>
+          <SearchMedia onSelectMedia={handleSelectMedia} />
         </div>
+      ) : (
+        <LogForm
+          onSubmit={handleLogSubmit}
+          onCancel={() => {
+            if (editingLog) {
+              navigate('/log/' + editingLog.id);
+            } else {
+              setSelectedMedia(null);
+            }
+          }}
+          initialData={editingLog || undefined}
+          mediaItem={selectedMedia}
+          isEditing={!!editingLog}
+        />
       )}
     </div>
   );

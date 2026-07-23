@@ -52,35 +52,28 @@ const RatingDistribution = ({ logs, mediaType, color }: RatingDistributionProps)
   const avg = logs.filter((l) => l.rating && l.rating > 0 && (!mediaType || l.media_item.media_type === mediaType)).reduce((s, l) => s + (l.rating || 0), 0) / Math.max(data.total, 1);
 
   return (
-    <div className="profile-section">
-      <div className="section-header">
-        <div className="section-title-row">
-          <span className="section-accent-bar" style={{ background: color }} />
-          <h2 className="section-title">Distribuição de Avaliações</h2>
-        </div>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+    <div className="mdf-card p-4 h-full flex flex-col">
+      <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-3">Avaliações</div>
+      <div className="flex flex-col gap-2 flex-1">
         {[5, 4, 3, 2, 1].map((star) => {
           const idx = star - 1;
           const count = data.buckets[idx];
           const pct = data.maxCount > 0 ? (count / data.maxCount) * 100 : 0;
           return (
-            <div key={star} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <span style={{ width: '24px', textAlign: 'right', fontSize: '0.875rem', fontWeight: 600, color: barColors[idx] }}>
+            <div key={star} className="flex items-center gap-2">
+              <span className="w-5 text-right text-xs font-semibold" style={{ color: barColors[idx] }}>
                 {star}★
               </span>
-              <div style={{ flex: 1, height: '18px', background: 'var(--mdf-surface)', borderRadius: '4px', overflow: 'hidden' }}>
-                <div style={{ width: pct + '%', height: '100%', background: barColors[idx], borderRadius: '4px', transition: 'width 0.3s ease' }} />
+              <div className="flex-1 h-3 rounded-sm overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                <div className="h-full rounded-sm transition-all duration-300" style={{ width: pct + '%', background: barColors[idx] }} />
               </div>
-              <span style={{ width: '32px', fontSize: '0.8125rem', color: 'var(--text-muted)', textAlign: 'left' }}>
-                {count}
-              </span>
+              <span className="w-5 text-[10px] text-white/40">{count}</span>
             </div>
           );
         })}
       </div>
-      <div style={{ marginTop: '0.75rem', fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-        Média: {avg.toFixed(1)} · Total: {data.total} avaliações
+      <div className="mt-2 text-[10px] text-white/30">
+        Média: {avg.toFixed(1)} · {data.total} total
       </div>
     </div>
   );

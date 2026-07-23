@@ -25,6 +25,41 @@ const STATUS_GROUPS: { key: string; label: string }[] = [
   { key: 'dropped', label: 'Abandonados' },
 ];
 
+const STATUS_COLORS: Record<string, string> = {
+  in_progress: 'rgba(59,130,246,0.85)',
+  completed: 'rgba(34,197,94,0.85)',
+  dropped: 'rgba(239,68,68,0.85)',
+  wishlist: 'rgba(168,85,247,0.85)',
+  soon: 'rgba(168,85,247,0.85)',
+  platinated: 'rgba(250,204,21,0.85)',
+};
+
+const STATUS_ICONS: Record<string, string> = {
+  completed: '✓',
+  in_progress: '•••',
+  dropped: '💀',
+  wishlist: '★',
+  soon: '…',
+};
+
+const TYPE_META: Record<string, { emoji: string }> = {
+  movie: { emoji: '🎬' },
+  series: { emoji: '📺' },
+  game: { emoji: '🎮' },
+  book: { emoji: '📚' },
+};
+
+const getStars = (rating?: number) => {
+  if (!rating) return [];
+  const stars = [];
+  for (let i = 1; i <= 5; i++) {
+    if (i <= Math.floor(rating)) stars.push('full');
+    else if (i - 0.5 <= rating) stars.push('half');
+    else stars.push('empty');
+  }
+  return stars;
+};
+
 const ListsPage = ({ user }: ListsPageProps) => {
   const [tab, setTab] = useState<MediaType | 'all'>('all');
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -77,23 +112,82 @@ const ListsPage = ({ user }: ListsPageProps) => {
             <div className="text-xs text-white/40 uppercase tracking-[0.2em]">{g.items.length}</div>
           </div>
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
-            {g.items.map(l => (
-              <Link key={l.id} to={`/log/${l.id}`} className="group">
-                <div className="poster-tile">
+            {g.items.map(l => {
+              const typeEmoji = TYPE_META[l.media_item.media_type]?.emoji || '📄';
+              return (
+                <Link key={l.id} to={`/log/${l.id}`} className="poster-tile block group">
                   {l.media_item.cover_image_url ? (
-                    <img src={l.media_item.cover_image_url} alt={l.media_item.title} loading="lazy" />
+                    <img src={l.media_item.cover_image_url} alt={l.media_item.title} className="w-full h-full object-cover" loading="lazy" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-[var(--mdf-surface-2)]">
-                      {(() => { const Ic = TYPES.find(t => t.key === l.media_item.media_type)?.icon || Film; return <Ic size={24} className="text-white/30" />; })()}
+                    <div className="w-full h-full flex flex-col items-center justify-center gap-3 p-3 text-center">
+                      <span className="text-3xl">{typeEmoji}</span>
+                      <div className="text-xs text-white/70 font-medium line-clamp-3">{l.media_item.title}</div>
                     </div>
                   )}
-                </div>
-                <div className="mt-1.5 px-0.5">
-                  <div className="text-xs font-semibold truncate group-hover:text-[var(--mdf-green)] transition-colors">{l.media_item.title}</div>
-                  {l.rating != null && <div className="text-[10px] text-[var(--mdf-yellow)]">★ {l.rating.toFixed(1)}</div>}
-                </div>
-              </Link>
-            ))}
+                  <div className="absolute inset-0 pointer-events-none"
+                       style={{background:'linear-gradient(to top, rgba(0,0,0,0.9), rgba(0,0,0,0.3) 50%, transparent)'}}>
+                    <div className="absolute bottom-0 left-0 right-0 p-3">
+                      <div className="text-white text-xs font-semibold truncate">{l.media_item.title}</div>
+                      {l.rating && l.rating > 0 && (
+                        <div className="mt-1 flex items-center gap-0.5">
+                          {getStars(l.rating).map((star, i) => (
+                            <svg key={i} width="12" height="12" viewBox="0 0 24 24"
+                              fill={star === 'full' || star === 'half' ? 'var(--mdf-yellow)' : 'none'}
+                              stroke="var(--mdf-yellow)" strokeWidth="2">
+                              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                            </svg>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="absolute top-2 left-2 flex items-center gap-1">
+                    {l.is_favorite && (
+                      <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{background:'var(--mdf-pink)'}}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="white" stroke="white" strokeWidth="2">
+                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                        </svg>
+                      </div>
+                    )}
+                    {l.status && (
+                      <span className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style={{background: STATUS_COLORS[l.status] || 'rgba(100,100,100,0.85)'}}>
+                        {STATUS_ICONS[l.status] || l.status[0].toUpperCase()}
+                      </span>
+                    )}
+                    {l.media_item.media_type === 'game' && l.unlocked_achievements != null && l.total_achievements != null && l.total_achievements > 0 && (
+                      <span className="h-6 px-1.5 flex items-center justify-center text-[9px] font-bold backdrop-blur-sm rounded-full" style={{ background: l.unlocked_achievements === l.total_achievements ? 'rgba(250,204,21,0.85)' : 'rgba(0,0,0,0.7)', color: l.unlocked_achievements === l.total_achievements ? '#000' : '#fff' }}>
+                        {l.unlocked_achievements === l.total_achievements ? '100%' : `${l.unlocked_achievements}/${l.total_achievements}`}
+                      </span>
+                    )}
+                  </div>
+                  {l.platform && (
+                    <div className="absolute top-2 right-2 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
+                      {l.platform}
+                    </div>
+                  )}
+                  {l.media_item.media_type === 'movie' && (l.relog_count ?? 0) > 0 && (
+                    <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
+                      {(l.relog_count ?? 0) + 1}x
+                    </div>
+                  )}
+                  {l.media_item.media_type === 'series' && l.watched_episodes != null && l.total_episodes != null && l.total_episodes > 0 && (
+                    <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
+                      {l.watched_episodes}/{l.total_episodes}
+                    </div>
+                  )}
+                  {l.media_item.media_type === 'game' && l.hours_spent != null && l.hours_spent > 0 && (
+                    <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
+                      {l.hours_spent}h
+                    </div>
+                  )}
+                  {l.media_item.media_type === 'book' && l.hours_spent != null && l.hours_spent > 0 && (
+                    <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
+                      {l.hours_spent}h
+                    </div>
+                  )}
+                </Link>
+              );
+            })}
           </div>
         </section>
       ))}

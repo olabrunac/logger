@@ -4,7 +4,7 @@ Logger é um site pessoal para registrar e acompanhar filmes, séries, jogos e l
 
 ## Visão Geral
 
-O objetivo é criar uma plataforma centralizada onde o usuário mantém um diário de todo o conteúdo que consome — avaliando, escrevendo resenhas e acompanhando progresso. O sistema busca automaticamente detalhes em APIs externas (TMDb, IGDB, Google Books) para enriquecer os registros.
+O objetivo é criar uma plataforma centralizada onde o usuário mantém um diário de todo o conteúdo que consome — avaliando, escrevendo resenhas e acompanhando progresso. O sistema busca automaticamente detalhes em APIs externas (TMDb, IGDB, Google Books, Steam) para enriquecer os registros.
 
 ## Tecnologias
 
@@ -12,7 +12,7 @@ O objetivo é criar uma plataforma centralizada onde o usuário mantém um diár
 - Python 3.11+ / FastAPI / Uvicorn
 - SQLAlchemy ORM + SQLite
 - Pydantic para validação
-- APIs externas: TMDb (filmes/séries), IGDB (jogos), Google Books (livros)
+- APIs externas: TMDb (filmes/séries), IGDB (jogos), Steam (conquistas + loja), Google Books (livros)
 
 ### Frontend
 - React 19 + TypeScript (Vite)
@@ -34,7 +34,7 @@ O objetivo é criar uma plataforma centralizada onde o usuário mantém um diár
 │   │   ├── crud/
 │   │   ├── models/          # User, MediaItem, LogEntry, EpisodeWatched, Achievement
 │   │   ├── schemas/         # Request/response Pydantic schemas
-│   │   ├── services/        # tmdb_service.py, igdb_service.py, google_books_service.py
+│   │   ├── services/        # tmdb_service.py, igdb_service.py, steam_service.py, google_books_service.py
 │   │   └── main.py          # FastAPI app + startup
 │   ├── uploads/             # User-uploaded banners/avatars
 │   ├── logger.db            # SQLite database (auto-created)
@@ -52,6 +52,7 @@ O objetivo é criar uma plataforma centralizada onde o usuário mantém um diár
 │       └── main.tsx
 │
 ├── AGENTS.md
+├── YGP_REFERENCE.md
 └── README.md
 ```
 
@@ -75,6 +76,7 @@ TMDB_API_KEY="sua_chave"
 IGDB_CLIENT_ID="sua_chave"
 IGDB_CLIENT_SECRET="seu_segredo"
 GOOGLE_BOOKS_API_KEY="sua_chave"
+STEAM_API_KEY="sua_chave"
 ```
 
 ```bash
@@ -103,15 +105,56 @@ npm run dev
 - Jogos via IGDB
 - Livros via Google Books (com campos de autor, ano e ISBN)
 - Busca automática de metadados (capa, sinopse, data de lançamento)
+- **Busca com autocomplete**: digitação debounced (500ms) — resultados aparecem enquanto o usuário digita
+
+### Enriquecimento Automático de Metadados
+- **Filmes/Séries (TMDb)**: gêneros, runtime, vote_average, diretor/cridor, trailer URL
+- **Jogos (Steam)**: metacritic score, gêneros, categorias, preço, screenshots, requisitos, descrição curta
+- **Livros (Google Books)**: page_count, publisher, categorias, idioma, rating
+- Enriquecimento automático ao criar (`POST /logs`) e editar (`PUT /logs/{id}`) — campos do MediaItem são preenchidos automaticamente
 
 ### Sistema de Logs
 - Rating com meio-estrela (5 estrelas, lado esquerdo = meio, lado direito = inteiro)
-- Horas gastas (formato decimal)
-- Status: em progresso, completo, abandonado, desejo, em breve, platinado
-- Favoritos, reviews e platform
-- Log de episódios de séries (via TMDb)
-- Conquistas de jogos (via IGDB)
-- CRUD completo: criar, ler, editar (PUT/PATCH), deletar com confirmação
+- **Favorito independente**: toggle ❤️ que pode ser combinado com qualquer status (não é um status)
+- **Contador de rewatch** para filmes (Nx no poster tile)
+- **Páginas lidas + horas** para livros (dois campos separados)
+- Horas gastas (formato decimal) para jogos
+- Reviews
+- CRUD completo: criar, ler, editar (PUT/PATCH), deletar com confirmação (modal via `createPortal`)
+
+### Status por Tipo de Mídia
+| Tipo | Status |
+|------|--------|
+| 🎮 Jogos | Jogando, Finalizado, Pretendo Jogar, Abandonado |
+| 🎬 Filmes | Assistindo, Assistido, Pretendo Assistir, Abandonado |
+| 📺 Séries | Assistindo, Finalizado, Pretendo Assistir, Abandonado |
+| 📚 Livros | Lendo, Lido, Pretendo Ler, Abandonado |
+
+### Plataformas por Tipo de Mídia
+| Tipo | Opções |
+|------|--------|
+| 🎮 Jogos | Steam, Epic Games, GOG, Xbox, PlayStation, Nintendo, Mobile, Pirata, Não especificado |
+| 🎬 Filmes | Netflix, Prime Video, Disney+, HBO Max, Apple TV+, Cinema, Blu-ray, Stremio, Não especificado |
+| 📺 Séries | Netflix, Prime Video, Disney+, HBO Max, Apple TV+, Crunchyroll, Stremio, Não especificado |
+| 📚 Livros | Físico, Kindle, PDF, Audiobook, Web, Pirata, Não especificado (multi-select, até 2) |
+
+### Séries e Episódios
+- Busca de temporadas e episódios via TMDb
+- Toggle individual de episódio assistido
+- Marcar todos os episódios de uma temporada
+- Contador de episódios assistidos/total nos poster tiles
+
+### Jogos e Conquistas
+- Conquistas via Steam API (com fallback para IGDB)
+- Toggle individual de conquista desbloqueada
+- Porcentagem de completion nos poster tiles (100% em dourado quando 100%)
+
+### Poster Tiles (Padronizado)
+Layout idêntico em todas as grids do site (HomePage, ProfilePage, MediaTypeProfilePage, ListsPage, FavoriteGamesSection):
+- **Topo esquerdo**: ❤️ favorito (círculo rosa) → ícone de status (círculo colorido) → pill de conquistas (jogos)
+- **Topo direito**: badge de plataforma
+- **Overlay inferior**: título + estrelas de avaliação
+- **Canto inferior direito**: stats por tipo (Nx filmes, episódios séries, horas jogos/livros)
 
 ### Páginas
 | Rota | Descrição |
@@ -123,7 +166,7 @@ npm run dev
 | `/diary` | Timeline cronológica filtrável por tipo |
 | `/profile/:username` | Perfil geral: atividade recente, mapa de atividade + donut de horas lado a lado, stats, gêneros, todos os logs |
 | `/profile/:username/:mediaType` | Perfil por tipo: favoritos, atividade, stats, gêneros, reviews, todos os logs |
-| `/log/:id` | Detalhe do log com edição inline |
+| `/log/:id` | Detalhe do log com edição inline + dados enriquecidos (Steam/TMDb/Google Books) |
 | `/settings` | Upload de banner/avatar, cor de destaque, ordem das seções |
 
 ### Perfil e Customização
@@ -131,6 +174,7 @@ npm run dev
 - Cor de destaque customizável (aplicada como CSS variable global)
 - Seções ordenáveis (via drag and drop)
 - Botões de tipo (Filmes/Séries/Jogos/Livros) nas páginas de perfil para navegação rápida
+- Perfil visualizável por username via URL `/profile/:username`
 
 ### Visualizações de Dados
 - **Activity Grid**: Calendário com capas dos logs do dia, ícones 2x, grid 3x3 por dia
@@ -146,7 +190,7 @@ npm run dev
 - Tipografia: Outfit (headings), Manrope (body)
 - Componentes: `.mdf-card`, `.mdf-card-hover`, `.mdf-btn-primary`, `.mdf-btn-ghost`, `.poster-tile`
 
-## Endpoints da API (18 total)
+## Endpoints da API (19 total)
 
 ### Login (`/api/v1/login`)
 - `POST /` — Login ou criar usuário
@@ -159,10 +203,10 @@ npm run dev
 
 ### Mídia (`/api/v1/media`)
 - `GET /search?q=...&media_type=...` — Buscar em TMDb/IGDB/Google Books
-- `POST /logs` — Criar log
-- `GET /logs?user_id=...` — Buscar logs do usuário
+- `POST /logs` — Criar log (auto-enriquece MediaItem)
+- `GET /logs?user_id=...` — Buscar logs do usuário (retorna `LogEntryWithStats` com campos computados)
 - `GET /logs/{id}` — Buscar log por ID
-- `PUT /logs/{id}` — Atualização completa
+- `PUT /logs/{id}` — Atualização completa (usa schema `LogEntryUpdate` flat)
 - `PATCH /logs/{id}` — Atualização parcial
 - `DELETE /logs/{id}` — Deletar log
 - `GET /stats?user_id=...` — Estatísticas do usuário
@@ -170,15 +214,14 @@ npm run dev
 - `GET /series/{tmdb_id}/season/{n}/episodes` — Episódios via TMDb
 - `GET /logs/{id}/episodes` — Episódios assistidos
 - `POST /logs/{id}/episodes` — Toggle episódio
-- `GET /logs/{id}/achievements` — Conquistas do jogo
+- `GET /logs/{id}/achievements` — Conquistas do jogo (Steam API)
 - `POST /logs/{id}/achievements` — Toggle conquista
-- `GET /games/{igdb_id}/achievements` — Conquistas via IGDB
 
 ## Models
 
 - **User**: id, username, banner_url, avatar_url, accent_color, section_order
-- **MediaItem**: id, title, media_type, tmdb_id, igdb_id, cover_image_url, release_date, synopsis, seasons_data
-- **LogEntry**: id, user_id, media_item_id, log_date, rating, is_favorite, is_relog, platform, hours_spent, review, status
+- **MediaItem**: id, title, media_type, tmdb_id, igdb_id, steam_appid, google_books_id, cover_image_url, release_date, synopsis, seasons_data, header_image, metacritic_score, steam_genres, steam_categories, steam_price, screenshots, pc_requirements, short_description, backdrop_url, genres, runtime, vote_average, director, trailer_url, page_count, publisher, book_categories, book_language, book_rating
+- **LogEntry**: id, user_id, media_item_id, log_date, rating (0-5 half stars), is_favorite, is_relog, relog_count, platform, hours_spent, pages_read, review, status
 - **EpisodeWatched**: id, log_id, season_number, episode_number, episode_name, watched, log_date
 - **Achievement**: id, log_id, external_id, name, description, image_url, unlocked
 
@@ -206,3 +249,10 @@ npm run dev
 - **API Pública**: Endpoints para integração com apps de terceiros
 - **Multi-idioma**: Suporte a pt-BR, en-US, es-ES
 - **Mobile**: App nativo ou responsivo otimizado para mobile
+- **Importar Histórico do Letterboxd**: Exportar ratings, reviews e listas do Letterboxd via arquivo CSV/API
+- **Importar Histórico do TV Time**: Sincronizar séries e episódios assistidos do TV Time
+- **Login com Senha**: Autenticação completa com email/senha (ou OAuth com Google/GitHub)
+- **Sistema de Amigos**: Adicionar amigos, aceitar/solicitar amizade, ver perfil deles
+- **Timeline Social na Home**: Feed com logs, reviews e favoritos dos amigos em ordem cronológica
+- **Feed de Publicações**: Aba para postar screenshots, comentários e status (estilo activity feed)
+- **Albuns (Música)**: Nova mídia para avaliar músicas dentro de albuns, favoritar individualmente e escrever reviews por faixa. Busca automática via Spotify API ou Deezer API para capa, tracklist e metadados

@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import type { LogEntry, LogStatus } from '../types';
-import { LogStatusValues } from '../types';
-import { ChevronDown, Heart, Trash2, CheckCircle2, Circle, Trophy, Star } from 'lucide-react';
+import type { LogEntry } from '../types';
+import { ChevronDown, Trash2, CheckCircle2, Circle, Trophy, Pencil } from 'lucide-react';
+import LogForm from '../components/LogForm';
 
 const STATUS_LABELS: Record<string, string> = {
   in_progress: 'Em progresso',
@@ -45,22 +46,24 @@ interface AchievementItem {
   description?: string;
   image_url?: string;
   unlocked: boolean;
+  unlock_percentage?: number | null;
 }
+
+const TYPE_META: Record<string, { emoji: string; color: string; label: string }> = {
+  movie: { emoji: '🎬', color: '#fbbf24', label: 'Filme' },
+  series: { emoji: '📺', color: '#ef4444', label: 'Série' },
+  game: { emoji: '🎮', color: '#60a5fa', label: 'Jogo' },
+  book: { emoji: '📚', color: '#4ade80', label: 'Livro' },
+};
 
 const LogDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [log, setLog] = useState<LogEntry | null>(null);
   const [loading, setLoading] = useState(true);
-
-  const [review, setReview] = useState('');
-  const [hours, setHours] = useState('');
-  const [platform, setPlatform] = useState('');
-  const [hasChanges, setHasChanges] = useState(false);
-
+  const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [showStatusMenu, setShowStatusMenu] = useState(false);
 
   const [seasons, setSeasons] = useState<TmdbSeason[]>([]);
   const [openSeason, setOpenSeason] = useState<number | null>(null);
@@ -76,9 +79,6 @@ const LogDetailPage = () => {
       const response = await api.get(`/media/logs/${id}`);
       const data = response.data;
       setLog(data);
-      setReview(data.review || '');
-      setHours(data.hours_spent != null ? String(data.hours_spent) : '');
-      setPlatform(data.platform || '');
 
       if (data.media_item.media_type === 'series' && data.media_item.tmdb_id) {
         api.get(`/media/series/${data.media_item.tmdb_id}/seasons`).then(r => setSeasons(r.data || [])).catch(() => {});
@@ -96,11 +96,12 @@ const LogDetailPage = () => {
             const saved = r2.data || [];
             const savedMap = new Map<string, AchievementItem>(saved.map((a: AchievementItem) => [a.external_id, a]));
             setAchievements(remote.map((a: Record<string, unknown>) => ({
-              external_id: String((a.id as number) || (a.name as string)),
+              external_id: String(a.external_id || a.name || ''),
               name: a.name as string,
               description: (a.description as string) || '',
-              image_url: (a.url as string) || '',
-              unlocked: savedMap.get(String((a.id as number) || (a.name as string)))?.unlocked || false,
+              image_url: (a.image_url as string) || '',
+              unlock_percentage: a.unlock_percentage != null ? Number(a.unlock_percentage) : null,
+              unlocked: savedMap.get(String(a.external_id || a.name || ''))?.unlocked || false,
             })));
           });
         }).catch(() => {}).finally(() => setAchLoading(false));
@@ -110,26 +111,10 @@ const LogDetailPage = () => {
 
   useEffect(() => { fetchLog(); }, [fetchLog]);
 
-  useEffect(() => {
-    if (!log) return;
-    setHasChanges(
-      review !== (log.review || '') ||
-      hours !== (log.hours_spent != null ? String(log.hours_spent) : '') ||
-      platform !== (log.platform || '')
-    );
-  }, [review, hours, platform, log]);
-
   const patch = async (updates: Record<string, unknown>) => {
     if (!id) return;
     const { data } = await api.patch('/media/logs/' + id, updates);
     setLog(data);
-  };
-
-  const toggleFav = () => {
-    if (!log) return;
-    const v = !log.is_favorite;
-    setLog({ ...log, is_favorite: v });
-    patch({ is_favorite: v });
   };
 
   const setRating = (v: number) => {
@@ -138,20 +123,15 @@ const LogDetailPage = () => {
     patch({ rating: v });
   };
 
-  const setStatus = (s: LogStatus) => {
-    if (!log) return;
-    setLog({ ...log, status: s });
-    patch({ status: s });
-    setShowStatusMenu(false);
-  };
-
-  const saveInline = () => {
+  const handleEditSubmit = async (logDetails: any) => {
     if (!id) return;
-    const h = hours === '' ? null : parseFloat(hours.replace(',', '.'));
-    api.patch('/media/logs/' + id, { review, hours_spent: h, platform }).then(r => {
-      setLog(r.data);
-      setHasChanges(false);
-    });
+    try {
+      const { data } = await api.put(`/media/logs/${id}`, logDetails);
+      setLog(data);
+      setShowEditModal(false);
+    } catch (error) {
+      console.error('Failed to update log', error);
+    }
   };
 
   const handleDelete = async () => {
@@ -174,11 +154,33 @@ const LogDetailPage = () => {
     const key = ep.season_number + '-' + ep.episode_number;
     const current = watchedMap[key];
     const newWatched = current ? !current.watched : true;
-    const { data } = await api.post('/media/logs/' + id + '/episodes', {
-      season_number: ep.season_number, episode_number: ep.episode_number,
-      episode_name: ep.name, watched: newWatched, log_date: new Date().toISOString().split('T')[0],
-    });
-    setWatchedMap({ ...watchedMap, [key]: data });
+    try {
+      const { data } = await api.post('/media/logs/' + id + '/episodes', {
+        season_number: ep.season_number, episode_number: ep.episode_number,
+        episode_name: ep.name, watched: newWatched, log_date: new Date().toISOString().split('T')[0],
+      });
+      setWatchedMap({ ...watchedMap, [key]: data });
+    } catch (err) {
+      console.error('Failed to toggle episode:', err);
+    }
+  };
+
+  const toggleAllEpisodes = async (seasonEps: TmdbEpisode[], markWatched: boolean) => {
+    if (!id) return;
+    const newMap = { ...watchedMap };
+    for (const ep of seasonEps) {
+      const key = ep.season_number + '-' + ep.episode_number;
+      try {
+        const { data } = await api.post('/media/logs/' + id + '/episodes', {
+          season_number: ep.season_number, episode_number: ep.episode_number,
+          episode_name: ep.name, watched: markWatched, log_date: new Date().toISOString().split('T')[0],
+        });
+        newMap[key] = data;
+      } catch (err) {
+        console.error('Failed to toggle episode:', err);
+      }
+    }
+    setWatchedMap(newMap);
   };
 
   const toggleAch = async (a: AchievementItem) => {
@@ -217,7 +219,7 @@ const LogDetailPage = () => {
   if (!log) return null;
 
   const md = log.media_item;
-  const typeLabels: Record<string, string> = { movie: 'Filme', series: 'Serie', game: 'Jogo', book: 'Livro' };
+  const meta = TYPE_META[md.media_type] || TYPE_META.game;
   const watchedCount = Object.values(watchedMap).filter(e => e.watched).length;
   const totalEps = Object.values(episodes).reduce((s, arr) => s + arr.length, 0);
   const unlockedCount = achievements.filter(a => a.unlocked).length;
@@ -234,15 +236,15 @@ const LogDetailPage = () => {
           {md.cover_image_url ? (
             <img src={md.cover_image_url} alt={md.title} className="w-full h-full object-cover" style={{ aspectRatio: '2/3' }} />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-[var(--mdf-surface-2)]" style={{ aspectRatio: '2/3' }}>
-              <Star size={40} className="text-white/30" />
+            <div className="w-full h-full flex items-center justify-center" style={{ background: meta.color + '22', aspectRatio: '2/3' }}>
+              <span className="text-5xl">{meta.emoji}</span>
             </div>
           )}
         </div>
 
         <div className="flex-1 p-6 flex flex-col min-w-0">
           <div className="flex items-start gap-3 flex-wrap mb-4">
-            <span className="px-3 py-1 rounded-full text-xs font-bold bg-white/10 text-white/70">{typeLabels[md.media_type]}</span>
+            <span className="px-3 py-1 rounded-full text-xs font-bold" style={{ background: meta.color + '22', color: meta.color }}>{meta.label}</span>
             <span className="px-3 py-1 rounded-full text-xs font-bold" style={{
               background: log.status === 'completed' ? 'rgba(34,197,94,0.2)' : log.status === 'in_progress' ? 'rgba(59,130,246,0.2)' :
                 log.status === 'dropped' ? 'rgba(239,68,68,0.2)' : log.status === 'platinated' ? 'rgba(250,204,21,0.2)' : 'rgba(168,85,247,0.2)',
@@ -254,65 +256,181 @@ const LogDetailPage = () => {
 
           <div className="flex items-center gap-3 mb-4">
             <div style={{ fontSize: '1.75rem' }}>{renderStars(log.rating, setRating)}</div>
-            <button onClick={toggleFav}
-              className={`w-10 h-10 rounded-full flex items-center justify-center border transition-colors ${log.is_favorite ? 'border-[var(--mdf-pink)] bg-[var(--mdf-pink)]/10' : 'border-white/10 hover:border-white/20'}`}>
-              <Heart size={16} className={log.is_favorite ? 'text-[var(--mdf-pink)]' : 'text-white/70'} fill={log.is_favorite ? 'var(--mdf-pink)' : 'none'} />
+            <button onClick={() => setShowEditModal(true)}
+              className="w-10 h-10 rounded-full border border-white/10 hover:border-white/20 hover:bg-white/5 flex items-center justify-center transition-colors">
+              <Pencil size={14} className="text-white/60" />
             </button>
-            <div className="relative">
-              <button onClick={() => setShowStatusMenu(!showStatusMenu)} className="mdf-btn-ghost text-sm flex items-center gap-2">
-                {STATUS_LABELS[log.status] || 'Definir status'} <ChevronDown size={14} />
-              </button>
-              {showStatusMenu && (
-                <div className="absolute top-full left-0 mt-1 w-52 mdf-card overflow-hidden z-50">
-                  {LogStatusValues.map(s => (
-                    <button key={s} onClick={() => setStatus(s)}
-                      className="block w-full px-4 py-2.5 text-left text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors">
-                      {STATUS_LABELS[s]}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
             <button onClick={() => setShowDeleteConfirm(true)}
-              className="ml-auto w-10 h-10 rounded-full border border-white/10 hover:border-red-500/40 hover:bg-red-500/10 flex items-center justify-center transition-colors">
+              className="w-10 h-10 rounded-full border border-white/10 hover:border-red-500/40 hover:bg-red-500/10 flex items-center justify-center transition-colors">
               <Trash2 size={14} className="text-white/60" />
             </button>
           </div>
 
           {md.release_date && <div className="text-sm text-white/60 mb-3">{new Date(md.release_date).getFullYear()}</div>}
-          {md.synopsis && <p className="text-sm text-white/60 leading-relaxed mb-4">{md.synopsis}</p>}
+          {md.synopsis && <p className="text-sm text-white/60 leading-relaxed mb-4 line-clamp-4">{md.synopsis}</p>}
 
-          <div className="grid grid-cols-3 gap-3 mb-4">
-            <div>
-              <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-1">Plataforma</div>
-              <input value={platform} onChange={e => { setPlatform(e.target.value); setHasChanges(true); }}
-                placeholder="PS5, Steam..."
-                className="w-full px-3 py-2 rounded-lg text-sm bg-[var(--mdf-surface-2)] border border-white/10 text-white outline-none focus:border-[var(--mdf-green)]" />
-            </div>
-            <div>
-              <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-1">Horas</div>
-              <input type="text" value={hours} onChange={e => { setHours(e.target.value); setHasChanges(true); }}
-                placeholder="0"
-                className="w-full px-3 py-2 rounded-lg text-sm bg-[var(--mdf-surface-2)] border border-white/10 text-white outline-none focus:border-[var(--mdf-green)]" />
-            </div>
-            <div>
-              <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-1">Data</div>
-              <div className="px-3 py-2 text-sm text-white/60 font-mono">{log.log_date?.split('T')[0]}</div>
-            </div>
+          <div className="flex items-center gap-6 text-sm text-white/50">
+            {log.platform && <div><span className="text-white/30">Plataforma:</span> <span className="text-white/70">{log.platform}</span></div>}
+            {log.media_item.media_type === 'book' && log.pages_read != null && log.pages_read > 0 && <div><span className="text-white/30">Páginas:</span> <span className="text-white/70">{log.pages_read}</span></div>}
+            {log.hours_spent != null && log.hours_spent > 0 && <div><span className="text-white/30">Horas:</span> <span className="text-white/70">{log.hours_spent}h</span></div>}
+            {log.log_date && <div><span className="text-white/30">Data:</span> <span className="text-white/70">{log.log_date.split('T')[0]}</span></div>}
           </div>
 
-          <div className="mb-4">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-1">Review</div>
-            <textarea value={review} rows={3} onChange={e => { setReview(e.target.value); setHasChanges(true); }}
-              placeholder="Escreva sua opiniao..."
-              className="w-full px-3 py-2 rounded-lg text-sm bg-[var(--mdf-surface-2)] border border-white/10 text-white outline-none focus:border-[var(--mdf-green)] resize-none" />
-          </div>
-
-          {hasChanges && (
-            <button onClick={saveInline} className="mdf-btn-primary text-sm self-start">Salvar alteracoes</button>
+          {log.review && (
+            <div className="mt-4 p-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)' }}>
+              <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-2">Review</div>
+              <p className="text-sm text-white/70 leading-relaxed whitespace-pre-wrap">{log.review}</p>
+            </div>
           )}
         </div>
       </div>
+
+      {/* Steam Info */}
+      {md.media_type === 'game' && md.steam_appid && (
+        <div style={{ maxWidth: '900px' }}>
+          <div className="flex items-center gap-3 mb-3">
+            <h3 className="font-display text-xl font-bold">Dados da Steam</h3>
+            {md.metacritic_score != null && (
+              <span className="px-2 py-0.5 rounded text-xs font-bold" style={{ background: md.metacritic_score >= 75 ? 'rgba(34,197,94,0.2)' : md.metacritic_score >= 50 ? 'rgba(250,204,21,0.2)' : 'rgba(239,68,68,0.2)', color: md.metacritic_score >= 75 ? '#22c55e' : md.metacritic_score >= 50 ? '#fbbf24' : '#ef4444' }}>
+                Metacritic {md.metacritic_score}
+              </span>
+            )}
+            {md.steam_price && (
+              <span className="text-sm text-[var(--mdf-green)] font-bold">{md.steam_price}</span>
+            )}
+          </div>
+
+          <div className="mdf-card p-4 space-y-3">
+            {md.steam_genres && (
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-1">Generos</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {md.steam_genres.split(', ').map(g => (
+                    <span key={g} className="text-xs px-2 py-0.5 rounded-full bg-white/5 text-white/60">{g}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {md.steam_categories && (
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-1">Modos de Jogo</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {md.steam_categories.split(', ').map(c => (
+                    <span key={c} className="text-xs px-2 py-0.5 rounded-full bg-white/5 text-white/60">{c}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {md.short_description && (
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-1">Descricao</div>
+                <p className="text-sm text-white/60 leading-relaxed" dangerouslySetInnerHTML={{ __html: md.short_description }} />
+              </div>
+            )}
+          </div>
+
+          {(() => {
+            try {
+              const shots = md.screenshots ? JSON.parse(md.screenshots) : [];
+              if (shots.length === 0) return null;
+              return (
+                <div className="mt-3">
+                  <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-2">Screenshots</div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {shots.slice(0, 6).map((src: string, i: number) => (
+                      <a key={i} href={src} target="_blank" rel="noopener noreferrer" className="rounded-lg overflow-hidden block hover:opacity-80 transition-opacity">
+                        <img src={src} alt="" className="w-full h-auto object-cover" loading="lazy" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              );
+            } catch { return null; }
+          })()}
+        </div>
+      )}
+
+      {/* Movie / Series Info */}
+      {(md.media_type === 'movie' || md.media_type === 'series') && (md.genres || md.runtime != null || md.vote_average != null || md.director) && (
+        <div style={{ maxWidth: '900px' }}>
+          <div className="flex items-center gap-3 mb-3">
+            <h3 className="font-display text-xl font-bold">{md.media_type === 'movie' ? 'Dados do Filme' : 'Dados da Serie'}</h3>
+            {md.vote_average != null && md.vote_average > 0 && (
+              <span className="px-2 py-0.5 rounded text-xs font-bold" style={{ background: 'rgba(250,204,21,0.2)', color: '#fbbf24' }}>
+                TMDb {md.vote_average.toFixed(1)}
+              </span>
+            )}
+            {md.runtime != null && md.runtime > 0 && (
+              <span className="text-sm text-white/50">{md.runtime} min</span>
+            )}
+          </div>
+          <div className="mdf-card p-4 space-y-3">
+            {md.director && (
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-1">{md.media_type === 'movie' ? 'Diretor' : 'Criador'}</div>
+                <div className="text-sm text-white/70">{md.director}</div>
+              </div>
+            )}
+            {md.genres && (
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-1">Generos</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {md.genres.split(', ').map(g => (
+                    <span key={g} className="text-xs px-2 py-0.5 rounded-full bg-white/5 text-white/60">{g}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          {md.trailer_url && (
+            <a href={md.trailer_url} target="_blank" rel="noopener noreferrer"
+              className="mt-3 inline-flex items-center gap-2 text-sm text-[var(--mdf-green)] hover:underline">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              Assistir trailer
+            </a>
+          )}
+        </div>
+      )}
+
+      {/* Book Info */}
+      {md.media_type === 'book' && (md.publisher || md.page_count != null || md.book_categories || md.book_language) && (
+        <div style={{ maxWidth: '900px' }}>
+          <div className="flex items-center gap-3 mb-3">
+            <h3 className="font-display text-xl font-bold">Dados do Livro</h3>
+            {md.book_rating != null && md.book_rating > 0 && (
+              <span className="px-2 py-0.5 rounded text-xs font-bold" style={{ background: 'rgba(250,204,21,0.2)', color: '#fbbf24' }}>
+                Google Books {md.book_rating.toFixed(1)}
+              </span>
+            )}
+          </div>
+          <div className="mdf-card p-4 space-y-3">
+            {md.publisher && (
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-1">Editora</div>
+                <div className="text-sm text-white/70">{md.publisher}</div>
+              </div>
+            )}
+            <div className="flex gap-6 text-sm">
+              {md.page_count != null && md.page_count > 0 && (
+                <div><span className="text-white/30">Paginas:</span> <span className="text-white/70">{md.page_count}</span></div>
+              )}
+              {md.book_language && (
+                <div><span className="text-white/30">Idioma:</span> <span className="text-white/70 uppercase">{md.book_language}</span></div>
+              )}
+            </div>
+            {md.book_categories && (
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-1">Categorias</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {md.book_categories.split(', ').map(c => (
+                    <span key={c} className="text-xs px-2 py-0.5 rounded-full bg-white/5 text-white/60">{c}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Episodes */}
       {md.media_type === 'series' && seasons.length > 0 && (
@@ -341,6 +459,17 @@ const LogDetailPage = () => {
                         </div>
                         <div className="text-[10px] text-white/40 text-right mt-1 font-mono">{sWatched}/{eps.length}</div>
                       </div>
+                    )}
+                    {eps.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); toggleAllEpisodes(eps, sWatched < eps.length); }}
+                        className="flex-shrink-0"
+                      >
+                        {sWatched === eps.length
+                          ? <CheckCircle2 size={20} style={{ color: 'var(--mdf-green)' }} />
+                          : <Circle size={20} className="text-white/30 hover:text-white/50 transition-colors" />}
+                      </button>
                     )}
                     <ChevronDown size={16} className={`text-white/40 transition-transform ${openSeason === s.season_number ? 'rotate-180' : ''}`} />
                   </button>
@@ -387,7 +516,7 @@ const LogDetailPage = () => {
           {achLoading && <div className="text-white/50 text-sm">Carregando conquistas...</div>}
           {!achLoading && achievements.length === 0 && (
             <div className="mdf-card p-6 text-center text-white/50 text-sm">
-              {md.igdb_id ? 'Sem conquistas encontradas.' : 'Busque por um jogo com IGDB para importar conquistas.'}
+              {md.igdb_id ? 'Sem conquistas encontradas para este jogo no Steam.' : 'Busque por um jogo para importar conquistas.'}
             </div>
           )}
           {achievements.length > 0 && (
@@ -405,6 +534,9 @@ const LogDetailPage = () => {
                     <div className="flex-1 min-w-0">
                       <div className={`text-sm font-semibold truncate ${a.unlocked ? 'text-white' : 'text-white/60'}`}>{a.name}</div>
                       {a.description && <div className="text-xs text-white/50 truncate">{a.description}</div>}
+                      {!a.description && a.unlock_percentage != null && (
+                        <div className="text-xs text-white/40">{a.unlock_percentage}% dos jogadores</div>
+                      )}
                     </div>
                     {a.unlocked && <CheckCircle2 size={18} style={{ color: 'var(--mdf-green)' }} />}
                   </button>
@@ -415,8 +547,19 @@ const LogDetailPage = () => {
         </div>
       )}
 
+      {/* Edit Modal */}
+      {showEditModal && (
+        <LogForm
+          onSubmit={handleEditSubmit}
+          onCancel={() => setShowEditModal(false)}
+          initialData={log}
+          mediaItem={log.media_item}
+          isEditing={true}
+        />
+      )}
+
       {/* Delete modal */}
-      {showDeleteConfirm && (
+      {showDeleteConfirm && createPortal(
         <div className="modal-overlay" onClick={() => !deleting && setShowDeleteConfirm(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
@@ -435,7 +578,8 @@ const LogDetailPage = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
