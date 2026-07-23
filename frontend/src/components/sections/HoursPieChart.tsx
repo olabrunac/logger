@@ -49,10 +49,10 @@ const HoursPieChart = ({ logs, mediaType }: HoursPieChartProps) => {
 
   const totalHours = data.reduce((s, d) => s + d.hours, 0);
 
-  const cx = 80;
-  const cy = 80;
+  const cx = 100;
+  const cy = 100;
   const outerR = 70;
-  const innerR = 42;
+  const innerR = 35; // Mais grosso: diminui o buraco central
   const gap = 1.5;
 
   let currentAngle = 0;
@@ -65,56 +65,43 @@ const HoursPieChart = ({ logs, mediaType }: HoursPieChartProps) => {
   });
 
   return (
-    <div className="profile-section">
-      <div className="section-header">
-        <div className="section-title-row">
-          <h2 className="section-title">Horas por Mídia</h2>
+    <div className="flex flex-col gap-3">
+      <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-1 w-full text-left">Horas por Mídia</div>
+      <div style={{ position: 'relative', width: 110, height: 110, flexShrink: 0, margin: '0 auto' }}>
+        <svg width="110" height="110" viewBox="0 0 200 200">
+          {slices.map((s) => (
+            <path
+              key={s.type}
+              d={describeArc(cx, cy, outerR, s.startAngle, s.endAngle)}
+              fill="none"
+              stroke={s.color}
+              strokeWidth={outerR - innerR}
+              strokeLinecap="round"
+            />
+          ))}
+        </svg>
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <span style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--text-heading)', lineHeight: 1 }}>
+            {Math.round(totalHours)}h
+          </span>
         </div>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '2.5rem', marginLeft: '-50px' }}>
-        <div style={{ position: 'relative', width: 120, height: 120, flexShrink: 0 }}>
-          <svg width="120" height="120" viewBox="0 0 160 160">
-            {slices.map((s) => (
-              <path
-                key={s.type}
-                d={describeArc(cx, cy, outerR, s.startAngle, s.endAngle)}
-                fill="none"
-                stroke={s.color}
-                strokeWidth={outerR - innerR}
-                strokeLinecap="round"
-              />
-            ))}
-          </svg>
-          <div style={{
-            position: 'absolute',
-            inset: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-heading)', lineHeight: 1 }}>
-              {Math.round(totalHours)}h
+      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.5rem' }}>
+        {data.map((d) => (
+          <div key={d.type} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <span style={{ width: 6, height: 6, borderRadius: 1, background: d.color, flexShrink: 0 }} />
+            <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+              {d.emoji} {d.label}
             </span>
-            <span style={{ fontSize: '0.5625rem', color: 'var(--text-muted)', marginTop: '0.125rem' }}>total</span>
           </div>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: 0 }}>
-          {data.map((d) => (
-            <div key={d.type} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-              <span style={{ width: 8, height: 8, borderRadius: 2, background: d.color, flexShrink: 0 }} />
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                {d.emoji} {d.label}
-              </span>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-heading)', whiteSpace: 'nowrap' }}>
-                {Math.round(d.hours)}h
-              </span>
-              <span style={{ fontSize: '0.625rem', color: 'var(--text-dim)', whiteSpace: 'nowrap' }}>
-                {d.percentage.toFixed(0)}%
-              </span>
-            </div>
-          ))}
-        </div>
+        ))}
       </div>
     </div>
   );
