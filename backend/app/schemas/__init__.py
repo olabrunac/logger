@@ -6,6 +6,7 @@ from .media import (
     LogEntryCreate,
     LogEntryUpdate,
     LogEntryInDB,
+    LogEntryWithStats,
     LogPayload,
     EpisodeWatchedCreate,
     EpisodeWatchedInDB,

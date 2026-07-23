@@ -2,9 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Any, Optional
+import json
 from app import crud, schemas
 from app.api import deps
-from app.services import tmdb_service, igdb_service, google_books_service
+from app.services import tmdb_service, igdb_service, google_books_service, steam_service
 from app.models.media import MediaType, LogEntry, EpisodeWatched, Achievement
 import datetime
 
@@ -64,6 +65,7 @@ def transform_book_result(item: dict) -> dict:
         "cover_image_url": cover_url,
         "release_date": release_date,
         "synopsis": vi.get("description"),
+        "google_books_id": item.get("id"),
     }
 
 @router.get("/search", response_model=List[schemas.MediaItemCreate])
@@ -88,12 +90,77 @@ def search_media(*, q: str = Query(..., min_length=2), media_type: MediaType, au
 @router.post("/logs", response_model=schemas.LogEntryInDB)
 def create_log_entry(*, db: Session = Depends(deps.get_db), payload: schemas.LogPayload) -> Any:
     log = crud.log_entry.create_with_user(db=db, obj_in=payload.log_in, user_id=payload.user_id)
+
+    # Enrich game logs with Steam data
+    if log.media_item.media_type == MediaType.GAME and log.media_item.igdb_id:
+        igdb_id = log.media_item.igdb_id
+        steam_appid = igdb_service.get_steam_appid(igdb_id)
+        if steam_appid:
+            log.media_item.steam_appid = steam_appid
+            steam_data = steam_service.get_app_details(steam_appid)
+            if steam_data:
+                parsed = steam_service.parse_steam_game_data(steam_data)
+                for key, value in parsed.items():
+                    if key == "screenshots":
+                        setattr(log.media_item, key, json.dumps(value))
+                    elif value:
+                        setattr(log.media_item, key, value)
+            db.add(log.media_item)
+            db.commit()
+            db.refresh(log)
+
+    # Enrich movie logs with TMDb data
+    if log.media_item.media_type == MediaType.MOVIE and log.media_item.tmdb_id:
+        details = tmdb_service.get_movie_details(log.media_item.tmdb_id)
+        if details:
+            for key, value in details.items():
+                if value:
+                    setattr(log.media_item, key, value)
+            db.add(log.media_item)
+            db.commit()
+
+    # Enrich series logs with TMDb data
+    if log.media_item.media_type == MediaType.SERIES and log.media_item.tmdb_id:
+        details = tmdb_service.get_tv_details(log.media_item.tmdb_id)
+        if details:
+            for key, value in details.items():
+                if value:
+                    setattr(log.media_item, key, value)
+            db.add(log.media_item)
+            db.commit()
+
+    # Enrich book logs with Google Books data
+    if log.media_item.media_type == MediaType.BOOK and log.media_item.google_books_id:
+        details = google_books_service.get_book_details(log.media_item.google_books_id)
+        if details:
+            for key, value in details.items():
+                if value:
+                    setattr(log.media_item, key, value)
+            db.add(log.media_item)
+            db.commit()
+
     return log
 
-@router.get("/logs", response_model=List[schemas.LogEntryInDB])
+@router.get("/logs", response_model=List[schemas.LogEntryWithStats])
 def read_logs(*, db: Session = Depends(deps.get_db), user_id: int, skip: int = 0, limit: int = 100) -> Any:
     logs = crud.log_entry.get_multi_by_user(db, user_id=user_id, skip=skip, limit=limit)
-    return logs
+    results = []
+    for log in logs:
+        stats = {"watched_episodes": None, "total_episodes": None, "unlocked_achievements": None, "total_achievements": None}
+        if log.media_item.media_type == MediaType.SERIES:
+            watched = db.query(EpisodeWatched).filter(EpisodeWatched.log_id == log.id, EpisodeWatched.watched == True).count()
+            total = db.query(EpisodeWatched).filter(EpisodeWatched.log_id == log.id).count()
+            stats["watched_episodes"] = watched
+            stats["total_episodes"] = total
+        elif log.media_item.media_type == MediaType.GAME:
+            unlocked = db.query(Achievement).filter(Achievement.log_id == log.id, Achievement.unlocked == True).count()
+            total = db.query(Achievement).filter(Achievement.log_id == log.id).count()
+            stats["unlocked_achievements"] = unlocked
+            stats["total_achievements"] = total
+        log_dict = schemas.LogEntryInDB.model_validate(log).model_dump()
+        log_dict.update(stats)
+        results.append(schemas.LogEntryWithStats(**log_dict))
+    return results
 
 @router.get("/logs/{log_id}", response_model=schemas.LogEntryInDB)
 def read_log(*, db: Session = Depends(deps.get_db), log_id: int) -> Any:
@@ -103,18 +170,65 @@ def read_log(*, db: Session = Depends(deps.get_db), log_id: int) -> Any:
     return log
 
 @router.put("/logs/{log_id}", response_model=schemas.LogEntryInDB)
-def update_log_entry(*, db: Session = Depends(deps.get_db), log_id: int, payload: schemas.LogPayload) -> Any:
+def update_log_entry(*, db: Session = Depends(deps.get_db), log_id: int, updates: schemas.LogEntryUpdate) -> Any:
     log = crud.log_entry.get(db, id=log_id)
     if not log:
         raise HTTPException(status_code=404, detail="Log not found")
-    update_data = payload.log_in.dict(exclude_unset=True)
-    if "media_item" in update_data:
-        del update_data["media_item"]
+    update_data = updates.dict(exclude_unset=True)
     for field, value in update_data.items():
         setattr(log, field, value)
     db.add(log)
     db.commit()
     db.refresh(log)
+
+    # Enrich game logs with Steam data if not already present
+    if log.media_item.media_type == MediaType.GAME and log.media_item.igdb_id and not log.media_item.steam_appid:
+        igdb_id = log.media_item.igdb_id
+        steam_appid = igdb_service.get_steam_appid(igdb_id)
+        if steam_appid:
+            log.media_item.steam_appid = steam_appid
+            steam_data = steam_service.get_app_details(steam_appid)
+            if steam_data:
+                parsed = steam_service.parse_steam_game_data(steam_data)
+                for key, value in parsed.items():
+                    if key == "screenshots":
+                        setattr(log.media_item, key, json.dumps(value))
+                    elif value:
+                        setattr(log.media_item, key, value)
+            db.add(log.media_item)
+            db.commit()
+            db.refresh(log)
+
+    # Enrich movie logs with TMDb data if not already present
+    if log.media_item.media_type == MediaType.MOVIE and log.media_item.tmdb_id and not log.media_item.genres:
+        details = tmdb_service.get_movie_details(log.media_item.tmdb_id)
+        if details:
+            for key, value in details.items():
+                if value:
+                    setattr(log.media_item, key, value)
+            db.add(log.media_item)
+            db.commit()
+
+    # Enrich series logs with TMDb data if not already present
+    if log.media_item.media_type == MediaType.SERIES and log.media_item.tmdb_id and not log.media_item.genres:
+        details = tmdb_service.get_tv_details(log.media_item.tmdb_id)
+        if details:
+            for key, value in details.items():
+                if value:
+                    setattr(log.media_item, key, value)
+            db.add(log.media_item)
+            db.commit()
+
+    # Enrich book logs with Google Books data if not already present
+    if log.media_item.media_type == MediaType.BOOK and log.media_item.google_books_id and not log.media_item.publisher:
+        details = google_books_service.get_book_details(log.media_item.google_books_id)
+        if details:
+            for key, value in details.items():
+                if value:
+                    setattr(log.media_item, key, value)
+            db.add(log.media_item)
+            db.commit()
+
     return log
 
 @router.patch("/logs/{log_id}", response_model=schemas.LogEntryInDB)
@@ -209,6 +323,8 @@ def toggle_achievement(*, db: Session = Depends(deps.get_db), log_id: int, ach_i
 
 @router.get("/games/{igdb_id}/achievements")
 def get_game_achievements_proxy(igdb_id: int):
-    achievements = igdb_service.get_game_achievements(igdb_id)
-    return achievements
+    steam_appid = igdb_service.get_steam_appid(igdb_id)
+    if not steam_appid:
+        return []
+    return igdb_service.get_steam_achievements(steam_appid)
 

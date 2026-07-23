@@ -34,10 +34,16 @@ export interface LogEntry {
   rating?: number;
   is_favorite?: boolean;
   is_relog?: boolean;
+  relog_count?: number;
   platform?: string;
   hours_spent?: number;
+  pages_read?: number;
   review?: string;
   status: LogStatus;
+  watched_episodes?: number;
+  total_episodes?: number;
+  unlocked_achievements?: number;
+  total_achievements?: number;
 }
 
 export * from './media';

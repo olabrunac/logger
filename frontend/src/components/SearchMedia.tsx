@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
 import type { MediaItem, MediaType } from '../types/media';
 
@@ -17,18 +17,26 @@ const SearchMedia = ({ onSelectMedia, initialMediaType }: SearchMediaProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const mediaTypes: MediaType[] = ['movie', 'series', 'game', 'book'];
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!query.trim() && !isbn.trim()) return;
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!query.trim() && !isbn.trim()) { setResults([]); return; }
+    debounceRef.current = setTimeout(() => {
+      doSearch(query, isbn);
+    }, 500);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [query, isbn, mediaType, author, year]);
 
+  const doSearch = async (q: string, isbnVal: string) => {
+    if (!q.trim() && !isbnVal.trim()) return;
     setIsLoading(true);
     setError('');
     try {
-      const params: Record<string, string | number> = { q: query || isbn, media_type: mediaType };
+      const params: Record<string, string | number> = { q: q || isbnVal, media_type: mediaType };
       if (author.trim()) params.author = author.trim();
       if (year.trim() && !isNaN(Number(year))) params.year = Number(year);
-      if (isbn.trim()) params.isbn = isbn.trim();
+      if (isbnVal.trim()) params.isbn = isbnVal.trim();
       const response = await api.get('/media/search', { params });
       setResults(response.data || []);
     } catch (err) {
@@ -38,6 +46,12 @@ const SearchMedia = ({ onSelectMedia, initialMediaType }: SearchMediaProps) => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    doSearch(query, isbn);
   };
 
   const getMediaTypeIcon = (type: MediaType) => {
@@ -123,7 +137,7 @@ const SearchMedia = ({ onSelectMedia, initialMediaType }: SearchMediaProps) => {
             disabled={isLoading}
           />
           <button type="submit" disabled={isLoading || (!query.trim() && !isbn.trim())} className="btn btn-primary" style={{ whiteSpace: 'nowrap' }}>
-            {isLoading ? 'Buscando...' : 'Buscar'}
+            Buscar
           </button>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>

@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     IGDB_CLIENT_ID: str = os.getenv("IGDB_CLIENT_ID")
     IGDB_CLIENT_SECRET: str = os.getenv("IGDB_CLIENT_SECRET")
     GOOGLE_BOOKS_API_KEY: str = os.getenv("GOOGLE_BOOKS_API_KEY")
+    STEAM_API_KEY: str = os.getenv("STEAM_API_KEY", "")
 
     class Config:
         case_sensitive = True

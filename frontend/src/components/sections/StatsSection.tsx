@@ -6,7 +6,7 @@ interface StatsSectionProps {
   mediaType?: string;
 }
 
-const StatsSection = ({ logs, accentColor, mediaType }: StatsSectionProps) => {
+const StatsSection = ({ logs, accentColor: _accentColor, mediaType }: StatsSectionProps) => {
   const filteredLogs = logs.filter((l) => !mediaType || l.media_item.media_type === mediaType);
 
   const ratedLogs = filteredLogs.filter((l) => l.rating && l.rating > 0);
@@ -24,44 +24,27 @@ const StatsSection = ({ logs, accentColor, mediaType }: StatsSectionProps) => {
     : 0;
 
   return (
-    <div className="profile-section">
-      <div className="section-header">
-        <div className="section-title-row">
-          <span className="section-accent-bar" style={{ background: accentColor }} />
-          <h2 className="section-title">Estatísticas</h2>
+    <div className="mdf-card p-4 h-full">
+      <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-3">Estatísticas</div>
+      <div className="grid grid-cols-3 gap-2 mb-3">
+        <div className="text-center p-4 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)' }}>
+          <div className="text-xl font-bold text-white">{filteredLogs.length}</div>
+          <div className="text-[10px] text-white/40 mt-1">Total</div>
         </div>
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-        <div style={{ textAlign: 'center', padding: '1rem', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-heading)' }}>
-            {filteredLogs.length}
-          </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-            Total
-          </div>
+        <div className="text-center p-4 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)' }}>
+          <div className="text-xl font-bold text-white">{avgHours > 0 ? `${avgHours.toFixed(1)}h` : '—'}</div>
+          <div className="text-[10px] text-white/40 mt-1">Média Horas</div>
         </div>
-        <div style={{ textAlign: 'center', padding: '1rem', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-heading)' }}>
-            {avgHours > 0 ? `${avgHours.toFixed(1)}h` : '—'}
-          </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-            Média de Horas
-          </div>
-        </div>
-        <div style={{ textAlign: 'center', padding: '1rem', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-heading)' }}>
-            {avgRating > 0 ? avgRating.toFixed(1) : '—'}
-          </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-            Média de Rating
-          </div>
+        <div className="text-center p-4 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)' }}>
+          <div className="text-xl font-bold text-white">{avgRating > 0 ? avgRating.toFixed(1) : '—'}</div>
+          <div className="text-[10px] text-white/40 mt-1">Média Rating</div>
         </div>
       </div>
 
       {mediaType === 'game' && (
-        <div style={{ textAlign: 'center', padding: '0.75rem', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
-          <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-heading)' }}>{avgCompletion.toFixed(0)}%</span>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>Média de Compleção</span>
+        <div className="text-center p-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)' }}>
+          <span className="text-sm font-bold text-white">{avgCompletion.toFixed(0)}%</span>
+          <span className="text-[10px] text-white/40 ml-1.5">Média de Compleção</span>
         </div>
       )}
     </div>
