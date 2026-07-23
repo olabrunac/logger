@@ -171,7 +171,7 @@ const MediaTypeProfilePage = ({ currentUser }: MediaTypeProfilePageProps) => {
   }, [logs, mediaType]);
 
   const recentLogs = useMemo(() => {
-    return [...filteredLogs].sort((a, b) => new Date(b.log_date).getTime() - new Date(a.log_date).getTime()).slice(0, 10);
+    return [...filteredLogs].sort((a, b) => b.id - a.id).slice(0, 10);
   }, [filteredLogs]);
 
   const reviewLogs = useMemo(() => {

@@ -28,9 +28,10 @@ const ActivityGraph = ({ logs, mediaType }: ActivityGraphProps) => {
       dayMap[date][type] = (dayMap[date][type] || 0) + 1;
     });
 
-    const startDate = new Date(2026, 0, 1);
     const now = new Date();
-    const totalDays = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    const startDate = new Date(now);
+    startDate.setDate(startDate.getDate() - 90);
+    const totalDays = 90;
     const startOffset = startDate.getDay();
     const totalSlots = startOffset + totalDays + 1;
 
@@ -66,7 +67,7 @@ const ActivityGraph = ({ logs, mediaType }: ActivityGraphProps) => {
     <div className="profile-section">
       <div className="section-header">
         <div className="section-title-row">
-          <h2 className="section-title">Mapa de Atividade</h2>
+          <h2 className="section-title">Mapa de Atividade (Últimos 90 dias)</h2>
         </div>
       </div>
       <div style={{ overflowX: 'auto', paddingBottom: '0.5rem' }}>
@@ -78,8 +79,8 @@ const ActivityGraph = ({ logs, mediaType }: ActivityGraphProps) => {
                   key={`${wi}-${di}`}
                   title={`${day.date}: ${day.total} log${day.total !== 1 ? 's' : ''}`}
                   style={{
-                    width: '15px',
-                    height: '15px',
+                    width: '13px',
+                    height: '13px',
                     borderRadius: '2px',
                     background: getColor(day.counts, day.total),
                     border: '1px solid rgba(255, 255, 255, 0.03)',

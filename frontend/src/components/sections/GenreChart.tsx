@@ -13,9 +13,13 @@ const GenreChart = ({ logs, accentColor, mediaType }: GenreChartProps) => {
     const filtered = logs.filter((l) => !mediaType || l.media_item.media_type === mediaType);
 
     filtered.forEach((log) => {
-      if (log.media_item.genres) {
-        log.media_item.genres.split(', ').forEach((genre: string) => {
-          genreCounts[genre] = (genreCounts[genre] || 0) + 1;
+      const gStr = log.media_item.genres || log.media_item.steam_genres || log.media_item.book_categories;
+      if (gStr) {
+        gStr.split(', ').forEach((genre: string) => {
+          const trimmed = genre.trim();
+          if (trimmed) {
+            genreCounts[trimmed] = (genreCounts[trimmed] || 0) + 1;
+          }
         });
       }
     });
@@ -48,11 +52,11 @@ const GenreChart = ({ logs, accentColor, mediaType }: GenreChartProps) => {
 
   return (
     <div className="mdf-card p-4 h-full flex flex-col">
-      <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-3">Gêneros</div>
+      <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-3">Gêneros / Categorias</div>
       <div className="flex flex-col gap-2 flex-1">
         {genreData.map((item, index) => (
           <div key={item.genre} className="flex items-center gap-2">
-            <span className="w-20 text-right text-[11px] text-white/50 truncate flex-shrink-0">
+            <span className="w-20 text-right text-[11px] text-white/50 truncate flex-shrink-0" title={item.genre}>
               {item.genre}
             </span>
             <div className="flex-1 h-3 rounded-sm overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>

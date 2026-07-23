@@ -160,6 +160,12 @@ const LogDetailPage = () => {
         episode_name: ep.name, watched: newWatched, log_date: new Date().toISOString().split('T')[0],
       });
       setWatchedMap({ ...watchedMap, [key]: data });
+      if (log) {
+        setLog({
+          ...log,
+          watched_episodes: (log.watched_episodes || 0) + (newWatched ? 1 : -1)
+        });
+      }
     } catch (err) {
       console.error('Failed to toggle episode:', err);
     }
@@ -168,8 +174,13 @@ const LogDetailPage = () => {
   const toggleAllEpisodes = async (seasonEps: TmdbEpisode[], markWatched: boolean) => {
     if (!id) return;
     const newMap = { ...watchedMap };
+    let watchedChange = 0;
     for (const ep of seasonEps) {
       const key = ep.season_number + '-' + ep.episode_number;
+      const isCurrentlyWatched = !!newMap[key]?.watched;
+      if (isCurrentlyWatched !== markWatched) {
+         watchedChange += markWatched ? 1 : -1;
+      }
       try {
         const { data } = await api.post('/media/logs/' + id + '/episodes', {
           season_number: ep.season_number, episode_number: ep.episode_number,
@@ -181,6 +192,9 @@ const LogDetailPage = () => {
       }
     }
     setWatchedMap(newMap);
+    if (log) {
+      setLog({ ...log, watched_episodes: (log.watched_episodes || 0) + watchedChange });
+    }
   };
 
   const toggleAch = async (a: AchievementItem) => {
@@ -220,8 +234,8 @@ const LogDetailPage = () => {
 
   const md = log.media_item;
   const meta = TYPE_META[md.media_type] || TYPE_META.game;
-  const watchedCount = Object.values(watchedMap).filter(e => e.watched).length;
-  const totalEps = Object.values(episodes).reduce((s, arr) => s + arr.length, 0);
+  const watchedCount = log?.watched_episodes || 0;
+  const totalEps = log?.total_episodes || 0;
   const unlockedCount = achievements.filter(a => a.unlocked).length;
 
   return (
