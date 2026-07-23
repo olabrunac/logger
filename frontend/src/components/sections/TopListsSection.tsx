@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
-import { Trash2, GripVertical, Search } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Trash2, GripVertical } from 'lucide-react';
 import api, { getUserFavorites } from '../../services/api';
 import type { User, TopListItem, MediaItem } from '../../types';
 
@@ -20,10 +20,9 @@ const TopListsSection = ({ profileUser, currentUser }: TopListsSectionProps) => 
   const [topLists, setTopLists] = useState<Record<string, TopListItem[]>>({});
   const [draftItems, setDraftItems] = useState<Record<string, { id?: number; media_item_id: number; position: number; media_item?: MediaItem }[]>>({});
   const [isEditing, setIsEditing] = useState<Record<string, boolean>>({});
-  const [searchQuery, setSearchQuery] = useState<Record<string, string>>({});
-  const [searchResults, setSearchResults] = useState<Record<string, MediaItem[]>>({});
+  const [favorites, setFavorites] = useState<Record<string, MediaItem[]>>({});
   const [loading, setLoading] = useState(true);
-  const debounceRefs = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const [loadingFav, setLoadingFav] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     fetchTopLists();
@@ -46,41 +45,28 @@ const TopListsSection = ({ profileUser, currentUser }: TopListsSectionProps) => 
     }
   };
 
-  const searchMedia = useCallback(async (type: string, query: string) => {
-    // Filter already-loaded favorites
-    const allFavorites = searchResults[type] || [];
-    const filtered = allFavorites.filter((m: MediaItem) =>
-      m.title.toLowerCase().includes(query.toLowerCase())
-    );
-    setSearchResults(prev => ({ ...prev, [type]: filtered }));
-  }, [searchResults]);
-
-  const handleSearchChange = (type: string, query: string) => {
-    setSearchQuery(prev => ({ ...prev, [type]: query }));
-    if (debounceRefs.current[type]) clearTimeout(debounceRefs.current[type]);
-    debounceRefs.current[type] = setTimeout(() => searchMedia(type, query), 300);
-  };
-
-  const startEditing = async (type: string) => {
-    setIsEditing(prev => ({ ...prev, [type]: true }));
-    setDraftItems(prev => ({ ...prev, [type]: (topLists[type] || []).map((i, idx) => ({ ...i, position: idx + 1 })) }));
-    setSearchResults(prev => ({ ...prev, [type]: [] }));
-    setSearchQuery(prev => ({ ...prev, [type]: '' }));
-    
-    // Load all favorited items for this media type
+  const loadFavorites = async (type: string) => {
+    if (favorites[type]?.length) return;
+    setLoadingFav(prev => ({ ...prev, [type]: true }));
     try {
       const res = await getUserFavorites(profileUser.id, type);
-      setSearchResults(prev => ({ ...prev, [type]: res.data || [] }));
+      setFavorites(prev => ({ ...prev, [type]: res.data || [] }));
     } catch (err) {
       console.error('Failed to load favorites', err);
+    } finally {
+      setLoadingFav(prev => ({ ...prev, [type]: false }));
     }
+  };
+
+  const startEditing = (type: string) => {
+    setIsEditing(prev => ({ ...prev, [type]: true }));
+    setDraftItems(prev => ({ ...prev, [type]: (topLists[type] || []).map((i, idx) => ({ ...i, position: idx + 1 })) }));
+    loadFavorites(type);
   };
 
   const cancelEditing = (type: string) => {
     setIsEditing(prev => ({ ...prev, [type]: false }));
     setDraftItems(_prev => { const n = { ...draftItems }; delete n[type]; return n; });
-    setSearchResults(prev => ({ ...prev, [type]: [] }));
-    setSearchQuery(prev => ({ ...prev, [type]: '' }));
   };
 
   const saveList = async (type: string) => {
@@ -91,18 +77,14 @@ const TopListsSection = ({ profileUser, currentUser }: TopListsSectionProps) => 
       const newIds = items.map(i => i.id).filter(Boolean);
       const deletedIds = currentIds.filter(id => !newIds.includes(id));
 
-      // Delete removed items
       for (const id of deletedIds) {
         await api.delete(`/users/${profileUser.id}/top-list/${id}`);
       }
 
-      // Create new items and update existing
       for (const item of items) {
         if (item.id) {
-          // Update existing
           await api.put(`/users/${profileUser.id}/top-list/${item.id}`, { position: item.position });
         } else {
-          // Create new
           await api.post(`/users/${profileUser.id}/top-list`, { media_item_id: item.media_item_id, position: item.position });
         }
       }
@@ -118,13 +100,11 @@ const TopListsSection = ({ profileUser, currentUser }: TopListsSectionProps) => 
   const addItem = (type: string, mediaId: number) => {
     if (draftItems[type]?.length >= 5) return alert('Máximo de 5 itens');
     if (draftItems[type]?.some((i: any) => i.media_item_id === mediaId)) return alert('Já está na lista');
-    const media = searchResults[type]?.find(m => m.id === mediaId);
+    const media = favorites[type]?.find(m => m.id === mediaId);
     setDraftItems(prev => ({
       ...prev,
       [type]: [...(prev[type] || []), { media_item_id: mediaId, position: (prev[type]?.length || 0) + 1, media_item: media }]
     }));
-    setSearchQuery(prev => ({ ...prev, [type]: '' }));
-    setSearchResults(prev => ({ ...prev, [type]: [] }));
   };
 
   const removeItem = (type: string, index: number) => {
@@ -155,12 +135,12 @@ const TopListsSection = ({ profileUser, currentUser }: TopListsSectionProps) => 
           const config = TYPE_CONFIG[type];
           const items = topLists[type] || [];
           const draft = isEditing[type] ? (draftItems[type] || []) : items;
-          const results = searchResults[type] || [];
-          const query = searchQuery[type] || '';
+          const favs = favorites[type] || [];
+          const favLoading = loadingFav[type] || false;
           const isOwn = profileUser.id === currentUser.id;
 
           return (
-            <div key={type} className="mdf-card p-4 flex flex-col h-full">
+            <div key={type} className="mdf-card p-4 flex flex-col h-full relative">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <span className="text-xl">{config.emoji}</span>
@@ -183,7 +163,7 @@ const TopListsSection = ({ profileUser, currentUser }: TopListsSectionProps) => 
               <ul className="flex-1 space-y-2 min-h-[180px]">
                 {draft.length > 0 ? (
                   draft.map((item, index) => {
-                    const media = item.media_item || results.find((m: MediaItem) => m.id === item.media_item_id);
+                    const media = item.media_item || favs.find((m: MediaItem) => m.id === item.media_item_id);
                     return (
                       <li
                         key={item.id || index}
@@ -222,31 +202,25 @@ const TopListsSection = ({ profileUser, currentUser }: TopListsSectionProps) => 
 
               {isEditing[type] && (
                 <div className="mt-3 pt-3 border-t border-white/5 space-y-2">
-                  <div className="relative">
-                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-white/30" size={14} />
-                    <input
-                      type="text"
-                      placeholder="Buscar mídia para adicionar..."
-                      value={query}
-                      onChange={e => handleSearchChange(type, e.target.value)}
-                      className="w-full pl-8 pr-2 py-1.5 text-xs bg-white/5 border border-white/10 rounded text-white focus:outline-none focus:border-green-500"
-                    />
-                  </div>
-                  {results.length > 0 && (
-                    <div className="max-h-40 overflow-y-auto space-y-1">
-                      {results
+                  {favLoading ? (
+                    <div className="text-center text-white/50 py-4">Carregando favoritos...</div>
+                  ) : favs.length === 0 ? (
+                    <div className="text-center text-white/50 py-4">Nenhum favorito desta mídia ainda</div>
+                  ) : (
+                    <div className="max-h-60 overflow-y-auto space-y-1">
+                      {favs
                         .filter((m: MediaItem) => m.id && !draftItems[type]?.some((i: any) => i.media_item_id === m.id))
                         .map((m: MediaItem) => (
                           <button
                             key={m.id}
                             onClick={() => addItem(type, m.id!)}
-                            className="w-full flex items-center gap-2 p-1.5 bg-white/5 hover:bg-white/10 rounded text-left text-sm transition-colors"
+                            className="w-full flex items-center gap-3 p-2 bg-white/5 hover:bg-white/10 rounded text-left transition-colors group"
                           >
                             {m.cover_image_url && (
-                              <img src={m.cover_image_url} alt={m.title} className="w-8 h-12 object-cover rounded" />
+                              <img src={m.cover_image_url} alt={m.title} className="w-10 h-15 object-cover rounded flex-shrink-0" />
                             )}
-                            <span className="flex-1 truncate">{m.title}</span>
-                            <span className="text-[10px] text-white/40">+ Adicionar</span>
+                            <span className="flex-1 truncate text-sm">{m.title}</span>
+                            <span className="text-xs text-green-400 opacity-0 group-hover:opacity-100 transition-opacity">+ Adicionar</span>
                           </button>
                         ))}
                     </div>
