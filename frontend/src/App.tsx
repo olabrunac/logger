@@ -44,7 +44,7 @@ function App() {
     ? { '--mdf-green': user.accent_color, '--accent': user.accent_color } as React.CSSProperties
     : {};
 
-  // Fixed sidebar widths (expanded state) - content area stays this width even when sidebar collapsed
+  // Fixed sidebar widths - content area stays this width always
   const fixedSidebarWidths = user
     ? { left: 270, right: 324 }
     : { left: 0, right: 0 };
@@ -52,7 +52,7 @@ function App() {
   return (
     <Router>
       <div style={accentStyle} className="min-h-screen flex">
-        {user && <LeftSidebar user={user} isCollapsed={isSidebarCollapsed} />}
+        {user && <LeftSidebar user={user} />}
         {user && (
           <RightSidebar
             user={user}
