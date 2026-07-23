@@ -46,7 +46,7 @@ function App() {
 
   const getMainMarginRight = () => {
     if (!user) return '';
-    return isSidebarCollapsed ? 'mr-14' : 'mr-[432px]';
+    return isSidebarCollapsed ? 'mr-14' : 'mr-[324px]';
   };
 
   return (
@@ -60,7 +60,7 @@ function App() {
             onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           />
         )}
-        <main className={`ml-[360px] ${getMainMarginRight()} min-h-screen p-8 overflow-y-auto transition-all`}>
+        <main className={`ml-[270px] ${getMainMarginRight()} min-h-screen p-8 overflow-y-auto transition-all`}>
           <Routes>
             <Route
               path="/login"
