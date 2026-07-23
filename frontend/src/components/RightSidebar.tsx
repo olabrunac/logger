@@ -6,6 +6,7 @@ import StatsSection from './sections/StatsSection';
 import RatingDistribution from './sections/RatingDistribution';
 import GenreChart from './sections/GenreChart';
 import ActivityGraph from './sections/ActivityGraph';
+import HoursPieChart from './sections/HoursPieChart';
 import type { LogEntry, User } from '../types';
 
 interface RightSidebarProps {
@@ -105,6 +106,12 @@ const RightSidebar = ({ user, isCollapsed, onToggleCollapse }: RightSidebarProps
         <div className="transform scale-95 origin-top-left">
           <GenreChart logs={logs} accentColor={currentMediaColor} mediaType={activeMediaType} />
         </div>
+
+        {!activeMediaType && (
+          <div className="mdf-card p-3">
+             <HoursPieChart logs={logs} />
+          </div>
+        )}
 
         <div className="mdf-card p-3">
           <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-2">Mapa de Atividade</div>
