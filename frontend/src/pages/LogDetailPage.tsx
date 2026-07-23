@@ -385,6 +385,18 @@ const LogDetailPage = () => {
                 <div className="text-sm text-white/70">{md.director}</div>
               </div>
             )}
+            {md.runtime && (
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-1">Duração</div>
+                <div className="text-sm text-white/70">{md.runtime} min</div>
+              </div>
+            )}
+            {md.cast && (
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-1">Elenco</div>
+                <div className="text-sm text-white/70">{md.cast}</div>
+              </div>
+            )}
             {md.genres && (
               <div>
                 <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-1">Generos</div>
@@ -455,9 +467,10 @@ const LogDetailPage = () => {
           </div>
           <div className="space-y-2">
             {seasons.map(s => {
+              const sWatched = Object.values(watchedMap).filter(e => e.season_number === s.season_number && e.watched).length;
+              const total = s.episode_count || 0;
+              const pct = total > 0 ? (sWatched / total) * 100 : 0;
               const eps = episodes[s.season_number] || [];
-              const sWatched = eps.filter(e => watchedMap[e.season_number + '-' + e.episode_number]?.watched).length;
-              const pct = eps.length ? (sWatched / eps.length) * 100 : 0;
               return (
                 <div key={s.season_number} className="mdf-card overflow-hidden">
                   <button onClick={() => loadSeason(s.season_number)}
@@ -471,16 +484,16 @@ const LogDetailPage = () => {
                         <div className="h-1 rounded-full bg-white/10 overflow-hidden">
                           <div className="h-full rounded-full bg-[var(--mdf-green)] transition-all" style={{ width: pct + '%' }} />
                         </div>
-                        <div className="text-[10px] text-white/40 text-right mt-1 font-mono">{sWatched}/{eps.length}</div>
+                        <div className="text-[10px] text-white/40 text-right mt-1 font-mono">{sWatched}/{total}</div>
                       </div>
                     )}
                     {eps.length > 0 && (
                       <button
                         type="button"
-                        onClick={(e) => { e.stopPropagation(); toggleAllEpisodes(eps, sWatched < eps.length); }}
+                        onClick={(e) => { e.stopPropagation(); toggleAllEpisodes(eps, sWatched < total); }}
                         className="flex-shrink-0"
                       >
-                        {sWatched === eps.length
+                        {sWatched === total
                           ? <CheckCircle2 size={20} style={{ color: 'var(--mdf-green)' }} />
                           : <Circle size={20} className="text-white/30 hover:text-white/50 transition-colors" />}
                       </button>
