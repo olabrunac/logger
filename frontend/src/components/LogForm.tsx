@@ -49,7 +49,7 @@ const STATUS_CONFIG: Record<string, { options: { value: LogStatus; label: string
 const PLATFORM_OPTIONS: Record<string, string[]> = {
   game: ['Steam', 'Epic Games', 'GOG', 'Xbox', 'PlayStation', 'Nintendo', 'Mobile', 'Pirata', 'Não especificado'],
   movie: ['Netflix', 'Prime Video', 'Disney+', 'HBO Max', 'Apple TV+', 'Cinema', 'Blu-ray', 'Stremio', 'Não especificado'],
-  series: ['Netflix', 'Prime Video', 'Disney+', 'HBO Max', 'Apple TV+', 'Crunchyroll', 'Stremio', 'Não especificado'],
+  series: ['Netflix', 'Prime Video', 'Disney+', 'HBO Max', 'Apple TV+', 'Crunchyroll', 'Stremio', 'YouTube', 'Não especificado'],
   book: ['Físico', 'Kindle', 'PDF', 'Audiobook', 'Web', 'Pirata', 'Não especificado'],
 };
 

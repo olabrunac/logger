@@ -68,12 +68,14 @@ def get_movie_details(tmdb_id: int):
             if v.get("site") == "YouTube" and v.get("type") == "Trailer":
                 trailer = f"https://www.youtube.com/watch?v={v['key']}"
                 break
+        cast = ", ".join([c["name"] for c in data.get("credits", {}).get("cast", [])[:5]])
         return {
             "genres": ", ".join(g["name"] for g in data.get("genres", [])),
             "runtime": data.get("runtime"),
             "vote_average": data.get("vote_average"),
             "director": director,
             "trailer_url": trailer,
+            "cast": cast,
         }
     except requests.exceptions.RequestException as e:
         print(f"Error fetching TMDb movie details: {e}")
@@ -95,11 +97,13 @@ def get_tv_details(tmdb_id: int):
         runtime = None
         if data.get("episode_run_time"):
             runtime = data["episode_run_time"][0]
+        cast = ", ".join([c["name"] for c in data.get("credits", {}).get("cast", [])[:5]])
         return {
             "genres": ", ".join(g["name"] for g in data.get("genres", [])),
             "runtime": runtime,
             "vote_average": data.get("vote_average"),
             "director": creator,
+            "cast": cast,
         }
     except requests.exceptions.RequestException as e:
         print(f"Error fetching TMDb TV details: {e}")
