@@ -7,4 +7,8 @@ from .media import (
     LogEntryUpdate,
     LogEntryInDB,
     LogPayload,
+    EpisodeWatchedCreate,
+    EpisodeWatchedInDB,
+    AchievementCreate,
+    AchievementInDB,
 )

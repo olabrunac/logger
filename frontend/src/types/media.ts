@@ -1,12 +1,14 @@
-export const enum MediaType {
-  Movie = "movie",
-  Series = "series",
-  Game = "game",
-  Book = "book",
-}
+export type MediaType = "movie" | "series" | "game" | "book";
+
+export const MediaTypeValues: MediaType[] = [
+  "movie",
+  "series",
+  "game",
+  "book"
+];
 
 export interface MediaItem {
-  id?: number; // Made optional as it might not exist on creation from search
+  id?: number;
   tmdb_id?: number;
   igdb_id?: number;
   title: string;
@@ -14,5 +16,5 @@ export interface MediaItem {
   cover_image_url?: string;
   release_date?: string;
   synopsis?: string;
+  genres?: string[];
 }
-

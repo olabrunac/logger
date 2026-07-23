@@ -31,29 +31,66 @@ class LogEntryBase(BaseModel):
     is_favorite: Optional[bool] = False
     is_relog: Optional[bool] = False
     platform: Optional[str] = None
-    hours_spent: Optional[int] = None
+    hours_spent: Optional[float] = None
     review: Optional[str] = None
     status: LogStatus
 
 class LogEntryCreate(LogEntryBase):
-    # Instead of media_item_id, we pass the full details
-    # This allows the API to get-or-create the media item
     media_item: MediaItemCreate
 
-class LogEntryUpdate(LogEntryBase):
-    pass
+class LogEntryUpdate(BaseModel):
+    log_date: Optional[datetime] = None
+    rating: Optional[float] = None
+    is_favorite: Optional[bool] = None
+    is_relog: Optional[bool] = None
+    platform: Optional[str] = None
+    hours_spent: Optional[float] = None
+    review: Optional[str] = None
+    status: Optional[LogStatus] = None
 
 class LogEntryInDB(LogEntryBase):
     id: int
     user_id: int
     media_item: MediaItemInDB
-
     class Config:
         from_attributes = True
 
-# --- Payload Schemas ---
 class LogPayload(BaseModel):
     log_in: LogEntryCreate
     user_id: int
+
+# --- Episode Schemas ---
+class EpisodeWatchedBase(BaseModel):
+    season_number: int
+    episode_number: int
+    episode_name: Optional[str] = None
+    watched: bool = True
+    log_date: Optional[str] = None
+
+class EpisodeWatchedCreate(EpisodeWatchedBase):
+    pass
+
+class EpisodeWatchedInDB(EpisodeWatchedBase):
+    id: int
+    log_id: int
+    class Config:
+        from_attributes = True
+
+# --- Achievement Schemas ---
+class AchievementBase(BaseModel):
+    external_id: str
+    name: str
+    description: Optional[str] = None
+    image_url: Optional[str] = None
+    unlocked: bool = False
+
+class AchievementCreate(AchievementBase):
+    pass
+
+class AchievementInDB(AchievementBase):
+    id: int
+    log_id: int
+    class Config:
+        from_attributes = True
 
 

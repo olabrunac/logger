@@ -1,8 +1,10 @@
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import Optional
 from app.crud.base import CRUDBase
-from app.models.media import MediaItem, LogEntry, MediaType
+from app.models.media import MediaItem, LogEntry, MediaType, LogStatus
 from app.schemas.media import MediaItemCreate, MediaItemUpdate, LogEntryCreate, LogEntryUpdate
+
 
 class CRUDMediaItem(CRUDBase[MediaItem, MediaItemCreate, MediaItemUpdate]):
     def get_or_create(self, db: Session, *, obj_in: MediaItemCreate) -> MediaItem:
@@ -47,6 +49,76 @@ class CRUDLogEntry(CRUDBase[LogEntry, LogEntryCreate, LogEntryUpdate]):
 
     def get_multi_by_user(self, db: Session, *, user_id: int, skip: int = 0, limit: int = 100):
         return db.query(self.model).filter(LogEntry.user_id == user_id).offset(skip).limit(limit).all()
+
+    def get_stats_by_user(self, db: Session, *, user_id: int):
+        """Get statistics for a user's logs grouped by media type."""
+        # Total logs by media type
+        stats = db.query(
+            MediaItem.media_type,
+            func.count(LogEntry.id).label('count')
+        ).join(LogEntry, LogEntry.media_item_id == MediaItem.id)\
+         .filter(LogEntry.user_id == user_id)\
+         .group_by(MediaItem.media_type)\
+         .all()
+        
+        # Favorites count
+        favorites = db.query(
+            MediaItem.media_type,
+            func.count(LogEntry.id).label('count')
+        ).join(LogEntry, LogEntry.media_item_id == MediaItem.id)\
+         .filter(LogEntry.user_id == user_id, LogEntry.is_favorite == True)\
+         .group_by(MediaItem.media_type)\
+         .all()
+        
+        # Completed count
+        completed = db.query(
+            MediaItem.media_type,
+            func.count(LogEntry.id).label('count')
+        ).join(LogEntry, LogEntry.media_item_id == MediaItem.id)\
+         .filter(LogEntry.user_id == user_id, LogEntry.status == LogStatus.COMPLETED)\
+         .group_by(MediaItem.media_type)\
+         .all()
+        
+        # Total hours
+        total_hours = db.query(
+            MediaItem.media_type,
+            func.sum(LogEntry.hours_spent).label('total')
+        ).join(LogEntry, LogEntry.media_item_id == MediaItem.id)\
+         .filter(LogEntry.user_id == user_id, LogEntry.hours_spent.isnot(None))\
+         .group_by(MediaItem.media_type)\
+         .all()
+        
+        # Build result dict
+        result = {}
+        for media_type in [MediaType.MOVIE, MediaType.SERIES, MediaType.GAME, MediaType.BOOK]:
+            key = media_type.value
+            result[key] = {
+                'total': 0,
+                'favorites': 0,
+                'completed': 0,
+                'hours': 0,
+            }
+        
+        for media_type, count in stats:
+            result[media_type.value]['total'] = count
+        
+        for media_type, count in favorites:
+            result[media_type.value]['favorites'] = count
+            
+        for media_type, count in completed:
+            result[media_type.value]['completed'] = count
+            
+        for media_type, total in total_hours:
+            result[media_type.value]['hours'] = total or 0
+        
+        # Add grand totals
+        result['total'] = sum(v['total'] for v in result.values())
+        result['favorites'] = sum(v['favorites'] for v in result.values())
+        result['completed'] = sum(v['completed'] for v in result.values())
+        result['hours'] = sum(v['hours'] for v in result.values())
+        
+        return result
+
 
 media_item = CRUDMediaItem(MediaItem)
 log_entry = CRUDLogEntry(LogEntry)
