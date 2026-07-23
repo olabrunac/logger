@@ -14,3 +14,4 @@ class User(Base):
     section_order = Column(Text, default='["favorites","trophy_showcase","recent","reviews","library","activity","stats","genre_chart"]')
     
     logs = relationship("LogEntry", back_populates="user")
+    top_list_items = relationship("TopListItem", back_populates="user", cascade="all, delete-orphan")
