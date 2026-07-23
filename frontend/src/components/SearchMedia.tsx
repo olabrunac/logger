@@ -134,7 +134,6 @@ const SearchMedia = ({ onSelectMedia, initialMediaType }: SearchMediaProps) => {
             placeholder={`Título do ${getMediaTypeLabel(mediaType).toLowerCase()}...`}
             className="form-input"
             style={{ flex: 1 }}
-            disabled={isLoading}
           />
           <button type="submit" disabled={isLoading || (!query.trim() && !isbn.trim())} className="btn btn-primary" style={{ whiteSpace: 'nowrap' }}>
             Buscar
@@ -149,7 +148,6 @@ const SearchMedia = ({ onSelectMedia, initialMediaType }: SearchMediaProps) => {
               placeholder="ISBN..."
               className="form-input"
               style={{ width: '160px' }}
-              disabled={isLoading}
             />
           )}
           <input
@@ -159,7 +157,6 @@ const SearchMedia = ({ onSelectMedia, initialMediaType }: SearchMediaProps) => {
             placeholder={mediaType === 'book' ? 'Autor...' : mediaType === 'game' ? 'Desenvolvedora...' : 'Diretor...'}
             className="form-input"
             style={{ flex: 1, minWidth: '160px' }}
-            disabled={isLoading}
           />
           <input
             type="number"
@@ -170,7 +167,6 @@ const SearchMedia = ({ onSelectMedia, initialMediaType }: SearchMediaProps) => {
             style={{ width: '100px' }}
             min="1900"
             max="2099"
-            disabled={isLoading}
           />
         </div>
       </form>

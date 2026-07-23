@@ -42,7 +42,8 @@ const HomePage = ({ user }: HomePageProps) => {
   const fetchData = async () => {
     try {
       const logsRes = await api.get('/media/logs', { params: { user_id: user.id, limit: 12 } });
-      setLogs(logsRes.data || []);
+      const sorted = (logsRes.data || []).sort((a: LogEntry, b: LogEntry) => b.id - a.id);
+      setLogs(sorted);
     } catch (err) {
       console.error('Failed to fetch home data', err);
     } finally {

@@ -83,7 +83,7 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
   };
 
   const recentLogs = useMemo(() => {
-    return [...logs].sort((a, b) => new Date(b.log_date).getTime() - new Date(a.log_date).getTime()).slice(0, 12);
+    return [...logs].sort((a, b) => b.id - a.id).slice(0, 12);
   }, [logs]);
 
   const accentColor = profileUser?.accent_color || '#ff6b35';

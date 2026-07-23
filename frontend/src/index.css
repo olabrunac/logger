@@ -63,8 +63,6 @@ body {
 
 #root {
   width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -241,4 +239,59 @@ ul {
   transform: scale(1.03);
   box-shadow: var(--shadow-hover);
   border-color: var(--border-strong);
+}
+
+.left-sidebar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--text-dim) transparent;
+}
+
+.left-sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.left-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.left-sidebar::-webkit-scrollbar-thumb {
+  background-color: var(--text-dim);
+  border-radius: 3px;
+}
+
+.right-sidebar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--text-dim) transparent;
+}
+
+.right-sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.right-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.right-sidebar::-webkit-scrollbar-thumb {
+  background-color: var(--text-dim);
+  border-radius: 3px;
+}
+
+/* Main content scroll */
+.main-scrollable {
+  scrollbar-width: thin;
+  scrollbar-color: var(--text-dim) var(--bg);
+}
+
+.main-scrollable::-webkit-scrollbar {
+  width: 6px;
+}
+
+.main-scrollable::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+
+.main-scrollable::-webkit-scrollbar-thumb {
+  background-color: var(--text-dim);
+  border-radius: 3px;
 }
