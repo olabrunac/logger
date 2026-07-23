@@ -17,27 +17,27 @@ export const uploadFile = (url: string, formData: FormData) => {
 
 // Top List API
 export const getTopList = (userId: number) => {
-  return api.get(`/users/${userId}/top-list`);
+  return api.get(`/media/users/${userId}/top-list`);
 };
 
 export const createTopListItem = (userId: number, data: { media_item_id: number; position: number }) => {
-  return api.post(`/users/${userId}/top-list`, { media_item_id: data.media_item_id, position: data.position });
+  return api.post(`/media/users/${userId}/top-list`, { media_item_id: data.media_item_id, position: data.position });
 };
 
 export const updateTopListItem = (userId: number, itemId: number, data: { position: number }) => {
-  return api.put(`/users/${userId}/top-list/${itemId}`, { position: data.position });
+  return api.put(`/media/users/${userId}/top-list/${itemId}`, { position: data.position });
 };
 
 export const deleteTopListItem = (userId: number, itemId: number) => {
-  return api.delete(`/users/${userId}/top-list/${itemId}`);
+  return api.delete(`/media/users/${userId}/top-list/${itemId}`);
 };
 
 export const reorderTopList = (userId: number, items: { id: number; position: number }[]) => {
-  return api.put(`/users/${userId}/top-list/reorder`, items);
+  return api.put(`/media/users/${userId}/top-list/reorder`, items);
 };
 
 export const getUserFavorites = (userId: number, mediaType: string) => {
-  return api.get(`/users/${userId}/favorites`, { params: { media_type: mediaType } });
+  return api.get(`/media/users/${userId}/favorites`, { params: { media_type: mediaType } });
 };
 
 export default api;

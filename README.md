@@ -26,3 +26,19 @@ Site pessoal para registrar e acompanhar filmes, séries, jogos e livros, inspir
 - **Lint**: `npm run lint` (frontend)
 - **Build/Typecheck**: `npm run build` (frontend)
 - **Sintaxe Backend**: `.\venv\Scripts\python.exe -m py_compile app/main.py`
+
+## 📋 Status Atual & Pendências
+
+### ✅ Implementado
+- **Top 5 Lists**: Backend completo (model, CRUD, API `/users/{id}/top-list`, `/users/{id}/favorites`), Frontend `TopListsSection` com drag-to-reorder, click-to-add favoritos, save/cancel
+- **Favoritos**: Toggle independente do status (coração no LogForm + badge ❤️ nos poster tiles)
+- **Status por tipo de mídia**: 4 status cada (jogos/filmes/séries/livros)
+- **Layout fixo**: Left sidebar 270px (não colapsa), Right sidebar 324px → 56px (colapsa), conteúdo central com margens fixas
+- **Enriquecimento**: TMDb (filmes/séries), IGDB (jogos), Google Books (livros), Steam (achievements/store)
+
+### 🔄 Em Andamento / Pendente
+1. **Top 5 Lists**: Corrigir exibição dos favoritos carregados no `TopListsSection`
+2. **Mapa de Atividade (RightSidebar)**: Título duplicado "Mapa de Atividade"
+3. **Atividade Recente (RightSidebar)**: Mostra 6 itens, deve mostrar 5
+4. **Progresso de Temporada**: Tooltip deve abrir automaticamente no hover
+5. **Botão "Todos"**: Adicionar em `ProfilePage` (já existe em `MediaTypeProfilePage`)

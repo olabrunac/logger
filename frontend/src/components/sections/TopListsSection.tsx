@@ -30,7 +30,7 @@ const TopListsSection = ({ profileUser, currentUser }: TopListsSectionProps) => 
 
   const fetchTopLists = async () => {
     try {
-      const res = await api.get(`/users/${profileUser.id}/top-list`);
+      const res = await api.get(`/media/users/${profileUser.id}/top-list`);
       const grouped = res.data.reduce((acc: Record<string, TopListItem[]>, item: TopListItem) => {
         const type = item.media_item?.media_type || 'movie';
         if (!acc[type]) acc[type] = [];
@@ -49,7 +49,9 @@ const TopListsSection = ({ profileUser, currentUser }: TopListsSectionProps) => 
     if (favorites[type]?.length) return;
     setLoadingFav(prev => ({ ...prev, [type]: true }));
     try {
+      console.log('Loading favorites for:', type, 'user:', profileUser.id);
       const res = await getUserFavorites(profileUser.id, type);
+      console.log('Favorites response:', res.data);
       setFavorites(prev => ({ ...prev, [type]: res.data || [] }));
     } catch (err) {
       console.error('Failed to load favorites', err);
@@ -78,14 +80,14 @@ const TopListsSection = ({ profileUser, currentUser }: TopListsSectionProps) => 
       const deletedIds = currentIds.filter(id => !newIds.includes(id));
 
       for (const id of deletedIds) {
-        await api.delete(`/users/${profileUser.id}/top-list/${id}`);
+        await api.delete(`/media/users/${profileUser.id}/top-list/${id}`);
       }
 
       for (const item of items) {
         if (item.id) {
-          await api.put(`/users/${profileUser.id}/top-list/${item.id}`, { position: item.position });
+          await api.put(`/media/users/${profileUser.id}/top-list/${item.id}`, { position: item.position });
         } else {
-          await api.post(`/users/${profileUser.id}/top-list`, { media_item_id: item.media_item_id, position: item.position });
+          await api.post(`/media/users/${profileUser.id}/top-list`, { media_item_id: item.media_item_id, position: item.position });
         }
       }
 
