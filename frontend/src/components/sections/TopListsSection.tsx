@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Trash2, GripVertical, Search } from 'lucide-react';
-import api from '../../services/api';
+import api, { getUserFavorites } from '../../services/api';
 import type { User, TopListItem, MediaItem } from '../../types';
 
 const TYPE_CONFIG: Record<string, { emoji: string; color: string; label: string; slug: string }> = {
@@ -55,15 +55,19 @@ const TopListsSection = ({ profileUser, currentUser }: TopListsSectionProps) => 
 
     setSearchLoading(prev => ({ ...prev, [type]: true }));
     try {
-      const res = await api.get('/media/search', { params: { q: query, media_type: type, limit: 10 } });
-      setSearchResults(prev => ({ ...prev, [type]: res.data || [] }));
+      const res = await getUserFavorites(profileUser.id, type);
+      // Filter results by query locally since backend returns all favorites
+      const filtered = (res.data || []).filter((m: MediaItem) =>
+        m.title.toLowerCase().includes(query.toLowerCase())
+      );
+      setSearchResults(prev => ({ ...prev, [type]: filtered }));
     } catch (err) {
       console.error('Search failed', err);
       setSearchResults(prev => ({ ...prev, [type]: [] }));
     } finally {
       setSearchLoading(prev => ({ ...prev, [type]: false }));
     }
-  }, []);
+  }, [profileUser.id]);
 
   const handleSearchChange = (type: string, query: string) => {
     setSearchQuery(prev => ({ ...prev, [type]: query }));
