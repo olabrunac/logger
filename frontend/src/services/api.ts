@@ -36,4 +36,8 @@ export const reorderTopList = (userId: number, items: { id: number; position: nu
   return api.put(`/users/${userId}/top-list/reorder`, items);
 };
 
+export const getUserFavorites = (userId: number, mediaType: string) => {
+  return api.get(`/users/${userId}/favorites`, { params: { media_type: mediaType } });
+};
+
 export default api;

@@ -119,6 +119,15 @@ class CRUDLogEntry(CRUDBase[LogEntry, LogEntryCreate, LogEntryUpdate]):
         
         return result
 
+    def get_favorite_media_by_user(self, db: Session, *, user_id: int, media_type: Optional[MediaType] = None):
+        """Get all favorited media items for a user, optionally filtered by media type."""
+        query = db.query(MediaItem).join(LogEntry, LogEntry.media_item_id == MediaItem.id)\
+            .filter(LogEntry.user_id == user_id, LogEntry.is_favorite == True)\
+            .distinct()
+        if media_type:
+            query = query.filter(MediaItem.media_type == media_type)
+        return query.all()
+
 
 media_item = CRUDMediaItem(MediaItem)
 log_entry = CRUDLogEntry(LogEntry)

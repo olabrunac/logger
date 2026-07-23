@@ -417,3 +417,10 @@ def reorder_top_list(*, db: Session = Depends(deps.get_db), user_id: int, items:
     db.commit()
     return {"message": "Top list reordered successfully"}
 
+
+@router.get("/users/{user_id}/favorites", response_model=List[schemas.MediaItemCreate])
+def get_user_favorites(*, db: Session = Depends(deps.get_db), user_id: int, media_type: MediaType = Query(...)):
+    """Get user's favorited media items for a specific media type (must be logged AND favorited)"""
+    favorites = crud.media_item.get_favorite_media_by_user(db, user_id=user_id, media_type=media_type)
+    return [schemas.MediaItemCreate.model_validate(fav) for fav in favorites]
+
