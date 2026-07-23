@@ -65,15 +65,11 @@ const HoursPieChart = ({ logs, mediaType }: HoursPieChartProps) => {
   });
 
   return (
-    <div className="profile-section">
-      <div className="section-header">
-        <div className="section-title-row">
-          <h2 className="section-title">Horas por Mídia</h2>
-        </div>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '2.5rem', marginLeft: '-50px' }}>
-        <div style={{ position: 'relative', width: 120, height: 120, flexShrink: 0 }}>
-          <svg width="120" height="120" viewBox="0 0 160 160">
+    <div className="flex flex-col gap-3">
+      <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-1">Horas por Mídia</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ position: 'relative', width: 110, height: 110, flexShrink: 0 }}>
+          <svg width="110" height="110" viewBox="0 0 160 160">
             {slices.map((s) => (
               <path
                 key={s.type}
@@ -93,24 +89,20 @@ const HoursPieChart = ({ logs, mediaType }: HoursPieChartProps) => {
             alignItems: 'center',
             justifyContent: 'center',
           }}>
-            <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-heading)', lineHeight: 1 }}>
+            <span style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--text-heading)', lineHeight: 1 }}>
               {Math.round(totalHours)}h
             </span>
-            <span style={{ fontSize: '0.5625rem', color: 'var(--text-muted)', marginTop: '0.125rem' }}>total</span>
           </div>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: 0 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', minWidth: 0, marginLeft: 'auto' }}>
           {data.map((d) => (
-            <div key={d.type} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-              <span style={{ width: 8, height: 8, borderRadius: 2, background: d.color, flexShrink: 0 }} />
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+            <div key={d.type} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <span style={{ width: 6, height: 6, borderRadius: 1, background: d.color, flexShrink: 0 }} />
+              <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                 {d.emoji} {d.label}
               </span>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-heading)', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--text-heading)', whiteSpace: 'nowrap', marginLeft: 'auto' }}>
                 {Math.round(d.hours)}h
-              </span>
-              <span style={{ fontSize: '0.625rem', color: 'var(--text-dim)', whiteSpace: 'nowrap' }}>
-                {d.percentage.toFixed(0)}%
               </span>
             </div>
           ))}
