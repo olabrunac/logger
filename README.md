@@ -1,18 +1,18 @@
 # Logger
 
-A personal media logger site to track movies, series, games, and books, inspired by platforms like YourGamerProfile, Letterboxd, and TV Time.
+Site pessoal para registrar e acompanhar filmes, séries, jogos e livros, inspirado em plataformas como YourGamerProfile, Letterboxd e TV Time.
 
-## 🚀 Key Technical Details
-- **Architecture**: Monorepo (Backend: FastAPI/SQLite, Frontend: React/Vite/TS).
-- **Enrichment**: Auto-populates metadata from TMDb, IGDB, Steam, and Google Books.
-- **Design**: Inspired by MDF/YGP with CSS-variable based theming and customizable accent colors.
-- **Development**:
-  - Windows PowerShell (5.1) environment.
-  - **Do NOT** use `&&` in shell commands; use `; if ($?) { cmd2 }`.
-  - Check `AGENTS.md` for specific agent guidelines.
+## 🚀 Detalhes Técnicos
+- **Arquitetura**: Monorepo (Backend: FastAPI/SQLite, Frontend: React/Vite/TS).
+- **Enriquecimento**: Auto-popula metadados via TMDb, IGDB, Steam e Google Books.
+- **Design**: Inspirado no padrão MDF/YGP, com temas baseados em variáveis CSS e cores de destaque customizáveis.
+- **Desenvolvimento**:
+  - Ambiente Windows PowerShell (5.1).
+  - **NUNCA** use `&&` em comandos de shell; use `; if ($?) { cmd2 }`.
+  - Consulte `AGENTS.md` para diretrizes específicas do agente.
 
-## 🛠️ Environment Setup
-1. **Secrets**: Create `backend/.env` with API keys (TMDB, IGDB, Steam, Google Books). **Do not commit this file.**
+## 🛠️ Configuração do Ambiente
+1. **Segredos**: Crie `backend/.env` com as chaves das APIs (TMDB, IGDB, Steam, Google Books). **Não faça commit deste arquivo.**
 2. **Backend**:
    - `python -m venv venv`
    - `.\venv\Scripts\pip.exe install -r requirements.txt`
@@ -22,7 +22,7 @@ A personal media logger site to track movies, series, games, and books, inspired
    - `npm install`
    - `npm run dev`
 
-## ⚙️ Maintenance
+## ⚙️ Manutenção
 - **Lint**: `npm run lint` (frontend)
 - **Build/Typecheck**: `npm run build` (frontend)
-- **Backend Syntax**: `.\venv\Scripts\python.exe -m py_compile app/main.py`
+- **Sintaxe Backend**: `.\venv\Scripts\python.exe -m py_compile app/main.py`

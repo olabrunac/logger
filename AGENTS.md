@@ -1,28 +1,28 @@
-# Logger Agent Guidelines
+# Diretrizes para o Agente Logger
 
-## 🚀 Operational Workflow
-- **PowerShell (5.1) Caveat**: Do **NOT** use `&&`. Use `; if ($?) { cmd2 }`.
-- **Environment**: Backend secrets (`.env` in `backend/`) are mandatory for API enrichment (TMDB, IGDB, Steam, Google Books). Never commit these.
-- **Workflow**: Create a GitHub Issue, then a branch, and finally a PR for each distinct feature or fix.
+## 🚀 Fluxo Operacional
+- **Aviso sobre PowerShell (5.1)**: **NUNCA** use `&&`. Use `; if ($?) { cmd2 }`.
+- **Ambiente**: Segredos de backend (`.env` em `backend/`) são obrigatórios para enriquecimento de APIs (TMDB, IGDB, Steam, Google Books). Nunca faça commit deles.
+- **Workflow**: Crie uma issue no GitHub, depois uma branch e, por fim, um PR para cada funcionalidade ou correção distinta.
 
-## 🛠️ Build & Verification
+## 🛠️ Build & Verificação
 - **Frontend (`frontend/`)**: 
   - Lint: `npm run lint`
   - Build/Typecheck: `npm run build`
-  - Order: `lint` -> `build`
+  - Ordem: `lint` -> `build`
 - **Backend (`backend/`)**: 
-  - Syntax check: `.\venv\Scripts\python.exe -m py_compile app/main.py`
+  - Verificação de sintaxe: `.\venv\Scripts\python.exe -m py_compile app/main.py`
 
-## 🏗️ Architecture & Style
-- **Monorepo**: Backend (FastAPI) and Frontend (React/Vite).
+## 🏗️ Arquitetura & Estilo
+- **Monorepo**: Backend (FastAPI) e Frontend (React/Vite).
 - **Design System**: 
-  - CSS vars for colors: `--mdf-bg: #0A0C10`, `--mdf-surface: #14181C`.
-  - Accent Color: Injected via `user.accent_color` into `--accent` CSS variable.
-- **Media Enrichment**: Media items are auto-enriched from external APIs upon creation/update.
-- **TypeScript**: `verbatimModuleSyntax` and `erasableSyntaxOnly` active. Avoid `enum`; use union types + value arrays. Always use `import type`.
+  - Variáveis CSS para cores: `--mdf-bg: #0A0C10`, `--mdf-surface: #14181C`.
+  - Cor de Destaque: Injetada via `user.accent_color` na variável CSS `--accent`.
+- **Enriquecimento de Mídia**: Itens de mídia são enriquecidos automaticamente por APIs externas na criação/atualização.
+- **TypeScript**: `verbatimModuleSyntax` e `erasableSyntaxOnly` ativos. Evite `enum`; use tipos de união + arrays de valores. Sempre use `import type`.
 
-## ⚙️ Key Constraints
-- Passwordless Auth: `username`-only.
-- Statuses: 4 per media type (Enum exists, but use mapped labels).
-- Favorite: Boolean toggle independent of status.
-- Poster Tiles: Standardized layout with ❤️ badge and stats.
+## ⚙️ Restrições Principais
+- **Autenticação**: Sem senha, apenas `username`.
+- **Status**: 4 por tipo de mídia.
+- **Favorito**: Toggle booleano independente do status.
+- **Poster Tiles**: Layout padronizado com badge ❤️ e estatísticas.
