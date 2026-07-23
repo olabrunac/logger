@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Trash2, GripVertical } from 'lucide-react';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { Trash2, GripVertical, Search } from 'lucide-react';
 import api from '../../services/api';
 import type { User, TopListItem, MediaItem } from '../../types';
 
@@ -20,8 +20,11 @@ const TopListsSection = ({ profileUser, currentUser }: TopListsSectionProps) => 
   const [topLists, setTopLists] = useState<Record<string, TopListItem[]>>({});
   const [draftItems, setDraftItems] = useState<Record<string, { id?: number; media_item_id: number; position: number; media_item?: MediaItem }[]>>({});
   const [isEditing, setIsEditing] = useState<Record<string, boolean>>({});
-  const [mediaOptions, setMediaOptions] = useState<Record<string, MediaItem[]>>({});
+  const [searchQuery, setSearchQuery] = useState<Record<string, string>>({});
+  const [searchResults, setSearchResults] = useState<Record<string, MediaItem[]>>({});
+  const [searchLoading, setSearchLoading] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
+  const debounceRefs = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   useEffect(() => {
     fetchTopLists();
@@ -44,25 +47,68 @@ const TopListsSection = ({ profileUser, currentUser }: TopListsSectionProps) => 
     }
   };
 
+  const searchMedia = useCallback(async (type: string, query: string) => {
+    if (!query.trim()) {
+      setSearchResults(prev => ({ ...prev, [type]: [] }));
+      return;
+    }
+
+    setSearchLoading(prev => ({ ...prev, [type]: true }));
+    try {
+      const res = await api.get('/media/search', { params: { q: query, media_type: type, limit: 10 } });
+      setSearchResults(prev => ({ ...prev, [type]: res.data || [] }));
+    } catch (err) {
+      console.error('Search failed', err);
+      setSearchResults(prev => ({ ...prev, [type]: [] }));
+    } finally {
+      setSearchLoading(prev => ({ ...prev, [type]: false }));
+    }
+  }, []);
+
+  const handleSearchChange = (type: string, query: string) => {
+    setSearchQuery(prev => ({ ...prev, [type]: query }));
+    if (debounceRefs.current[type]) clearTimeout(debounceRefs.current[type]);
+    debounceRefs.current[type] = setTimeout(() => searchMedia(type, query), 300);
+  };
+
   const startEditing = (type: string) => {
     setIsEditing(prev => ({ ...prev, [type]: true }));
     setDraftItems(prev => ({ ...prev, [type]: (topLists[type] || []).map((i, idx) => ({ ...i, position: idx + 1 })) }));
-    if (!mediaOptions[type]?.length) {
-      api.get(`/media/search?q=&media_type=${type}&limit=100`)
-        .then(res => setMediaOptions(prev => ({ ...prev, [type]: res.data || [] })))
-        .catch(() => {});
-    }
+    setSearchResults(prev => ({ ...prev, [type]: [] }));
+    setSearchQuery(prev => ({ ...prev, [type]: '' }));
   };
 
   const cancelEditing = (type: string) => {
     setIsEditing(prev => ({ ...prev, [type]: false }));
     setDraftItems(_prev => { const n = { ...draftItems }; delete n[type]; return n; });
+    setSearchResults(prev => ({ ...prev, [type]: [] }));
+    setSearchQuery(prev => ({ ...prev, [type]: '' }));
   };
 
   const saveList = async (type: string) => {
     try {
       const items = draftItems[type] || [];
-      await api.put(`/users/${profileUser.id}/top-list/reorder`, items.map(i => ({ id: i.id, position: i.position })));
+      const existingItems = topLists[type] || [];
+      const currentIds = existingItems.map(i => i.id).filter(Boolean);
+      const newIds = items.map(i => i.id).filter(Boolean);
+      const deletedIds = currentIds.filter(id => !newIds.includes(id));
+
+      // Delete removed items
+      for (const id of deletedIds) {
+        await api.delete(`/users/${profileUser.id}/top-list/${id}`);
+      }
+
+      // Create new items and update existing
+      for (const item of items) {
+        if (item.id) {
+          // Update existing
+          await api.put(`/users/${profileUser.id}/top-list/${item.id}`, { position: item.position });
+        } else {
+          // Create new
+          await api.post(`/users/${profileUser.id}/top-list`, { media_item_id: item.media_item_id, position: item.position });
+        }
+      }
+
       setIsEditing(prev => ({ ...prev, [type]: false }));
       fetchTopLists();
     } catch (err) {
@@ -72,13 +118,15 @@ const TopListsSection = ({ profileUser, currentUser }: TopListsSectionProps) => 
   };
 
   const addItem = (type: string, mediaId: number) => {
-    if (!mediaId) return;
     if (draftItems[type]?.length >= 5) return alert('Máximo de 5 itens');
     if (draftItems[type]?.some((i: any) => i.media_item_id === mediaId)) return alert('Já está na lista');
+    const media = searchResults[type]?.find(m => m.id === mediaId);
     setDraftItems(prev => ({
       ...prev,
-      [type]: [...(prev[type] || []), { media_item_id: mediaId, position: (prev[type]?.length || 0) + 1 }]
+      [type]: [...(prev[type] || []), { media_item_id: mediaId, position: (prev[type]?.length || 0) + 1, media_item: media }]
     }));
+    setSearchQuery(prev => ({ ...prev, [type]: '' }));
+    setSearchResults(prev => ({ ...prev, [type]: [] }));
   };
 
   const removeItem = (type: string, index: number) => {
@@ -86,6 +134,15 @@ const TopListsSection = ({ profileUser, currentUser }: TopListsSectionProps) => 
       ...prev,
       [type]: prev[type]?.filter((_, i) => i !== index).map((item, i) => ({ ...item, position: i + 1 })) || []
     }));
+  };
+
+  const moveItem = (type: string, fromIndex: number, toIndex: number) => {
+    setDraftItems(prev => {
+      const items = [...(prev[type] || [])];
+      const [moved] = items.splice(fromIndex, 1);
+      items.splice(toIndex, 0, moved);
+      return { ...prev, [type]: items.map((item, i) => ({ ...item, position: i + 1 })) };
+    });
   };
 
   const types = ['movie', 'series', 'game', 'book'];
@@ -100,7 +157,9 @@ const TopListsSection = ({ profileUser, currentUser }: TopListsSectionProps) => 
           const config = TYPE_CONFIG[type];
           const items = topLists[type] || [];
           const draft = isEditing[type] ? (draftItems[type] || []) : items;
-          const options = mediaOptions[type] || [];
+          const results = searchResults[type] || [];
+          const query = searchQuery[type] || '';
+          const isLoading = searchLoading[type] || false;
           const isOwn = profileUser.id === currentUser.id;
 
           return (
@@ -127,12 +186,20 @@ const TopListsSection = ({ profileUser, currentUser }: TopListsSectionProps) => 
               <ul className="flex-1 space-y-2 min-h-[180px]">
                 {draft.length > 0 ? (
                   draft.map((item, index) => {
-                    const media = item.media_item || options.find((m: MediaItem) => m.id === item.media_item_id);
+                    const media = item.media_item || results.find((m: MediaItem) => m.id === item.media_item_id);
                     return (
-                      <li key={item.id || index} className="flex items-center gap-3 p-2 bg-white/5 rounded-lg group">
+                      <li
+                        key={item.id || index}
+                        className="flex items-center gap-3 p-2 bg-white/5 rounded-lg group relative"
+                        onDragOver={e => e.preventDefault()}
+                        onDrop={e => { e.preventDefault(); moveItem(type, Number(e.currentTarget.dataset.from), index); }}
+                        data-from={index}
+                        draggable={isEditing[type]}
+                        onDragStart={e => { e.currentTarget.dataset.from = String(index); }}
+                      >
                         <span className="w-6 text-center text-white/50 font-mono text-xs">{index + 1}</span>
                         {isEditing[type] && (
-                          <span className="w-6 h-6 flex items-center justify-center cursor-grab text-white/30 hover:text-white">
+                          <span className="w-6 h-6 flex items-center justify-center cursor-grab text-white/30 hover:text-white" onDragStart={e => e.stopPropagation()}>
                             <GripVertical size={14} />
                           </span>
                         )}
@@ -157,27 +224,40 @@ const TopListsSection = ({ profileUser, currentUser }: TopListsSectionProps) => 
               </ul>
 
               {isEditing[type] && (
-                <div className="mt-3 pt-3 border-t border-white/5 flex flex-wrap gap-2">
-                  <select
-                    onChange={e => {
-                      const mediaId = Number(e.target.value);
-                      if (mediaId) {
-                        addItem(type, mediaId);
-                        e.target.value = '';
-                      }
-                    }}
-                    className="flex-1 px-2 py-1 text-xs bg-white/5 border border-white/10 rounded text-white focus:outline-none focus:border-green-500"
-                  >
-                    <option value="" disabled>Adicionar item...</option>
-                    {options
-                      .filter((m: MediaItem) => !draftItems[type]?.some((i: any) => i.media_item_id === m.id))
-                      .map((m: MediaItem) => (
-                        <option key={m.id} value={m.id}>{m.title}</option>
-                      ))}
-                  </select>
+                <div className="mt-3 pt-3 border-t border-white/5 space-y-2">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-white/30" size={14} />
+                    <input
+                      type="text"
+                      placeholder="Buscar mídia para adicionar..."
+                      value={query}
+                      onChange={e => handleSearchChange(type, e.target.value)}
+                      className="w-full pl-8 pr-2 py-1.5 text-xs bg-white/5 border border-white/10 rounded text-white focus:outline-none focus:border-green-500"
+                    />
+                    {isLoading && <div className="absolute right-2 top-1/2 -translate-y-1/2 text-white/30">Buscando...</div>}
+                  </div>
+                  {results.length > 0 && (
+                    <div className="max-h-40 overflow-y-auto space-y-1">
+                      {results
+                        .filter((m: MediaItem) => m.id && !draftItems[type]?.some((i: any) => i.media_item_id === m.id))
+                        .map((m: MediaItem) => (
+                          <button
+                            key={m.id}
+                            onClick={() => addItem(type, m.id!)}
+                            className="w-full flex items-center gap-2 p-1.5 bg-white/5 hover:bg-white/10 rounded text-left text-sm transition-colors"
+                          >
+                            {m.cover_image_url && (
+                              <img src={m.cover_image_url} alt={m.title} className="w-8 h-12 object-cover rounded" />
+                            )}
+                            <span className="flex-1 truncate">{m.title}</span>
+                            <span className="text-[10px] text-white/40">+ Adicionar</span>
+                          </button>
+                        ))}
+                    </div>
+                  )}
                   <button
                     onClick={() => cancelEditing(type)}
-                    className="px-3 py-1 text-xs font-bold rounded bg-white/10 text-white/80 hover:bg-white/20 transition-colors"
+                    className="w-full px-3 py-1 text-xs font-bold rounded bg-white/10 text-white/80 hover:bg-white/20 transition-colors"
                   >
                     Cancelar
                   </button>
