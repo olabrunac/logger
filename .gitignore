@@ -1,4 +1,16 @@
-backend/.env.example
+# Environment files
 backend/.env
-yourgamerprofile_com_luscanascimento_2552w_default.h2d
-AGENTS.md
+frontend/.env
+
+# Databases
+backend/logger.db
+
+# Dependencies
+node_modules
+venv
+__pycache__
+*.pyc
+
+# IDEs
+.vscode
+.idea
