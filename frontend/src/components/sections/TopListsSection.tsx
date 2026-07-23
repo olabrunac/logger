@@ -22,7 +22,6 @@ const TopListsSection = ({ profileUser, currentUser }: TopListsSectionProps) => 
   const [isEditing, setIsEditing] = useState<Record<string, boolean>>({});
   const [searchQuery, setSearchQuery] = useState<Record<string, string>>({});
   const [searchResults, setSearchResults] = useState<Record<string, MediaItem[]>>({});
-  const [searchLoading, setSearchLoading] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const debounceRefs = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
@@ -48,26 +47,13 @@ const TopListsSection = ({ profileUser, currentUser }: TopListsSectionProps) => 
   };
 
   const searchMedia = useCallback(async (type: string, query: string) => {
-    if (!query.trim()) {
-      setSearchResults(prev => ({ ...prev, [type]: [] }));
-      return;
-    }
-
-    setSearchLoading(prev => ({ ...prev, [type]: true }));
-    try {
-      const res = await getUserFavorites(profileUser.id, type);
-      // Filter results by query locally since backend returns all favorites
-      const filtered = (res.data || []).filter((m: MediaItem) =>
-        m.title.toLowerCase().includes(query.toLowerCase())
-      );
-      setSearchResults(prev => ({ ...prev, [type]: filtered }));
-    } catch (err) {
-      console.error('Search failed', err);
-      setSearchResults(prev => ({ ...prev, [type]: [] }));
-    } finally {
-      setSearchLoading(prev => ({ ...prev, [type]: false }));
-    }
-  }, [profileUser.id]);
+    // Filter already-loaded favorites
+    const allFavorites = searchResults[type] || [];
+    const filtered = allFavorites.filter((m: MediaItem) =>
+      m.title.toLowerCase().includes(query.toLowerCase())
+    );
+    setSearchResults(prev => ({ ...prev, [type]: filtered }));
+  }, [searchResults]);
 
   const handleSearchChange = (type: string, query: string) => {
     setSearchQuery(prev => ({ ...prev, [type]: query }));
@@ -75,11 +61,19 @@ const TopListsSection = ({ profileUser, currentUser }: TopListsSectionProps) => 
     debounceRefs.current[type] = setTimeout(() => searchMedia(type, query), 300);
   };
 
-  const startEditing = (type: string) => {
+  const startEditing = async (type: string) => {
     setIsEditing(prev => ({ ...prev, [type]: true }));
     setDraftItems(prev => ({ ...prev, [type]: (topLists[type] || []).map((i, idx) => ({ ...i, position: idx + 1 })) }));
     setSearchResults(prev => ({ ...prev, [type]: [] }));
     setSearchQuery(prev => ({ ...prev, [type]: '' }));
+    
+    // Load all favorited items for this media type
+    try {
+      const res = await getUserFavorites(profileUser.id, type);
+      setSearchResults(prev => ({ ...prev, [type]: res.data || [] }));
+    } catch (err) {
+      console.error('Failed to load favorites', err);
+    }
   };
 
   const cancelEditing = (type: string) => {
@@ -163,7 +157,6 @@ const TopListsSection = ({ profileUser, currentUser }: TopListsSectionProps) => 
           const draft = isEditing[type] ? (draftItems[type] || []) : items;
           const results = searchResults[type] || [];
           const query = searchQuery[type] || '';
-          const isLoading = searchLoading[type] || false;
           const isOwn = profileUser.id === currentUser.id;
 
           return (
@@ -238,7 +231,6 @@ const TopListsSection = ({ profileUser, currentUser }: TopListsSectionProps) => 
                       onChange={e => handleSearchChange(type, e.target.value)}
                       className="w-full pl-8 pr-2 py-1.5 text-xs bg-white/5 border border-white/10 rounded text-white focus:outline-none focus:border-green-500"
                     />
-                    {isLoading && <div className="absolute right-2 top-1/2 -translate-y-1/2 text-white/30">Buscando...</div>}
                   </div>
                   {results.length > 0 && (
                     <div className="max-h-40 overflow-y-auto space-y-1">

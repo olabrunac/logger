@@ -74,7 +74,7 @@ const RightSidebar = ({ user, isCollapsed, onToggleCollapse }: RightSidebarProps
   }
 
   return (
-    <aside className="fixed top-0 right-0 h-screen w-[432px] p-4 border-l flex flex-col z-40 overflow-y-auto space-y-3 right-sidebar"
+    <aside className="fixed top-0 right-0 h-screen w-[324px] p-4 border-l flex flex-col z-40 overflow-y-auto space-y-3 right-sidebar"
       style={{ background: 'var(--mdf-bg)', borderColor: 'var(--border)' }}>
 
       <div className="flex items-center justify-between mb-1 pt-1">

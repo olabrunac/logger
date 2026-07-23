@@ -20,7 +20,7 @@ const LeftSidebar = ({ user }: LeftSidebarProps) => {
     : null;
 
   return (
-    <aside className="fixed top-0 left-0 h-screen w-[360px] flex flex-col z-40 border-r"
+    <aside className="fixed top-0 left-0 h-screen w-[270px] flex flex-col z-40 border-r"
       style={{ background: 'var(--mdf-bg)', borderColor: 'var(--border)' }}>
 
       {/* Logo */}
