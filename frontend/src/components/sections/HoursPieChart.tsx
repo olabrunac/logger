@@ -49,8 +49,8 @@ const HoursPieChart = ({ logs, mediaType }: HoursPieChartProps) => {
 
   const totalHours = data.reduce((s, d) => s + d.hours, 0);
 
-  const cx = 80;
-  const cy = 80;
+  const cx = 100;
+  const cy = 100;
   const outerR = 70;
   const innerR = 35; // Mais grosso: diminui o buraco central
   const gap = 1.5;
@@ -68,7 +68,7 @@ const HoursPieChart = ({ logs, mediaType }: HoursPieChartProps) => {
     <div className="flex flex-col gap-3">
       <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-1 w-full text-left">Horas por Mídia</div>
       <div style={{ position: 'relative', width: 110, height: 110, flexShrink: 0, margin: '0 auto' }}>
-        <svg width="110" height="110" viewBox="0 0 160 160">
+        <svg width="110" height="110" viewBox="0 0 200 200">
           {slices.map((s) => (
             <path
               key={s.type}
