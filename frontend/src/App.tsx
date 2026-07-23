@@ -44,14 +44,13 @@ function App() {
     ? { '--mdf-green': user.accent_color, '--accent': user.accent_color } as React.CSSProperties
     : {};
 
-  const getMainMarginRight = () => {
-    if (!user) return '';
-    return isSidebarCollapsed ? 'mr-14' : 'mr-[324px]';
-  };
+  const sidebarWidths = user
+    ? { left: isSidebarCollapsed ? 56 : 270, right: isSidebarCollapsed ? 56 : 324 }
+    : { left: 0, right: 0 };
 
   return (
     <Router>
-      <div style={accentStyle} className="min-h-screen">
+      <div style={accentStyle} className="min-h-screen flex">
         {user && <LeftSidebar user={user} />}
         {user && (
           <RightSidebar
@@ -60,7 +59,7 @@ function App() {
             onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           />
         )}
-        <main className={`ml-[270px] ${getMainMarginRight()} min-h-screen p-8 overflow-y-auto transition-all`}>
+        <main className="flex-1 min-w-0 overflow-y-auto p-8 transition-all" style={{ marginLeft: sidebarWidths.left, marginRight: sidebarWidths.right }}>
           <Routes>
             <Route
               path="/login"
