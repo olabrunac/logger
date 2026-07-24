@@ -51,15 +51,15 @@ const GenreChart = ({ logs, accentColor, mediaType }: GenreChartProps) => {
   ];
 
   return (
-    <div className="mdf-card p-4 h-full flex flex-col">
-      <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-3">Gêneros / Categorias</div>
-      <div className="flex flex-col gap-2 flex-1">
+    <div>
+      <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-2">Gêneros / Categorias</div>
+      <div className="flex flex-col gap-1.5">
         {genreData.map((item, index) => (
           <div key={item.genre} className="flex items-center gap-2">
             <span className="w-20 text-right text-[11px] text-white/50 truncate flex-shrink-0" title={item.genre}>
               {item.genre}
             </span>
-            <div className="flex-1 h-3 rounded-sm overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
+            <div className="flex-1 h-2.5 rounded-sm overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
               <div className="h-full rounded-sm transition-all duration-300" style={{ width: item.percentage + '%', background: colors[index % colors.length] }} />
             </div>
             <span className="w-5 text-[10px] text-white/40">{item.count}</span>

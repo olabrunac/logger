@@ -63,10 +63,15 @@ const NewLogPage: React.FC = () => {
         user_id: currentUser.id
       };
       try {
-        await api.put(`/media/logs/${editingLog.id}`, payload);
-        navigate(`/log/${editingLog.id}`);
+        const { data } = await api.put(`/media/logs/${editingLog.id}`, payload);
+        if (data?.id) {
+          navigate(`/log/${data.id}`);
+        } else {
+          navigate('/');
+        }
       } catch (error) {
         console.error("Failed to update log", error);
+        navigate('/');
       }
     } else {
       if (!selectedMedia) return;
@@ -75,10 +80,15 @@ const NewLogPage: React.FC = () => {
         user_id: currentUser.id
       };
       try {
-        await api.post('/media/logs', payload);
-        navigate('/');
+        const { data } = await api.post('/media/logs', payload);
+        if (data?.id) {
+          navigate(`/log/${data.id}`);
+        } else {
+          navigate('/');
+        }
       } catch (error) {
         console.error("Failed to submit log", error);
+        navigate('/');
       }
     }
   };

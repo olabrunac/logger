@@ -123,9 +123,9 @@ const HomePage = ({ user }: HomePageProps) => {
             Nenhum log ainda. Clique em <span className="text-white font-semibold">Novo log</span> para começar.
           </div>
         ) : (
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-2">
             {logs.map(log => (
-              <Link key={log.id} to={`/log/${log.id}`} className="poster-tile block group">
+              <Link key={log.id} to={`/log/${log.id}`} className="poster-tile block group" style={{borderBottom: '3px solid ' + (TYPE_META[log.media_item.media_type]?.color || '#666')}}>
                 {log.media_item.cover_image_url ? (
                   <img src={log.media_item.cover_image_url} alt={log.media_item.title} className="w-full h-full object-cover" loading="lazy"/>
                 ) : (
@@ -159,7 +159,7 @@ const HomePage = ({ user }: HomePageProps) => {
                       </svg>
                     </div>
                   )}
-                  {log.status && (
+                  {log.status && !log.is_favorite && (
                     <span className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style={{background: STATUS_COLORS[log.status] || 'rgba(100,100,100,0.85)'}}>
                       {STATUS_ICONS[log.status] || log.status[0].toUpperCase()}
                     </span>
@@ -175,26 +175,23 @@ const HomePage = ({ user }: HomePageProps) => {
                     {log.platform}
                   </div>
                 )}
-                {log.media_item.media_type === 'movie' && (log.relog_count ?? 0) > 0 && (
+                {(log.relog_count ?? 0) > 0 ? (
                   <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
                     {(log.relog_count ?? 0) + 1}x
                   </div>
-                )}
-                {log.media_item.media_type === 'series' && log.watched_episodes != null && log.total_episodes != null && log.total_episodes > 0 && (
+                ) : log.media_item.media_type === 'series' && log.watched_episodes != null && log.total_episodes != null && log.total_episodes > 0 ? (
                   <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
                     {log.watched_episodes}/{log.total_episodes}
                   </div>
-                )}
-                {log.media_item.media_type === 'game' && log.hours_spent != null && log.hours_spent > 0 && (
+                ) : log.media_item.media_type === 'game' && log.hours_spent != null && log.hours_spent > 0 ? (
                   <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
                     {log.hours_spent}h
                   </div>
-                )}
-                {log.media_item.media_type === 'book' && log.hours_spent != null && log.hours_spent > 0 && (
+                ) : log.media_item.media_type === 'book' && log.hours_spent != null && log.hours_spent > 0 ? (
                   <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
                     {log.hours_spent}h
                   </div>
-                )}
+                ) : null}
               </Link>
             ))}
           </div>

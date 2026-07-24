@@ -26,16 +26,11 @@
 - **Status**: 4 por tipo de mídia.
 - **Favorito**: Toggle booleano independente do status.
 - **Poster Tiles**: Layout padronizado com badge ❤️ e estatísticas.
-- **Barra lateral esquerda**: Travada em 270px, não colapsa. Right sidebar colapsa para 56px.
-- **Conteúdo central**: Margens fixas (left: 270px, right: 324px) - não redimensiona ao colapsar sidebar.
+- **Barra lateral esquerda**: Travada em 203px, não colapsa. Right sidebar colapsa para 56px.
+- **Conteúdo central**: Margens fixas (left: 203px, right: 324px) - não redimensiona ao colapsar sidebar.
 
 ## 📋 Pendências (TODO)
-1. **Top 5 Lists**: Corrigir busca de favoritos - carrega favoritos mas não exibe corretamente no componente TopListsSection
-2. **Mapa de Atividade na sidebar direita**: Título duplicado "Mapa de Atividade" aparece duas vezes
-3. **Atividade Recente na sidebar direita**: Remover 1 ícone (está mostrando 6, deve mostrar 5)
-4. **Progresso de temporada (hover)**: Abrir tooltip automaticamente sem precisar de hover
-5. **Bloco "Todos"**: Adicionar botão "Todos" em todas as telas de perfil (MediaTypeProfilePage já tem, ProfilePage não)
-6. **Reviews de mídia**: Recolocar as reviews das mídias (funcionalidade removida/pendente)
+_(Nenhuma pendência no momento)_
 
 ## 📁 Estrutura de Pastas Importantes
 - `backend/app/api/endpoints/media.py` - Endpoints de mídia, top lists, favoritos
@@ -46,3 +41,6 @@
 - `frontend/src/components/LeftSidebar.tsx` - Sidebar esquerda (navegação fixa)
 - `frontend/src/pages/ProfilePage.tsx` - Perfil do usuário
 - `frontend/src/pages/MediaTypeProfilePage.tsx` - Perfil filtrado por tipo de mídia
+- `frontend/src/pages/ReviewsPage.tsx` - Página de reviews (histórico de reviews por log)
+- `frontend/src/pages/DiaryPage.tsx` - Diário de reviews
+- `frontend/src/pages/LogDetailPage.tsx` - Detalhe do log (reviews, conquistas, temporadas)

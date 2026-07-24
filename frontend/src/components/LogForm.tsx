@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { LogStatus } from '../types';
 import type { MediaItem } from '../types/media';
-import { ChevronLeft, ChevronDown, ChevronUp, X, Check, Gamepad2, Film, Tv, Book, Flag, MessageCircle, Skull, Eye, Heart, Clock, Calendar, Star, Repeat } from 'lucide-react';
+import { ChevronLeft, ChevronDown, ChevronUp, X, Check, Gamepad2, Film, Tv, Book, Flag, MessageCircle, Skull, Eye, Heart, Clock, Calendar, Star } from 'lucide-react';
 
 interface LogFormProps {
   onSubmit: (logDetails: any) => void;
@@ -73,9 +73,10 @@ const LogForm: React.FC<LogFormProps> = ({ onSubmit, onCancel, initialData, medi
   const [pagesRead, setPagesRead] = useState<string>(initialData?.pages_read?.toString() || '');
   const [logDate, setLogDate] = useState(initialData?.log_date ? initialData.log_date.split('T')[0] : new Date().toISOString().split('T')[0]);
   const [isFavorite, setIsFavorite] = useState(initialData?.is_favorite || false);
-  const [relogCount, setRelogCount] = useState<string>(initialData?.relog_count?.toString() || '0');
+  const [review, setReview] = useState<string>(initialData?.review || '');
   const [showDates, setShowDates] = useState(false);
   const [showTime, setShowTime] = useState(false);
+  const [showReview, setShowReview] = useState(false);
   const [hoveredStar, setHoveredStar] = useState<number | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -88,7 +89,7 @@ const LogForm: React.FC<LogFormProps> = ({ onSubmit, onCancel, initialData, medi
       setPagesRead(initialData.pages_read?.toString() || '');
       setLogDate(initialData.log_date ? initialData.log_date.split('T')[0] : new Date().toISOString().split('T')[0]);
       setIsFavorite(initialData.is_favorite || false);
-      setRelogCount(initialData.relog_count?.toString() || '0');
+      setReview(initialData.review || '');
     }
   }, [initialData]);
 
@@ -100,17 +101,34 @@ const LogForm: React.FC<LogFormProps> = ({ onSubmit, onCancel, initialData, medi
     return () => window.removeEventListener('keydown', handleEsc);
   }, [onCancel]);
 
+  const isWishlist = status === 'wishlist' || status === 'soon';
+
   const handleSubmit = () => {
-    onSubmit({
-      status,
-      rating: rating || null,
-      platform: platform || null,
-      hours_spent: mediaType === 'book' ? (hoursSpent ? Number(String(hoursSpent).replace(',', '.')) : null) : (hoursSpent ? Number(String(hoursSpent).replace(',', '.')) : null),
-      pages_read: mediaType === 'book' ? (pagesRead ? Number(pagesRead) : null) : undefined,
-      log_date: logDate ? new Date(logDate).toISOString() : new Date().toISOString(),
-      is_favorite: isFavorite,
-      relog_count: mediaType === 'movie' ? Number(relogCount) || 0 : undefined,
-    });
+    if (isWishlist) {
+      onSubmit({
+        status,
+        rating: null,
+        platform: platform || null,
+        hours_spent: null,
+        pages_read: undefined,
+        log_date: new Date().toISOString(),
+        is_favorite: false,
+        relog_count: undefined,
+        review: null,
+      });
+    } else {
+      onSubmit({
+        status,
+        rating: rating || null,
+        platform: platform || null,
+        hours_spent: mediaType === 'book' ? (hoursSpent ? Number(String(hoursSpent).replace(',', '.')) : null) : (hoursSpent ? Number(String(hoursSpent).replace(',', '.')) : null),
+        pages_read: mediaType === 'book' ? (pagesRead ? Number(pagesRead) : null) : undefined,
+        log_date: logDate ? new Date(logDate).toISOString() : new Date().toISOString(),
+        is_favorite: isFavorite,
+        relog_count: undefined,
+        review: review || null,
+      });
+    }
   };
 
   const renderStars = () => {
@@ -167,7 +185,7 @@ const LogForm: React.FC<LogFormProps> = ({ onSubmit, onCancel, initialData, medi
             <ChevronLeft size={20} />
           </button>
           <span className="text-base font-bold text-white">
-            {isEditing ? 'Editar' : 'Adicionar'} {meta.label}
+            {isEditing ? 'Editar' : isWishlist ? 'Adicionar à Lista' : 'Adicionar'} {meta.label}
           </span>
           <button onClick={onCancel} className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors" style={{ color: 'rgba(255,255,255,0.5)' }}>
             <X size={20} />
@@ -177,7 +195,7 @@ const LogForm: React.FC<LogFormProps> = ({ onSubmit, onCancel, initialData, medi
         <div className="p-6 space-y-6">
 
           {/* Favorite toggle in media info */}
-          {mediaItem && (
+          {mediaItem && !isWishlist && (
             <div className="flex gap-4">
               {mediaItem.cover_image_url ? (
                 <img src={mediaItem.cover_image_url} alt="" className="w-[70px] h-[93px] rounded-lg object-cover flex-shrink-0" />
@@ -248,108 +266,125 @@ const LogForm: React.FC<LogFormProps> = ({ onSubmit, onCancel, initialData, medi
           </div>
 
           {/* Rating */}
-          <div>
-            <div className="text-[11px] font-semibold uppercase tracking-wider mb-3" style={{ color: 'rgba(255,255,255,0.4)' }}>
-              Avaliação
+          {!isWishlist && (
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-wider mb-3" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                Avaliação
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                {renderStars()}
+              </div>
             </div>
-            <div className="flex items-center justify-between p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)' }}>
-              {renderStars()}
-            </div>
-          </div>
+          )}
 
           {/* Platform */}
-          <div>
-            <div className="text-[11px] font-semibold uppercase tracking-wider mb-3" style={{ color: 'rgba(255,255,255,0.4)' }}>
-              {mediaType === 'game' ? 'Plataforma' : mediaType === 'book' ? 'Formato' : 'Onde Assistir'}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {platformOptions.map((p) => {
-                const selected = platform.split(', ').filter(Boolean);
-                const isActive = selected.includes(p);
-                return (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => {
-                      if (mediaType === 'book') {
-                        if (isActive) {
-                          setPlatform(selected.filter((s: string) => s !== p).join(', '));
-                        } else if (selected.length < 2) {
-                          setPlatform([...selected, p].join(', '));
+          {!isWishlist && (
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-wider mb-3" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                {mediaType === 'game' ? 'Plataforma' : mediaType === 'book' ? 'Formato' : 'Onde Assistir'}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {platformOptions.map((p) => {
+                  const selected = platform.split(', ').filter(Boolean);
+                  const isActive = selected.includes(p);
+                  return (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => {
+                        if (mediaType === 'book') {
+                          if (isActive) {
+                            setPlatform(selected.filter((s: string) => s !== p).join(', '));
+                          } else if (selected.length < 2) {
+                            setPlatform([...selected, p].join(', '));
+                          }
+                        } else {
+                          setPlatform(isActive ? '' : p);
                         }
-                      } else {
-                        setPlatform(isActive ? '' : p);
-                      }
-                    }}
-                    className="text-xs px-3 py-1.5 rounded-full transition-all font-medium"
-                    style={{
-                      background: isActive ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.05)',
-                      color: isActive ? '#3B82F6' : 'rgba(255,255,255,0.5)',
-                      border: isActive ? '1px solid rgba(59,130,246,0.4)' : '1px solid transparent',
-                      opacity: mediaType === 'book' && !isActive && selected.length >= 2 ? 0.4 : 1,
-                    }}
-                  >
-                    {p}
-                  </button>
-                );
-              })}
+                      }}
+                      className="text-xs px-3 py-1.5 rounded-full transition-all font-medium"
+                      style={{
+                        background: isActive ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.05)',
+                        color: isActive ? '#3B82F6' : 'rgba(255,255,255,0.5)',
+                        border: isActive ? '1px solid rgba(59,130,246,0.4)' : '1px solid transparent',
+                        opacity: mediaType === 'book' && !isActive && selected.length >= 2 ? 0.4 : 1,
+                      }}
+                    >
+                      {p}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Accordions */}
-          <div className="space-y-2">
-            <button
-              type="button"
-              onClick={() => setShowDates(!showDates)}
-              className="w-full flex items-center justify-between p-3 rounded-xl transition-colors"
-              style={{ background: 'rgba(255,255,255,0.03)' }}
-            >
-              <div className="flex items-center gap-3">
-                <Calendar size={18} style={{ color: 'rgba(255,255,255,0.4)' }} />
-                <span className="text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>Adicionar data</span>
-              </div>
-              {showDates ? <ChevronUp size={16} style={{ color: 'rgba(255,255,255,0.3)' }} /> : <ChevronDown size={16} style={{ color: 'rgba(255,255,255,0.3)' }} />}
-            </button>
-            {showDates && (
-              <div className="px-3 pb-3">
-                <input
-                  type="date"
-                  value={logDate}
-                  onChange={(e) => setLogDate(e.target.value)}
-                  className="w-full text-sm p-2 rounded-lg outline-none"
-                  style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.08)' }}
-                />
-              </div>
-            )}
+          {!isWishlist && (
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => setShowDates(!showDates)}
+                className="w-full flex items-center justify-between p-3 rounded-xl transition-colors"
+                style={{ background: 'rgba(255,255,255,0.03)' }}
+              >
+                <div className="flex items-center gap-3">
+                  <Calendar size={18} style={{ color: 'rgba(255,255,255,0.4)' }} />
+                  <span className="text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>Adicionar data</span>
+                </div>
+                {showDates ? <ChevronUp size={16} style={{ color: 'rgba(255,255,255,0.3)' }} /> : <ChevronDown size={16} style={{ color: 'rgba(255,255,255,0.3)' }} />}
+              </button>
+              {showDates && (
+                <div className="px-3 pb-3">
+                  <input
+                    type="date"
+                    value={logDate}
+                    onChange={(e) => setLogDate(e.target.value)}
+                    className="w-full text-sm p-2 rounded-lg outline-none"
+                    style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.08)' }}
+                  />
+                </div>
+              )}
 
-            <button
-              type="button"
-              onClick={() => setShowTime(!showTime)}
-              className="w-full flex items-center justify-between p-3 rounded-xl transition-colors"
-              style={{ background: 'rgba(255,255,255,0.03)' }}
-            >
-              <div className="flex items-center gap-3">
-                <Clock size={18} style={{ color: 'rgba(255,255,255,0.4)' }} />
-                <span className="text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                  {mediaType === 'book' ? 'Páginas e tempo' : 'Adicionar tempo'}
-                </span>
-              </div>
-              {showTime ? <ChevronUp size={16} style={{ color: 'rgba(255,255,255,0.3)' }} /> : <ChevronDown size={16} style={{ color: 'rgba(255,255,255,0.3)' }} />}
-            </button>
-            {showTime && (
-              <div className="px-3 pb-3 space-y-2">
-                {mediaType === 'book' ? (
-                  <>
-                    <input
-                      type="number"
-                      min="0"
-                      step="1"
-                      value={pagesRead}
-                      onChange={(e) => setPagesRead(e.target.value)}
-                      placeholder="Páginas"
-                      className="w-full text-sm p-2 rounded-lg outline-none"
-                      style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.08)' }}
-                    />
+              <button
+                type="button"
+                onClick={() => setShowTime(!showTime)}
+                className="w-full flex items-center justify-between p-3 rounded-xl transition-colors"
+                style={{ background: 'rgba(255,255,255,0.03)' }}
+              >
+                <div className="flex items-center gap-3">
+                  <Clock size={18} style={{ color: 'rgba(255,255,255,0.4)' }} />
+                  <span className="text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                    {mediaType === 'book' ? 'Páginas e tempo' : 'Adicionar tempo'}
+                  </span>
+                </div>
+                {showTime ? <ChevronUp size={16} style={{ color: 'rgba(255,255,255,0.3)' }} /> : <ChevronDown size={16} style={{ color: 'rgba(255,255,255,0.3)' }} />}
+              </button>
+              {showTime && (
+                <div className="px-3 pb-3 space-y-2">
+                  {mediaType === 'book' ? (
+                    <>
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={pagesRead}
+                        onChange={(e) => setPagesRead(e.target.value)}
+                        placeholder="Páginas"
+                        className="w-full text-sm p-2 rounded-lg outline-none"
+                        style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.08)' }}
+                      />
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        value={hoursSpent}
+                        onChange={(e) => setHoursSpent(e.target.value)}
+                        placeholder="Horas"
+                        className="w-full text-sm p-2 rounded-lg outline-none"
+                        style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.08)' }}
+                      />
+                    </>
+                  ) : (
                     <input
                       type="number"
                       min="0"
@@ -360,38 +395,40 @@ const LogForm: React.FC<LogFormProps> = ({ onSubmit, onCancel, initialData, medi
                       className="w-full text-sm p-2 rounded-lg outline-none"
                       style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.08)' }}
                     />
-                  </>
-                ) : (
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.5"
-                    value={hoursSpent}
-                    onChange={(e) => setHoursSpent(e.target.value)}
-                    placeholder="Horas"
-                    className="w-full text-sm p-2 rounded-lg outline-none"
+                  )}
+                </div>
+              )}
+
+
+              <button
+                type="button"
+                onClick={() => setShowReview(!showReview)}
+                className="w-full flex items-center justify-between p-3 rounded-xl transition-colors"
+                style={{ background: 'rgba(255,255,255,0.03)' }}
+              >
+                <div className="flex items-center gap-3">
+                  <MessageCircle size={18} style={{ color: 'rgba(255,255,255,0.4)' }} />
+                  <span className="text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>Review</span>
+                  {review && <span className="w-2 h-2 rounded-full" style={{ background: meta.color }} />}
+                </div>
+                {showReview ? <ChevronUp size={16} style={{ color: 'rgba(255,255,255,0.3)' }} /> : <ChevronDown size={16} style={{ color: 'rgba(255,255,255,0.3)' }} />}
+              </button>
+              {showReview && (
+                <div className="px-3 pb-3">
+                  <textarea
+                    value={review}
+                    onChange={(e) => setReview(e.target.value.slice(0, 280))}
+                    placeholder="Escreva sua opinião sobre esta mídia..."
+                    rows={4}
+                    maxLength={280}
+                    className="w-full text-sm p-3 rounded-lg outline-none resize-none"
                     style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.08)' }}
                   />
-                )}
-              </div>
-            )}
-
-            {mediaType === 'movie' && (
-              <div className="px-3 pb-1 pt-1">
-                <div className="flex items-center gap-3">
-                  <Repeat size={16} style={{ color: 'rgba(255,255,255,0.4)' }} />
-                  <span className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>Vezes assistido</span>
-                  <div className="flex items-center gap-2 ml-auto">
-                    <button type="button" onClick={() => setRelogCount(String(Math.max(0, Number(relogCount) - 1)))}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center text-sm font-bold" style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}>-</button>
-                    <span className="text-sm font-bold w-6 text-center" style={{ color: '#fff' }}>{Number(relogCount) + 1}x</span>
-                    <button type="button" onClick={() => setRelogCount(String(Number(relogCount) + 1))}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center text-sm font-bold" style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}>+</button>
-                  </div>
+                  <div className="text-right text-[11px] text-white/30 mt-1">{review.length}/280</div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
         </div>
 
@@ -404,11 +441,13 @@ const LogForm: React.FC<LogFormProps> = ({ onSubmit, onCancel, initialData, medi
             style={{ background: '#3B82F6' }}
           >
             <Check size={18} />
-            {isEditing ? 'Salvar Alterações' : 'Salvar'}
+            {isEditing ? 'Salvar Alterações' : isWishlist ? 'Adicionar à Lista' : 'Salvar'}
           </button>
-          <p className="text-center text-[10px]" style={{ color: 'rgba(255,255,255,0.2)' }}>
-            Você pode editar todos os detalhes depois
-          </p>
+          {!isWishlist && (
+            <p className="text-center text-[10px]" style={{ color: 'rgba(255,255,255,0.2)' }}>
+              Você pode editar todos os detalhes depois
+            </p>
+          )}
         </div>
       </div>
     </div>

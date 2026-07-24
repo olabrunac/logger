@@ -73,6 +73,7 @@ class LogEntry(Base):
     media_item = relationship("MediaItem", back_populates="logs")
     episodes = relationship("EpisodeWatched", back_populates="log", cascade="all, delete-orphan")
     achievements = relationship("Achievement", back_populates="log", cascade="all, delete-orphan")
+    reviews = relationship("LogReview", back_populates="log", cascade="all, delete-orphan")
 
 class EpisodeWatched(Base):
     id = Column(Integer, primary_key=True, index=True)
@@ -93,6 +94,16 @@ class Achievement(Base):
     image_url = Column(String, nullable=True)
     unlocked = Column(Boolean, default=False)
     log = relationship("LogEntry", back_populates="achievements")
+
+
+class LogReview(Base):
+    id = Column(Integer, primary_key=True, index=True)
+    log_id = Column(Integer, ForeignKey("logentry.id"), nullable=False)
+    review_text = Column(Text, nullable=True)
+    rating = Column(Float, nullable=True)
+    platform = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    log = relationship("LogEntry", back_populates="reviews")
 
 
 class TopListItem(Base):

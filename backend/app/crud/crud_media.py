@@ -48,25 +48,36 @@ class CRUDLogEntry(CRUDBase[LogEntry, LogEntryCreate, LogEntryUpdate]):
         return db_obj
 
     def get_multi_by_user(self, db: Session, *, user_id: int, skip: int = 0, limit: int = 100):
-        return db.query(self.model).filter(LogEntry.user_id == user_id).offset(skip).limit(limit).all()
+        return db.query(self.model).filter(
+            LogEntry.user_id == user_id,
+            LogEntry.status.notin_([LogStatus.WISHLIST, LogStatus.SOON])
+        ).order_by(LogEntry.log_date.desc()).offset(skip).limit(limit).all()
+
+    def get_wishlist_by_user(self, db: Session, *, user_id: int):
+        return db.query(self.model).filter(
+            LogEntry.user_id == user_id,
+            LogEntry.status.in_([LogStatus.WISHLIST, LogStatus.SOON])
+        ).order_by(LogEntry.log_date.desc()).all()
 
     def get_stats_by_user(self, db: Session, *, user_id: int):
         """Get statistics for a user's logs grouped by media type."""
-        # Total logs by media type
+        non_log_statuses = [LogStatus.WISHLIST, LogStatus.SOON]
+        
+        # Total logs by media type (excluding wishlist/soon)
         stats = db.query(
             MediaItem.media_type,
             func.count(LogEntry.id).label('count')
         ).join(LogEntry, LogEntry.media_item_id == MediaItem.id)\
-         .filter(LogEntry.user_id == user_id)\
+         .filter(LogEntry.user_id == user_id, LogEntry.status.notin_(non_log_statuses))\
          .group_by(MediaItem.media_type)\
          .all()
         
-        # Favorites count
+        # Favorites count (excluding wishlist/soon)
         favorites = db.query(
             MediaItem.media_type,
             func.count(LogEntry.id).label('count')
         ).join(LogEntry, LogEntry.media_item_id == MediaItem.id)\
-         .filter(LogEntry.user_id == user_id, LogEntry.is_favorite == True)\
+         .filter(LogEntry.user_id == user_id, LogEntry.is_favorite == True, LogEntry.status.notin_(non_log_statuses))\
          .group_by(MediaItem.media_type)\
          .all()
         
@@ -79,12 +90,12 @@ class CRUDLogEntry(CRUDBase[LogEntry, LogEntryCreate, LogEntryUpdate]):
          .group_by(MediaItem.media_type)\
          .all()
         
-        # Total hours
+        # Total hours (excluding wishlist/soon)
         total_hours = db.query(
             MediaItem.media_type,
             func.sum(LogEntry.hours_spent).label('total')
         ).join(LogEntry, LogEntry.media_item_id == MediaItem.id)\
-         .filter(LogEntry.user_id == user_id, LogEntry.hours_spent.isnot(None))\
+         .filter(LogEntry.user_id == user_id, LogEntry.hours_spent.isnot(None), LogEntry.status.notin_(non_log_statuses))\
          .group_by(MediaItem.media_type)\
          .all()
         

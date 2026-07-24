@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { LogEntry } from '../../types';
 
 interface HoursPieChartProps {
@@ -6,11 +6,11 @@ interface HoursPieChartProps {
   mediaType?: string;
 }
 
-const TYPE_CONFIG: Record<string, { color: string; label: string; emoji: string }> = {
-  game: { color: '#60a5fa', label: 'Jogos', emoji: '🎮' },
-  movie: { color: '#fbbf24', label: 'Filmes', emoji: '🎬' },
-  series: { color: '#ef4444', label: 'Séries', emoji: '📺' },
-  book: { color: '#4ade80', label: 'Livros', emoji: '📚' },
+const TYPE_CONFIG: Record<string, { color: string; label: string }> = {
+  game: { color: '#60a5fa', label: 'Jogos' },
+  movie: { color: '#fbbf24', label: 'Filmes' },
+  series: { color: '#ef4444', label: 'Séries' },
+  book: { color: '#4ade80', label: 'Livros' },
 };
 
 const polarToCartesian = (cx: number, cy: number, r: number, angleDeg: number) => {
@@ -26,6 +26,8 @@ const describeArc = (cx: number, cy: number, r: number, startAngle: number, endA
 };
 
 const HoursPieChart = ({ logs, mediaType }: HoursPieChartProps) => {
+  const [hovered, setHovered] = useState<string | null>(null);
+
   const data = useMemo(() => {
     const filtered = logs.filter((l) => !mediaType || l.media_item.media_type === mediaType);
     const hoursMap: Record<string, number> = {};
@@ -52,7 +54,7 @@ const HoursPieChart = ({ logs, mediaType }: HoursPieChartProps) => {
   const cx = 100;
   const cy = 100;
   const outerR = 70;
-  const innerR = 35; // Mais grosso: diminui o buraco central
+  const innerR = 35;
   const gap = 1.5;
 
   let currentAngle = 0;
@@ -64,21 +66,39 @@ const HoursPieChart = ({ logs, mediaType }: HoursPieChartProps) => {
     return { ...d, startAngle, endAngle };
   });
 
+  const hoveredSlice = hovered ? slices.find(s => s.type === hovered) : null;
+
   return (
-    <div className="flex flex-col gap-3">
-      <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-1 w-full text-left">Horas por Mídia</div>
-      <div style={{ position: 'relative', width: 110, height: 110, flexShrink: 0, margin: '0 auto' }}>
-        <svg width="110" height="110" viewBox="0 0 200 200">
-          {slices.map((s) => (
-            <path
-              key={s.type}
-              d={describeArc(cx, cy, outerR, s.startAngle, s.endAngle)}
-              fill="none"
-              stroke={s.color}
-              strokeWidth={outerR - innerR}
-              strokeLinecap="round"
-            />
-          ))}
+    <div className="flex flex-col gap-0">
+      <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 w-full text-left">Horas por Mídia</div>
+      <div style={{ position: 'relative', width: 130, height: 130, flexShrink: 0, margin: '0 auto' }}>
+        <svg width="130" height="130" viewBox="0 0 200 200">
+          {slices.map((s) => {
+            const midAngle = (s.startAngle + s.endAngle) / 2;
+            const mid = polarToCartesian(cx, cy, (outerR + innerR) / 2, midAngle);
+            const isHovered = hovered === s.type;
+            return (
+              <g key={s.type} style={{ cursor: 'pointer' }}>
+                <path
+                  d={describeArc(cx, cy, outerR, s.startAngle, s.endAngle)}
+                  fill="none"
+                  stroke={s.color}
+                  strokeWidth={outerR - innerR}
+                  strokeLinecap="butt"
+                  opacity={hovered && !isHovered ? 0.4 : 1}
+                  style={{ transition: 'opacity 150ms' }}
+                />
+                <circle
+                  cx={mid.x}
+                  cy={mid.y}
+                  r={outerR - innerR}
+                  fill="transparent"
+                  onMouseEnter={() => setHovered(s.type)}
+                  onMouseLeave={() => setHovered(null)}
+                />
+              </g>
+            );
+          })}
         </svg>
         <div style={{
           position: 'absolute',
@@ -87,21 +107,35 @@ const HoursPieChart = ({ logs, mediaType }: HoursPieChartProps) => {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
+          pointerEvents: 'none',
         }}>
-          <span style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--text-heading)', lineHeight: 1 }}>
-            {Math.round(totalHours)}h
-          </span>
+          {hoveredSlice ? (
+            <>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: hoveredSlice.color, lineHeight: 1 }}>
+                {hoveredSlice.label}
+              </span>
+              <span style={{ fontSize: '0.625rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                {Math.round(hoveredSlice.hours)}h · {Math.round(hoveredSlice.percentage)}%
+              </span>
+            </>
+          ) : (
+            <span style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--text-heading)', lineHeight: 1 }}>
+              {Math.round(totalHours)}h
+            </span>
+          )}
         </div>
       </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.5rem' }}>
-        {data.map((d) => (
-          <div key={d.type} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-            <span style={{ width: 6, height: 6, borderRadius: 1, background: d.color, flexShrink: 0 }} />
-            <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-              {d.emoji} {d.label}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+        {Object.entries(TYPE_CONFIG).map(([type, cfg]) => {
+          const d = data.find(x => x.type === type);
+          if (!d) return null;
+          return (
+            <span key={type} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <span style={{ width: '10px', height: '10px', borderRadius: '2px', background: cfg.color, flexShrink: 0 }} />
+              <span>{cfg.label}</span>
             </span>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

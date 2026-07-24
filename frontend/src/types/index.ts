@@ -68,3 +68,12 @@ export interface TopListItemCreate {
 export interface TopListItemUpdate {
   position?: number;
 }
+
+export interface LogReview {
+  id: number;
+  log_id: number;
+  review_text?: string;
+  rating?: number;
+  platform?: string;
+  created_at: string;
+}

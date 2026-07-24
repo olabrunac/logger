@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
 import type { LogEntry, MediaType } from '../types';
-import { Gamepad2, Film, Tv, Book, Heart } from 'lucide-react';
+import { Heart } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -10,7 +10,12 @@ interface DiaryPageProps {
   user: { id: number; username: string };
 }
 
-const TYPE_ICONS: Record<MediaType, typeof Film> = { game: Gamepad2, movie: Film, series: Tv, book: Book };
+const TYPE_META: Record<MediaType, { color: string }> = {
+  movie: { color: '#fbbf24' },
+  series: { color: '#ef4444' },
+  game: { color: '#60a5fa' },
+  book: { color: '#4ade80' },
+};
 
 const FILTERS: { key: MediaType | 'all'; label: string }[] = [
   { key: 'all', label: 'Tudo' },
@@ -26,7 +31,9 @@ const groupByDate = (logs: LogEntry[]) => {
     const d = l.log_date.split('T')[0];
     (groups[d] = groups[d] || []).push(l);
   });
-  return Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
+  return Object.entries(groups)
+    .map(([date, items]) => [date, items.sort((a, b) => b.log_date.localeCompare(a.log_date))] as const)
+    .sort((a, b) => b[0].localeCompare(a[0]));
 };
 
 const DiaryPage = ({ user }: DiaryPageProps) => {
@@ -45,7 +52,8 @@ const DiaryPage = ({ user }: DiaryPageProps) => {
   useEffect(() => { fetchLogs(); }, [fetchLogs]);
 
   const filtered = filter === 'all' ? logs : logs.filter(l => l.media_item.media_type === filter);
-  const groups = groupByDate(filtered);
+  const sorted = [...filtered].sort((a, b) => b.log_date.localeCompare(a.log_date));
+  const groups = groupByDate(sorted);
 
   return (
     <div className="space-y-6">
@@ -74,20 +82,18 @@ const DiaryPage = ({ user }: DiaryPageProps) => {
             </div>
             <div className="space-y-2">
               {items.map(l => {
-                const Icon = TYPE_ICONS[l.media_item.media_type] || Film;
                 return (
                   <Link key={l.id} to={`/log/${l.id}`}
-                    className="mdf-card mdf-card-hover flex items-center gap-4 p-3 transition-colors">
-                    <div className="w-12 h-16 rounded overflow-hidden bg-white/5 flex-shrink-0">
+                    className="mdf-card mdf-card-hover flex items-stretch gap-4 p-3 transition-colors">
+                    <div className="w-[72px] -my-3 -ml-3 flex-shrink-0 overflow-hidden bg-white/5" style={{borderBottom: '3px solid ' + (TYPE_META[l.media_item.media_type]?.color || '#666')}}>
                       {l.media_item.cover_image_url ? (
                         <img src={l.media_item.cover_image_url} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center"><Icon size={16} className="text-white/40" /></div>
+                        <div className="w-full h-full flex items-center justify-center text-xs text-white/40">{l.media_item.title.charAt(0).toUpperCase()}</div>
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <Icon size={14} className="text-white/40" />
                         <div className="font-semibold truncate">{l.media_item.title}</div>
                         {l.is_favorite && <Heart size={12} className="text-[var(--mdf-pink)] flex-shrink-0" fill="var(--mdf-pink)" />}
                       </div>
@@ -97,12 +103,12 @@ const DiaryPage = ({ user }: DiaryPageProps) => {
                     <div className="flex flex-col items-end gap-1">
                       {l.rating != null && (
                         <div className="flex items-center gap-1">
-                          <span className="text-[var(--mdf-yellow)] text-sm">★</span>
-                          <span className="text-xs font-mono">{l.rating.toFixed(1)}</span>
+                          <span className="text-[var(--mdf-yellow)] text-base">★</span>
+                          <span className="text-sm font-mono">{l.rating.toFixed(1)}</span>
                         </div>
                       )}
                       {l.hours_spent != null && l.hours_spent > 0 && (
-                        <div className="text-[10px] text-white/40 font-mono">{l.hours_spent}h</div>
+                        <div className="text-xs text-white/40 font-mono">{l.hours_spent}h</div>
                       )}
                     </div>
                   </Link>

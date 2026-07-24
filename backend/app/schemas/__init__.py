@@ -12,6 +12,7 @@ from .media import (
     EpisodeWatchedInDB,
     AchievementCreate,
     AchievementInDB,
+    LogReviewInDB,
     TopListItemCreate,
     TopListItemUpdate,
     TopListItemInDB,

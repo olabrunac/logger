@@ -10,6 +10,7 @@ import LogDetailPage from './pages/LogDetailPage';
 import SettingsPage from './pages/SettingsPage';
 import ListsPage from './pages/ListsPage';
 import DiaryPage from './pages/DiaryPage';
+import ReviewsPage from './pages/ReviewsPage';
 import LeftSidebar from './components/LeftSidebar';
 import RightSidebar from './components/RightSidebar';
 import type { User } from './types';
@@ -46,7 +47,7 @@ function App() {
 
   // Fixed sidebar widths - content area stays this width always
   const fixedSidebarWidths = user
-    ? { left: 270, right: 324 }
+    ? { left: 203, right: 324 }
     : { left: 0, right: 0 };
 
   return (
@@ -102,6 +103,12 @@ function App() {
               path="/profile"
               element={
                 user ? <Navigate to={`/profile/${user.username}`} /> : <Navigate to="/login" />
+              }
+            />
+            <Route
+              path="/profile/:username/reviews"
+              element={
+                user ? <ReviewsPage currentUser={user} /> : <Navigate to="/login" />
               }
             />
             <Route

@@ -30,8 +30,8 @@ const ActivityGraph = ({ logs, mediaType }: ActivityGraphProps) => {
 
     const now = new Date();
     const startDate = new Date(now);
-    startDate.setDate(startDate.getDate() - 90);
-    const totalDays = 90;
+    startDate.setDate(startDate.getDate() - 100);
+    const totalDays = 100;
     const startOffset = startDate.getDay();
     const totalSlots = startOffset + totalDays + 1;
 
@@ -64,13 +64,8 @@ const ActivityGraph = ({ logs, mediaType }: ActivityGraphProps) => {
   };
 
   return (
-    <div className="profile-section">
-      <div className="section-header">
-        <div className="section-title-row">
-          <h2 className="section-title">Mapa de Atividade (Últimos 90 dias)</h2>
-        </div>
-      </div>
-      <div style={{ overflowX: 'auto', paddingBottom: '0.5rem' }}>
+    <div>
+      <div style={{ overflowX: 'auto' }}>
         <div style={{ display: 'flex', gap: '3px' }}>
           {activityData.map((week, wi) => (
             <div key={wi} style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>

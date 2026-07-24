@@ -142,6 +142,23 @@ class AchievementInDB(AchievementBase):
         from_attributes = True
 
 
+# --- LogReview Schemas ---
+class LogReviewBase(BaseModel):
+    review_text: Optional[str] = None
+    rating: Optional[float] = None
+    platform: Optional[str] = None
+
+class LogReviewCreate(LogReviewBase):
+    pass
+
+class LogReviewInDB(LogReviewBase):
+    id: int
+    log_id: int
+    created_at: datetime
+    class Config:
+        from_attributes = True
+
+
 # --- Log with computed stats ---
 class LogEntryWithStats(LogEntryInDB):
     watched_episodes: Optional[int] = None
