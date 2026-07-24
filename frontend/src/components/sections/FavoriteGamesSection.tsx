@@ -24,6 +24,13 @@ const STATUS_ICONS: Record<string, string> = {
   soon: '…',
 };
 
+const TYPE_COLORS: Record<string, string> = {
+  movie: '#fbbf24',
+  series: '#ef4444',
+  game: '#60a5fa',
+  book: '#4ade80',
+};
+
 const TYPE_EMOJI: Record<string, string> = {
   movie: '🎬',
   series: '📺',
@@ -55,9 +62,9 @@ const FavoritesSection = ({ logs, accentColor: _accentColor, mediaType }: Favori
         <span style={{ color: 'var(--mdf-pink)' }}>&#9829;</span>
         Favoritos {mediaType && `· ${TYPE_EMOJI[mediaType] || ''}`}
       </h2>
-      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+      <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-2">
         {favorites.map((log) => (
-          <Link key={log.id} to={`/log/${log.id}`} className="poster-tile block group">
+          <Link key={log.id} to={`/log/${log.id}`} className="poster-tile block group" style={{borderBottom: '3px solid ' + (TYPE_COLORS[log.media_item.media_type] || '#666')}}>
             {log.media_item.cover_image_url ? (
               <img src={log.media_item.cover_image_url} alt={log.media_item.title} className="w-full h-full object-cover" loading="lazy" />
             ) : (
@@ -89,7 +96,7 @@ const FavoritesSection = ({ logs, accentColor: _accentColor, mediaType }: Favori
                   <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                 </svg>
               </div>
-              {log.status && (
+              {log.status && !log.is_favorite && (
                 <span className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style={{ background: STATUS_COLORS[log.status] || 'rgba(100,100,100,0.85)' }}>
                   {STATUS_ICONS[log.status] || log.status[0].toUpperCase()}
                 </span>
@@ -105,26 +112,23 @@ const FavoritesSection = ({ logs, accentColor: _accentColor, mediaType }: Favori
                 {log.platform}
               </div>
             )}
-            {log.media_item.media_type === 'movie' && (log.relog_count ?? 0) > 0 && (
+            {(log.relog_count ?? 0) > 0 ? (
               <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
                 {(log.relog_count ?? 0) + 1}x
               </div>
-            )}
-            {log.media_item.media_type === 'series' && log.watched_episodes != null && log.total_episodes != null && log.total_episodes > 0 && (
+            ) : log.media_item.media_type === 'series' && log.watched_episodes != null && log.total_episodes != null && log.total_episodes > 0 ? (
               <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
                 {log.watched_episodes}/{log.total_episodes}
               </div>
-            )}
-            {log.media_item.media_type === 'game' && log.hours_spent != null && log.hours_spent > 0 && (
+            ) : log.media_item.media_type === 'game' && log.hours_spent != null && log.hours_spent > 0 ? (
               <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
                 {log.hours_spent}h
               </div>
-            )}
-            {log.media_item.media_type === 'book' && log.hours_spent != null && log.hours_spent > 0 && (
+            ) : log.media_item.media_type === 'book' && log.hours_spent != null && log.hours_spent > 0 ? (
               <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
                 {log.hours_spent}h
               </div>
-            )}
+            ) : null}
           </Link>
         ))}
       </div>

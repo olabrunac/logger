@@ -7,7 +7,7 @@ from app import crud, schemas
 from app.crud import crud_top_list
 from app.api import deps
 from app.services import tmdb_service, igdb_service, google_books_service, steam_service
-from app.models.media import MediaType, LogEntry, EpisodeWatched, Achievement, TopListItem
+from app.models.media import MediaType, MediaItem, LogStatus, LogEntry, LogReview, EpisodeWatched, Achievement, TopListItem
 import datetime
 
 router = APIRouter()
@@ -90,55 +90,161 @@ def search_media(*, q: str = Query("", min_length=0), media_type: MediaType, aut
 
 @router.post("/logs", response_model=schemas.LogEntryInDB)
 def create_log_entry(*, db: Session = Depends(deps.get_db), payload: schemas.LogPayload) -> Any:
-    log = crud.log_entry.create_with_user(db=db, obj_in=payload.log_in, user_id=payload.user_id)
+    new_status = payload.log_in.status
+    user_id = payload.user_id
+
+    # Resolve media_item_id WITHOUT creating a log entry yet
+    from app.crud.crud_media import CRUDMediaItem, media_item as media_item_crud_singleton
+    media_item_crud = CRUDMediaItem(MediaItem)
+    media_item = media_item_crud.get_or_create(db, obj_in=payload.log_in.media_item)
+    media_id = media_item.id
+
+    # Find existing non-wishlist entry (priority)
+    existing_log = db.query(LogEntry).filter(
+        LogEntry.user_id == user_id,
+        LogEntry.media_item_id == media_id,
+        LogEntry.status.notin_([LogStatus.WISHLIST, LogStatus.SOON]),
+    ).first()
+
+    # Find existing wishlist entry
+    existing_wishlist = db.query(LogEntry).filter(
+        LogEntry.user_id == user_id,
+        LogEntry.media_item_id == media_id,
+        LogEntry.status.in_([LogStatus.WISHLIST, LogStatus.SOON]),
+    ).first()
+
+    # CASE 1: New log is wishlist
+    if new_status in [LogStatus.WISHLIST, LogStatus.SOON]:
+        # If already has a wishlist, deduplicate
+        if existing_wishlist:
+            existing_wishlist.log_date = datetime.datetime.utcnow()
+            db.commit()
+            db.refresh(existing_wishlist)
+            return existing_wishlist
+        # Otherwise create the wishlist entry
+        log_entry_data = payload.log_in.dict()
+        log_entry_data.pop("media_item")
+        log = LogEntry(**log_entry_data, user_id=user_id, media_item_id=media_id)
+        db.add(log)
+        db.commit()
+        db.refresh(log)
+        return log
+
+    # CASE 2: New log is non-wishlist (completed/in_progress/dropped)
+    # Remove ALL wishlist entries for this media
+    if existing_wishlist:
+        db.delete(existing_wishlist)
+
+    if existing_log:
+        # Merge: increment relog_count and update fields
+        existing_log.relog_count = (existing_log.relog_count or 0) + 1
+        existing_log.status = LogStatus(new_status)
+        if payload.log_in.rating:
+            existing_log.rating = payload.log_in.rating
+        if payload.log_in.hours_spent:
+            existing_log.hours_spent = (existing_log.hours_spent or 0) + payload.log_in.hours_spent
+        if payload.log_in.pages_read:
+            existing_log.pages_read = (existing_log.pages_read or 0) + payload.log_in.pages_read
+        if payload.log_in.platform:
+            existing_log.platform = payload.log_in.platform
+        if payload.log_in.review:
+            existing_log.review = payload.log_in.review
+        existing_log.log_date = datetime.datetime.utcnow()
+
+        # Save a review snapshot for this relog
+        review_entry = LogReview(
+            log_id=existing_log.id,
+            review_text=payload.log_in.review,
+            rating=payload.log_in.rating,
+            platform=payload.log_in.platform,
+            created_at=datetime.datetime.utcnow(),
+        )
+        db.add(review_entry)
+
+        # Clean up any other duplicate non-wishlist entries for this user+media
+        other_duplicates = db.query(LogEntry).filter(
+            LogEntry.user_id == user_id,
+            LogEntry.media_item_id == media_id,
+            LogEntry.id != existing_log.id,
+            LogEntry.status.notin_([LogStatus.WISHLIST, LogStatus.SOON]),
+        ).all()
+        for dup in other_duplicates:
+            db.delete(dup)
+
+        db.commit()
+        db.refresh(existing_log)
+        log = existing_log
+    else:
+        # First time logging this media — create new entry
+        log_entry_data = payload.log_in.dict()
+        log_entry_data.pop("media_item")
+        log = LogEntry(**log_entry_data, user_id=user_id, media_item_id=media_id)
+        db.add(log)
+        db.flush()
+
+        # Save initial review snapshot
+        review_entry = LogReview(
+            log_id=log.id,
+            review_text=payload.log_in.review,
+            rating=payload.log_in.rating,
+            platform=payload.log_in.platform,
+            created_at=log.log_date or datetime.datetime.utcnow(),
+        )
+        db.add(review_entry)
+        db.commit()
+        db.refresh(log)
 
     # Enrich game logs with Steam data
-    if log.media_item.media_type == MediaType.GAME and log.media_item.igdb_id:
-        igdb_id = log.media_item.igdb_id
-        steam_appid = igdb_service.get_steam_appid(igdb_id)
-        if steam_appid:
-            log.media_item.steam_appid = steam_appid
-            steam_data = steam_service.get_app_details(steam_appid)
-            if steam_data:
-                parsed = steam_service.parse_steam_game_data(steam_data)
-                for key, value in parsed.items():
-                    if key == "screenshots":
-                        setattr(log.media_item, key, json.dumps(value))
-                    elif value:
+    try:
+        if log.media_item.media_type == MediaType.GAME and log.media_item.igdb_id:
+            igdb_id = log.media_item.igdb_id
+            steam_appid = igdb_service.get_steam_appid(igdb_id)
+            if steam_appid:
+                log.media_item.steam_appid = steam_appid
+                steam_data = steam_service.get_app_details(steam_appid)
+                if steam_data:
+                    parsed = steam_service.parse_steam_game_data(steam_data)
+                    for key, value in parsed.items():
+                        if key == "screenshots":
+                            setattr(log.media_item, key, json.dumps(value))
+                        elif value:
+                            setattr(log.media_item, key, value)
+                db.add(log.media_item)
+                db.commit()
+                db.refresh(log)
+
+        # Enrich movie logs with TMDb data
+        if log.media_item.media_type == MediaType.MOVIE and log.media_item.tmdb_id:
+            details = tmdb_service.get_movie_details(log.media_item.tmdb_id)
+            if details:
+                for key, value in details.items():
+                    if value:
                         setattr(log.media_item, key, value)
-            db.add(log.media_item)
-            db.commit()
-            db.refresh(log)
+                db.add(log.media_item)
+                db.commit()
 
-    # Enrich movie logs with TMDb data
-    if log.media_item.media_type == MediaType.MOVIE and log.media_item.tmdb_id:
-        details = tmdb_service.get_movie_details(log.media_item.tmdb_id)
-        if details:
-            for key, value in details.items():
-                if value:
-                    setattr(log.media_item, key, value)
-            db.add(log.media_item)
-            db.commit()
+        # Enrich series logs with TMDb data
+        if log.media_item.media_type == MediaType.SERIES and log.media_item.tmdb_id:
+            details = tmdb_service.get_tv_details(log.media_item.tmdb_id)
+            if details:
+                for key, value in details.items():
+                    if value:
+                        setattr(log.media_item, key, value)
+                db.add(log.media_item)
+                db.commit()
 
-    # Enrich series logs with TMDb data
-    if log.media_item.media_type == MediaType.SERIES and log.media_item.tmdb_id:
-        details = tmdb_service.get_tv_details(log.media_item.tmdb_id)
-        if details:
-            for key, value in details.items():
-                if value:
-                    setattr(log.media_item, key, value)
-            db.add(log.media_item)
-            db.commit()
-
-    # Enrich book logs with Google Books data
-    if log.media_item.media_type == MediaType.BOOK and log.media_item.google_books_id:
-        details = google_books_service.get_book_details(log.media_item.google_books_id)
-        if details:
-            for key, value in details.items():
-                if value:
-                    setattr(log.media_item, key, value)
-            db.add(log.media_item)
-            db.commit()
+        # Enrich book logs with Google Books data
+        if log.media_item.media_type == MediaType.BOOK and log.media_item.google_books_id:
+            details = google_books_service.get_book_details(log.media_item.google_books_id)
+            if details:
+                for key, value in details.items():
+                    if value:
+                        setattr(log.media_item, key, value)
+                db.add(log.media_item)
+                db.commit()
+    except Exception as e:
+        print(f"Enrichment error (non-fatal): {e}")
+        db.rollback()
 
     return log
 
@@ -170,17 +276,106 @@ def read_log(*, db: Session = Depends(deps.get_db), log_id: int) -> Any:
         raise HTTPException(status_code=404, detail="Log not found")
     return log
 
+@router.get("/logs/{log_id}/reviews", response_model=List[schemas.LogReviewInDB])
+def read_log_reviews(*, db: Session = Depends(deps.get_db), log_id: int) -> Any:
+    log = crud.log_entry.get(db, id=log_id)
+    if not log:
+        raise HTTPException(status_code=404, detail="Log not found")
+    reviews = db.query(LogReview).filter(LogReview.log_id == log_id).order_by(LogReview.created_at.desc()).all()
+    return reviews
+
 @router.put("/logs/{log_id}", response_model=schemas.LogEntryInDB)
 def update_log_entry(*, db: Session = Depends(deps.get_db), log_id: int, updates: schemas.LogEntryUpdate) -> Any:
     log = crud.log_entry.get(db, id=log_id)
     if not log:
         raise HTTPException(status_code=404, detail="Log not found")
     update_data = updates.dict(exclude_unset=True)
+
+    # Auto-increment: when a wishlist entry becomes completed/in_progress/dropped,
+    # merge it into the existing log for the same media item
+    new_status = update_data.get('status')
+    is_wishlist_entry = log.status in [LogStatus.WISHLIST, LogStatus.SOON]
+    is_becoming_log = new_status and new_status not in ['wishlist', 'soon']
+
+    if is_wishlist_entry and is_becoming_log:
+        # Remove other wishlist entries for this media
+        wishlist_entries = db.query(LogEntry).filter(
+            LogEntry.user_id == log.user_id,
+            LogEntry.media_item_id == log.media_item_id,
+            LogEntry.status.in_([LogStatus.WISHLIST, LogStatus.SOON]),
+            LogEntry.id != log.id,
+        ).all()
+        for w in wishlist_entries:
+            db.delete(w)
+
+        existing_log = db.query(LogEntry).filter(
+            LogEntry.user_id == log.user_id,
+            LogEntry.media_item_id == log.media_item_id,
+            LogEntry.id != log.id,
+            LogEntry.status.notin_([LogStatus.WISHLIST, LogStatus.SOON])
+        ).first()
+
+        if existing_log:
+            existing_log.relog_count = (existing_log.relog_count or 0) + 1
+            if new_status == 'completed':
+                existing_log.status = LogStatus.COMPLETED
+            elif new_status == 'in_progress':
+                existing_log.status = LogStatus.IN_PROGRESS
+            elif new_status == 'dropped':
+                existing_log.status = LogStatus.DROPPED
+            if update_data.get('rating'):
+                existing_log.rating = update_data['rating']
+            if update_data.get('hours_spent'):
+                existing_log.hours_spent = (existing_log.hours_spent or 0) + update_data['hours_spent']
+            if update_data.get('platform'):
+                existing_log.platform = update_data['platform']
+            if update_data.get('review'):
+                existing_log.review = update_data['review']
+            existing_log.log_date = datetime.datetime.utcnow()
+
+            review_entry = LogReview(
+                log_id=existing_log.id,
+                review_text=update_data.get('review'),
+                rating=update_data.get('rating'),
+                platform=update_data.get('platform'),
+                created_at=datetime.datetime.utcnow(),
+            )
+            db.add(review_entry)
+            db.add(existing_log)
+            db.delete(log)
+            db.commit()
+            db.refresh(existing_log)
+            return existing_log
+
+    # Save a review snapshot for edits
+    if update_data.get('review') or update_data.get('rating') or update_data.get('platform'):
+        review_entry = LogReview(
+            log_id=log.id,
+            review_text=update_data.get('review', log.review),
+            rating=update_data.get('rating', log.rating),
+            platform=update_data.get('platform', log.platform),
+            created_at=datetime.datetime.utcnow(),
+        )
+        db.add(review_entry)
+
     for field, value in update_data.items():
         setattr(log, field, value)
     db.add(log)
     db.commit()
     db.refresh(log)
+
+    # If status changed to non-wishlist, remove any wishlist entries for this media
+    if new_status and new_status not in ['wishlist', 'soon']:
+        wishlist_entries = db.query(LogEntry).filter(
+            LogEntry.user_id == log.user_id,
+            LogEntry.media_item_id == log.media_item_id,
+            LogEntry.status.in_([LogStatus.WISHLIST, LogStatus.SOON]),
+        ).all()
+        for w in wishlist_entries:
+            db.delete(w)
+        if wishlist_entries:
+            db.commit()
+            db.refresh(log)
 
     # Enrich game logs with Steam data if not already present
     if log.media_item.media_type == MediaType.GAME and log.media_item.igdb_id and not log.media_item.steam_appid:
@@ -255,11 +450,20 @@ def delete_log_entry(*, db: Session = Depends(deps.get_db), log_id: int) -> Any:
 
 @router.get("/stats")
 def get_user_stats(*, db: Session = Depends(deps.get_db), user_id: int) -> Any:
-    total_logs = db.query(LogEntry).filter(LogEntry.user_id == user_id).count()
-    favorites = db.query(LogEntry).filter(LogEntry.user_id == user_id, LogEntry.is_favorite == True).count()
+    non_log = ['wishlist', 'soon']
+    total_logs = db.query(LogEntry).filter(LogEntry.user_id == user_id, LogEntry.status.notin_(non_log)).count()
+    favorites = db.query(LogEntry).filter(LogEntry.user_id == user_id, LogEntry.is_favorite == True, LogEntry.status.notin_(non_log)).count()
     completed = db.query(LogEntry).filter(LogEntry.user_id == user_id, LogEntry.status == 'completed').count()
-    hours_total = db.query(func.coalesce(func.sum(LogEntry.hours_spent), 0)).filter(LogEntry.user_id == user_id).scalar()
-    return {"total_logs": total_logs, "favorites": favorites, "completed": completed, "hours_total": hours_total or 0}
+    hours_total = db.query(func.coalesce(func.sum(LogEntry.hours_spent), 0)).filter(LogEntry.user_id == user_id, LogEntry.status.notin_(non_log)).scalar()
+    wishlist_count = db.query(LogEntry).filter(LogEntry.user_id == user_id, LogEntry.status.in_(non_log)).count()
+    return {"total_logs": total_logs, "favorites": favorites, "completed": completed, "hours_total": hours_total or 0, "wishlist": wishlist_count}
+
+@router.get("/wishlist", response_model=List[schemas.LogEntryInDB])
+def get_wishlist(*, db: Session = Depends(deps.get_db), user_id: int, media_type: Optional[str] = None) -> Any:
+    logs = crud.log_entry.get_wishlist_by_user(db, user_id=user_id)
+    if media_type:
+        logs = [l for l in logs if l.media_item.media_type.value == media_type]
+    return logs
 
 # --- Episodes ---
 
@@ -418,7 +622,7 @@ def reorder_top_list(*, db: Session = Depends(deps.get_db), user_id: int, items:
     return {"message": "Top list reordered successfully"}
 
 
-@router.get("/users/{user_id}/favorites", response_model=List[schemas.MediaItemCreate])
+@router.get("/users/{user_id}/favorites", response_model=List[schemas.MediaItemInDB])
 def get_user_favorites(*, db: Session = Depends(deps.get_db), user_id: int, media_type: MediaType = Query(...)):
     """Get user's favorited media items for a specific media type (must be logged AND favorited)"""
     print(f"[DEBUG] Getting favorites for user {user_id}, media_type: {media_type} (type: {type(media_type)})")
@@ -426,5 +630,5 @@ def get_user_favorites(*, db: Session = Depends(deps.get_db), user_id: int, medi
     print(f"[DEBUG] Found {len(favorites)} favorites")
     for f in favorites:
         print(f"  - {f.title} (type: {f.media_type}, id: {f.id})")
-    return [schemas.MediaItemCreate.model_validate(fav.__dict__) for fav in favorites]
+    return [schemas.MediaItemInDB.model_validate(fav.__dict__) for fav in favorites]
 

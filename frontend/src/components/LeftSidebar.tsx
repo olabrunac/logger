@@ -1,5 +1,5 @@
 import { NavLink, Link } from 'react-router-dom';
-import { Home, Calendar, List, BookOpen, PlusCircle, Settings } from 'lucide-react';
+import { Home, Calendar, List, BookOpen, PlusCircle, Settings, MessageSquare } from 'lucide-react';
 import type { User as UserType } from '../types';
 
 interface LeftSidebarProps {
@@ -11,6 +11,7 @@ const navItems = [
   { to: '/calendar', label: 'Calendário', icon: Calendar },
   { to: '/lists', label: 'Listas', icon: List },
   { to: '/diary', label: 'Diário', icon: BookOpen },
+  { to: '/reviews', label: 'Reviews', icon: MessageSquare, dynamic: true },
   { to: '/new-log', label: 'Novo Log', icon: PlusCircle },
 ];
 
@@ -20,7 +21,7 @@ const LeftSidebar = ({ user }: LeftSidebarProps) => {
     : null;
 
   return (
-    <aside className="fixed top-0 left-0 h-screen w-[270px] flex flex-col z-40 border-r"
+    <aside className="fixed top-0 left-0 h-screen w-[203px] flex flex-col z-40 border-r"
       style={{ background: 'var(--mdf-bg)', borderColor: 'var(--border)' }}>
 
       {/* Logo */}
@@ -36,27 +37,38 @@ const LeftSidebar = ({ user }: LeftSidebarProps) => {
 
       {/* Nav */}
       <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
-        {navItems.map(({ to, label, icon: Icon }) => (
-          <NavLink key={to} to={to} end={to === '/'}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all relative ${
-                isActive
-                  ? 'text-white'
-                  : 'text-white/50 hover:text-white/80 hover:bg-white/5'
-              }`
-            }
-            style={({ isActive }) => isActive ? { background: 'rgba(255,255,255,0.06)' } : {}}>
-            {({ isActive }) => (
-              <>
-                {isActive && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full" style={{ background: 'var(--accent)' }} />
-                )}
-                <Icon size={18} style={{ color: isActive ? 'var(--accent)' : undefined }} />
+        {navItems.map(({ to, label, icon: Icon, dynamic }) => {
+          if (dynamic) {
+            return (
+              <Link key={to} to={`/profile/${user.username}/reviews`}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all relative text-white/50 hover:text-white/80 hover:bg-white/5">
+                <Icon size={18} />
                 <span>{label}</span>
-              </>
-            )}
-          </NavLink>
-        ))}
+              </Link>
+            );
+          }
+          return (
+            <NavLink key={to} to={to} end={to === '/'}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all relative ${
+                  isActive
+                    ? 'text-white'
+                    : 'text-white/50 hover:text-white/80 hover:bg-white/5'
+                }`
+              }
+              style={({ isActive }) => isActive ? { background: 'rgba(255,255,255,0.06)' } : {}}>
+              {({ isActive }) => (
+                <>
+                  {isActive && (
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full" style={{ background: 'var(--accent)' }} />
+                  )}
+                  <Icon size={18} style={{ color: isActive ? 'var(--accent)' : undefined }} />
+                  <span>{label}</span>
+                </>
+              )}
+            </NavLink>
+          );
+        })}
       </nav>
 
       {/* Footer */}

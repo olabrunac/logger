@@ -52,9 +52,9 @@ const RatingDistribution = ({ logs, mediaType, color }: RatingDistributionProps)
   const avg = logs.filter((l) => l.rating && l.rating > 0 && (!mediaType || l.media_item.media_type === mediaType)).reduce((s, l) => s + (l.rating || 0), 0) / Math.max(data.total, 1);
 
   return (
-    <div className="mdf-card p-4 h-full flex flex-col">
-      <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-3">Avaliações</div>
-      <div className="flex flex-col gap-2 flex-1">
+    <div>
+      <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-2">Avaliações</div>
+      <div className="flex flex-col gap-1.5">
         {[5, 4, 3, 2, 1].map((star) => {
           const idx = star - 1;
           const count = data.buckets[idx];
@@ -64,7 +64,7 @@ const RatingDistribution = ({ logs, mediaType, color }: RatingDistributionProps)
               <span className="w-5 text-right text-xs font-semibold" style={{ color: barColors[idx] }}>
                 {star}★
               </span>
-              <div className="flex-1 h-3 rounded-sm overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
+              <div className="flex-1 h-2.5 rounded-sm overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
                 <div className="h-full rounded-sm transition-all duration-300" style={{ width: pct + '%', background: barColors[idx] }} />
               </div>
               <span className="w-5 text-[10px] text-white/40">{count}</span>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Trash2, GripVertical } from 'lucide-react';
+import { Trash2, ChevronUp, ChevronDown } from 'lucide-react';
 import api, { getUserFavorites } from '../../services/api';
 import type { User, TopListItem, MediaItem } from '../../types';
 
@@ -162,45 +162,52 @@ const TopListsSection = ({ profileUser, currentUser }: TopListsSectionProps) => 
                 )}
               </div>
 
-              <ul className="flex-1 space-y-2 min-h-[180px]">
+              <div className="flex-1 flex gap-2 min-h-[160px]">
                 {draft.length > 0 ? (
                   draft.map((item, index) => {
                     const media = item.media_item || favs.find((m: MediaItem) => m.id === item.media_item_id);
                     return (
-                      <li
+                      <div
                         key={item.id || index}
-                        className="flex items-center gap-3 p-2 bg-white/5 rounded-lg group relative"
-                        onDragOver={e => e.preventDefault()}
-                        onDrop={e => { e.preventDefault(); moveItem(type, Number(e.currentTarget.dataset.from), index); }}
-                        data-from={index}
-                        draggable={isEditing[type]}
-                        onDragStart={e => { e.currentTarget.dataset.from = String(index); }}
+                        className="flex flex-col items-center gap-1 flex-1 min-w-0 relative group"
                       >
-                        <span className="w-6 text-center text-white/50 font-mono text-xs">{index + 1}</span>
                         {isEditing[type] && (
-                          <span className="w-6 h-6 flex items-center justify-center cursor-grab text-white/30 hover:text-white" onDragStart={e => e.stopPropagation()}>
-                            <GripVertical size={14} />
-                          </span>
+                          <div className="absolute -top-1 right-0 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                            {index > 0 && (
+                              <button onClick={() => moveItem(type, index, index - 1)} className="p-0.5 bg-black/60 rounded text-white/60 hover:text-white">
+                                <ChevronUp size={12} />
+                              </button>
+                            )}
+                            {index < draft.length - 1 && (
+                              <button onClick={() => moveItem(type, index, index + 1)} className="p-0.5 bg-black/60 rounded text-white/60 hover:text-white">
+                                <ChevronDown size={12} />
+                              </button>
+                            )}
+                            <button onClick={() => removeItem(type, index)} className="p-0.5 bg-black/60 rounded text-white/60 hover:text-red-400">
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
                         )}
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium truncate text-sm">{media?.title || 'Carregando...'}</div>
-                          <div className="text-[10px] text-white/40">Posição {index + 1}</div>
+                        <div className="w-full aspect-[2/3] relative rounded-md overflow-hidden bg-white/5">
+                          {media?.cover_image_url ? (
+                            <img src={media.cover_image_url} alt={media.title} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-white/20 text-xs">?</div>
+                          )}
+                          <div className="absolute top-1 left-1 bg-black/70 text-white font-mono text-xs font-bold w-5 h-5 flex items-center justify-center rounded">
+                            {index + 1}
+                          </div>
                         </div>
-                        {isEditing[type] && (
-                          <button
-                            onClick={() => removeItem(type, index)}
-                            className="p-1 text-white/40 hover:text-red-400 transition-colors"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        )}
-                      </li>
+                        <div className="w-full text-center">
+                          <div className="font-medium truncate text-xs">{media?.title || '...'}</div>
+                        </div>
+                      </div>
                     );
                   })
                 ) : (
-                  <li className="text-white/40 text-sm text-center py-4">Nenhum item na lista</li>
+                  <div className="text-white/40 text-sm text-center py-4 w-full">Nenhum item na lista</div>
                 )}
-              </ul>
+              </div>
 
               {isEditing[type] && (
                 <div className="mt-3 pt-3 border-t border-white/5 space-y-2">
@@ -211,20 +218,27 @@ const TopListsSection = ({ profileUser, currentUser }: TopListsSectionProps) => 
                   ) : (
                     <div className="max-h-60 overflow-y-auto space-y-1">
                       {favs
-                        .filter((m: MediaItem) => m.id && !draftItems[type]?.some((i: any) => i.media_item_id === m.id))
-                        .map((m: MediaItem) => (
-                          <button
-                            key={m.id}
-                            onClick={() => addItem(type, m.id!)}
-                            className="w-full flex items-center gap-3 p-2 bg-white/5 hover:bg-white/10 rounded text-left transition-colors group"
-                          >
-                            {m.cover_image_url && (
-                              <img src={m.cover_image_url} alt={m.title} className="w-10 h-15 object-cover rounded flex-shrink-0" />
-                            )}
-                            <span className="flex-1 truncate text-sm">{m.title}</span>
-                            <span className="text-xs text-green-400 opacity-0 group-hover:opacity-100 transition-opacity">+ Adicionar</span>
-                          </button>
-                        ))}
+                        .map((m: MediaItem) => {
+                          const alreadyAdded = draftItems[type]?.some((i: any) => i.media_item_id === m.id);
+                          return (
+                            <button
+                              key={m.id}
+                              onClick={() => !alreadyAdded && addItem(type, m.id!)}
+                              disabled={alreadyAdded}
+                              className={`w-full flex items-center gap-3 p-2 rounded text-left transition-colors group ${alreadyAdded ? 'bg-white/[0.02] opacity-40 cursor-default' : 'bg-white/5 hover:bg-white/10'}`}
+                            >
+                              {m.cover_image_url && (
+                                <img src={m.cover_image_url} alt={m.title} className="w-10 h-15 object-cover rounded flex-shrink-0" />
+                              )}
+                              <span className="flex-1 truncate text-sm">{m.title}</span>
+                              {alreadyAdded ? (
+                                <span className="text-xs text-white/30">Já na lista</span>
+                              ) : (
+                                <span className="text-xs text-green-400 opacity-0 group-hover:opacity-100 transition-opacity">+ Adicionar</span>
+                              )}
+                            </button>
+                          );
+                        })}
                     </div>
                   )}
                   <button

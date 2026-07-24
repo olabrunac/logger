@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import type { LogEntry } from '../types';
-import { ChevronDown, Trash2, CheckCircle2, Circle, Trophy, Pencil } from 'lucide-react';
+import type { LogEntry, LogReview } from '../types';
+import { ChevronDown, Trash2, CheckCircle2, Circle, Trophy, Pencil, Bookmark } from 'lucide-react';
 import LogForm from '../components/LogForm';
 
 const STATUS_LABELS: Record<string, string> = {
@@ -72,6 +72,10 @@ const LogDetailPage = () => {
 
   const [achievements, setAchievements] = useState<AchievementItem[]>([]);
   const [achLoading, setAchLoading] = useState(false);
+  const [bookmarked, setBookmarked] = useState(false);
+  const [wishlistLogId, setWishlistLogId] = useState<number | null>(null);
+  const [bookmarking, setBookmarking] = useState(false);
+  const [reviewHistory, setReviewHistory] = useState<LogReview[]>([]);
 
   const fetchLog = useCallback(async () => {
     if (!id) return;
@@ -106,6 +110,19 @@ const LogDetailPage = () => {
           });
         }).catch(() => {}).finally(() => setAchLoading(false));
       }
+
+      // Check if this media already has a wishlist entry
+      api.get('/media/wishlist', { params: { user_id: data.user_id, media_type: data.media_item.media_type } })
+        .then(r => {
+          const match = (r.data || []).find((w: any) => w.media_item_id === data.media_item_id);
+          setBookmarked(!!match);
+          setWishlistLogId(match?.id ?? null);
+        }).catch(() => {});
+
+      // Fetch review history
+      api.get(`/media/logs/${id}/reviews`)
+        .then(r => setReviewHistory(r.data || []))
+        .catch(() => {});
     } catch { navigate('/'); } finally { setLoading(false); }
   }, [id, navigate]);
 
@@ -115,6 +132,34 @@ const LogDetailPage = () => {
     if (!id) return;
     const { data } = await api.patch('/media/logs/' + id, updates);
     setLog(data);
+  };
+
+  const handleBookmark = async () => {
+    if (!log || bookmarking) return;
+    setBookmarking(true);
+    try {
+      if (bookmarked && wishlistLogId) {
+        await api.delete(`/media/logs/${wishlistLogId}`);
+        setBookmarked(false);
+        setWishlistLogId(null);
+      } else {
+        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const response = await api.post('/media/logs', {
+          log_in: {
+            media_item: log.media_item,
+            status: 'wishlist',
+            log_date: new Date().toISOString(),
+          },
+          user_id: currentUser.id,
+        });
+        setBookmarked(true);
+        setWishlistLogId(response.data?.id ?? null);
+      }
+    } catch (err) {
+      console.error('Failed to toggle wishlist', err);
+    } finally {
+      setBookmarking(false);
+    }
   };
 
   const setRating = (v: number) => {
@@ -129,6 +174,11 @@ const LogDetailPage = () => {
       const { data } = await api.put(`/media/logs/${id}`, logDetails);
       setLog(data);
       setShowEditModal(false);
+      // Refresh review history
+      api.get(`/media/logs/${id}/reviews`).then(r => setReviewHistory(r.data || [])).catch(() => {});
+      if (String(data.id) !== id) {
+        navigate(`/log/${data.id}`, { replace: true });
+      }
     } catch (error) {
       console.error('Failed to update log', error);
     }
@@ -239,13 +289,13 @@ const LogDetailPage = () => {
   const unlockedCount = achievements.filter(a => a.unlocked).length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 mx-auto" style={{ maxWidth: '900px' }}>
       <Link to="/" className="mdf-btn-ghost text-sm inline-flex items-center gap-2">
         <ChevronDown size={16} style={{ transform: 'rotate(90deg)' }} />
         Voltar
       </Link>
 
-      <div className="flex gap-6 mdf-card p-0 overflow-hidden" style={{ maxWidth: '900px' }}>
+      <div className="flex gap-6 mdf-card p-0 overflow-hidden">
         <div className="flex-shrink-0" style={{ width: '200px' }}>
           {md.cover_image_url ? (
             <img src={md.cover_image_url} alt={md.title} className="w-full h-full object-cover" style={{ aspectRatio: '2/3' }} />
@@ -270,6 +320,19 @@ const LogDetailPage = () => {
 
           <div className="flex items-center gap-3 mb-4">
             <div style={{ fontSize: '1.75rem' }}>{renderStars(log.rating, setRating)}</div>
+            {log.status === 'completed' && (
+              <button onClick={handleBookmark} disabled={bookmarking}
+                className="w-10 h-10 rounded-full border flex items-center justify-center transition-colors"
+                style={{
+                  borderColor: bookmarked ? 'rgba(168,85,247,0.6)' : 'rgba(255,255,255,0.1)',
+                  background: bookmarked ? 'rgba(168,85,247,0.15)' : 'transparent',
+                  color: bookmarked ? '#a855f7' : 'rgba(255,255,255,0.6)',
+                }}
+                title={bookmarked ? 'Remover da lista de desejos' : 'Pretendo reassistir/rejogar'}
+              >
+                <Bookmark size={14} fill={bookmarked ? '#a855f7' : 'none'} />
+              </button>
+            )}
             <button onClick={() => setShowEditModal(true)}
               className="w-10 h-10 rounded-full border border-white/10 hover:border-white/20 hover:bg-white/5 flex items-center justify-center transition-colors">
               <Pencil size={14} className="text-white/60" />
@@ -284,24 +347,18 @@ const LogDetailPage = () => {
           {md.synopsis && <p className="text-sm text-white/60 leading-relaxed mb-4 line-clamp-4">{md.synopsis}</p>}
 
           <div className="flex items-center gap-6 text-sm text-white/50">
+            {(log.relog_count ?? 0) > 0 && <div><span className="text-white/30">Assistido:</span> <span className="text-white/70 font-bold">{(log.relog_count ?? 0) + 1}x</span></div>}
             {log.platform && <div><span className="text-white/30">Plataforma:</span> <span className="text-white/70">{log.platform}</span></div>}
             {log.media_item.media_type === 'book' && log.pages_read != null && log.pages_read > 0 && <div><span className="text-white/30">Páginas:</span> <span className="text-white/70">{log.pages_read}</span></div>}
             {log.hours_spent != null && log.hours_spent > 0 && <div><span className="text-white/30">Horas:</span> <span className="text-white/70">{log.hours_spent}h</span></div>}
             {log.log_date && <div><span className="text-white/30">Data:</span> <span className="text-white/70">{log.log_date.split('T')[0]}</span></div>}
           </div>
-
-          {log.review && (
-            <div className="mt-4 p-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)' }}>
-              <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-2">Review</div>
-              <p className="text-sm text-white/70 leading-relaxed whitespace-pre-wrap">{log.review}</p>
-            </div>
-          )}
         </div>
       </div>
 
       {/* Steam Info */}
       {md.media_type === 'game' && md.steam_appid && (
-        <div style={{ maxWidth: '900px' }}>
+        <div>
           <div className="flex items-center gap-3 mb-3">
             <h3 className="font-display text-xl font-bold">Dados da Steam</h3>
             {md.metacritic_score != null && (
@@ -366,7 +423,7 @@ const LogDetailPage = () => {
 
       {/* Movie / Series Info */}
       {(md.media_type === 'movie' || md.media_type === 'series') && (md.genres || md.runtime != null || md.vote_average != null || md.director) && (
-        <div style={{ maxWidth: '900px' }}>
+        <div>
           <div className="flex items-center gap-3 mb-3">
             <h3 className="font-display text-xl font-bold">{md.media_type === 'movie' ? 'Dados do Filme' : 'Dados da Serie'}</h3>
             {md.vote_average != null && md.vote_average > 0 && (
@@ -420,7 +477,7 @@ const LogDetailPage = () => {
 
       {/* Book Info */}
       {md.media_type === 'book' && (md.publisher || md.page_count != null || md.book_categories || md.book_language) && (
-        <div style={{ maxWidth: '900px' }}>
+        <div>
           <div className="flex items-center gap-3 mb-3">
             <h3 className="font-display text-xl font-bold">Dados do Livro</h3>
             {md.book_rating != null && md.book_rating > 0 && (
@@ -460,7 +517,7 @@ const LogDetailPage = () => {
 
       {/* Episodes */}
       {md.media_type === 'series' && seasons.length > 0 && (
-        <div style={{ maxWidth: '900px' }}>
+        <div>
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-display text-xl font-bold">Temporadas</h3>
             {totalEps > 0 && <div className="text-xs text-white/40 font-mono">{watchedCount}/{totalEps} episodios</div>}
@@ -479,25 +536,30 @@ const LogDetailPage = () => {
                       <div className="font-semibold text-sm">{s.name}</div>
                       <div className="text-xs text-white/50 mt-0.5">{s.episode_count} episodios</div>
                     </div>
-                    {eps.length > 0 && (
-                      <div className="flex-1 max-w-[200px]">
-                        <div className="h-1 rounded-full bg-white/10 overflow-hidden">
-                          <div className="h-full rounded-full bg-[var(--mdf-green)] transition-all" style={{ width: pct + '%' }} />
-                        </div>
-                        <div className="text-[10px] text-white/40 text-right mt-1 font-mono">{sWatched}/{total}</div>
+                    <div className="flex-1 max-w-[200px]">
+                      <div className="h-1 rounded-full bg-white/10 overflow-hidden">
+                        <div className="h-full rounded-full bg-[var(--mdf-green)] transition-all" style={{ width: pct + '%' }} />
                       </div>
-                    )}
-                    {eps.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); toggleAllEpisodes(eps, sWatched < total); }}
-                        className="flex-shrink-0"
-                      >
-                        {sWatched === total
-                          ? <CheckCircle2 size={20} style={{ color: 'var(--mdf-green)' }} />
-                          : <Circle size={20} className="text-white/30 hover:text-white/50 transition-colors" />}
-                      </button>
-                    )}
+                      <div className="text-[10px] text-white/40 text-right mt-1 font-mono">{sWatched}/{total}</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        let seasonEps = eps;
+                        if (seasonEps.length === 0 && log?.media_item.tmdb_id) {
+                          const { data } = await api.get('/media/series/' + log.media_item.tmdb_id + '/season/' + s.season_number + '/episodes');
+                          setEpisodes(prev => ({ ...prev, [s.season_number]: data }));
+                          seasonEps = data || [];
+                        }
+                        toggleAllEpisodes(seasonEps, sWatched < total);
+                      }}
+                      className="flex-shrink-0"
+                    >
+                      {sWatched === total
+                        ? <CheckCircle2 size={20} style={{ color: 'var(--mdf-green)' }} />
+                        : <Circle size={20} className="text-white/30 hover:text-white/50 transition-colors" />}
+                    </button>
                     <ChevronDown size={16} className={`text-white/40 transition-transform ${openSeason === s.season_number ? 'rotate-180' : ''}`} />
                   </button>
                   {openSeason === s.season_number && eps.length > 0 && (
@@ -530,7 +592,7 @@ const LogDetailPage = () => {
 
       {/* Achievements */}
       {md.media_type === 'game' && (
-        <div style={{ maxWidth: '900px' }}>
+        <div>
           <div className="flex items-baseline justify-between mb-3">
             <h3 className="font-display text-xl font-bold flex items-center gap-2">
               <Trophy size={18} style={{ color: 'var(--mdf-yellow)' }} />
@@ -571,6 +633,39 @@ const LogDetailPage = () => {
               </div>
             </>
           )}
+        </div>
+      )}
+
+      {/* Reviews */}
+      {reviewHistory.length > 0 && (
+        <div>
+          <h3 className="font-display text-xl font-bold mb-3">
+            Reviews {reviewHistory.length > 1 && <span className="text-white/40 text-sm font-normal">({reviewHistory.length})</span>}
+          </h3>
+          <div className="space-y-2">
+            {reviewHistory.map((r) => (
+              <div key={r.id} className="mdf-card p-4 rounded-xl flex gap-3" style={{ borderLeft: '3px solid rgba(255,255,255,0.08)' }}>
+                <div className="flex-shrink-0 flex flex-col items-center gap-1 pt-0.5">
+                  {r.rating != null && r.rating > 0 && (
+                    <div className="flex items-center gap-0.5" style={{ color: 'var(--mdf-yellow)' }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="var(--mdf-yellow)" stroke="var(--mdf-yellow)" strokeWidth="2">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                      </svg>
+                      <span className="text-sm font-bold">{r.rating}</span>
+                    </div>
+                  )}
+                  <div className="text-[10px] text-white/30">
+                    {new Date(r.created_at).toLocaleDateString('pt-BR')}
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  {r.platform && <div className="text-xs text-white/40 mb-1">{r.platform}</div>}
+                  {r.review_text && <p className="text-sm text-white/60 leading-relaxed whitespace-pre-wrap">{r.review_text}</p>}
+                  {!r.review_text && <p className="text-xs text-white/30 italic">Sem review</p>}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

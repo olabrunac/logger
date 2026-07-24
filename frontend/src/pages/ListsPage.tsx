@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import api from '../services/api';
+import api, { getUserWishlist } from '../services/api';
 import type { LogEntry, MediaType } from '../types';
-import { Gamepad2, Film, Tv, Book } from 'lucide-react';
+import type { MediaItem } from '../types/media';
+import { Gamepad2, Film, Tv, Book, Pencil, Trash2 } from 'lucide-react';
 
 interface ListsPageProps {
   user: { id: number; username: string };
@@ -17,8 +18,6 @@ const TYPES: { key: MediaType | 'all'; label: string; icon: typeof Film; color: 
 ];
 
 const STATUS_GROUPS: { key: string; label: string }[] = [
-  { key: 'wishlist', label: 'Lista de desejos' },
-  { key: 'soon', label: 'Em breve' },
   { key: 'in_progress', label: 'Em progresso' },
   { key: 'completed', label: 'Completos' },
   { key: 'platinated', label: 'Platinados' },
@@ -42,11 +41,11 @@ const STATUS_ICONS: Record<string, string> = {
   soon: '…',
 };
 
-const TYPE_META: Record<string, { emoji: string }> = {
-  movie: { emoji: '🎬' },
-  series: { emoji: '📺' },
-  game: { emoji: '🎮' },
-  book: { emoji: '📚' },
+const TYPE_META: Record<string, { emoji: string; color: string }> = {
+  movie: { emoji: '🎬', color: '#fbbf24' },
+  series: { emoji: '📺', color: '#ef4444' },
+  game: { emoji: '🎮', color: '#60a5fa' },
+  book: { emoji: '📚', color: '#4ade80' },
 };
 
 const getStars = (rating?: number) => {
@@ -63,6 +62,7 @@ const getStars = (rating?: number) => {
 const ListsPage = ({ user }: ListsPageProps) => {
   const [tab, setTab] = useState<MediaType | 'all'>('all');
   const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [wishlist, setWishlist] = useState<(LogEntry & { media_item: MediaItem })[]>([]);
 
   const fetchLogs = useCallback(async () => {
     try {
@@ -73,7 +73,25 @@ const ListsPage = ({ user }: ListsPageProps) => {
     }
   }, [user.id]);
 
-  useEffect(() => { fetchLogs(); }, [fetchLogs]);
+  const fetchWishlist = useCallback(async () => {
+    try {
+      const response = await getUserWishlist(user.id);
+      setWishlist(response.data || []);
+    } catch (err) {
+      console.error('Failed to fetch wishlist', err);
+    }
+  }, [user.id]);
+
+  useEffect(() => { fetchLogs(); fetchWishlist(); }, [fetchLogs, fetchWishlist]);
+
+  const deleteWishlistItem = async (id: number) => {
+    try {
+      await api.delete(`/media/logs/${id}`);
+      setWishlist(prev => prev.filter(l => l.id !== id));
+    } catch (err) {
+      console.error('Failed to delete wishlist item', err);
+    }
+  };
 
   const filteredLogs = tab === 'all' ? logs : logs.filter(l => l.media_item.media_type === tab);
 
@@ -101,7 +119,7 @@ const ListsPage = ({ user }: ListsPageProps) => {
         })}
       </div>
 
-      {filteredLogs.length === 0 && (
+      {filteredLogs.length === 0 && wishlist.length === 0 && (
         <div className="mdf-card p-10 text-center text-white/50">Nada aqui ainda.</div>
       )}
 
@@ -111,11 +129,11 @@ const ListsPage = ({ user }: ListsPageProps) => {
             <h2 className="font-display text-xl font-bold">{g.label}</h2>
             <div className="text-xs text-white/40 uppercase tracking-[0.2em]">{g.items.length}</div>
           </div>
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-2">
             {g.items.map(l => {
               const typeEmoji = TYPE_META[l.media_item.media_type]?.emoji || '📄';
               return (
-                <Link key={l.id} to={`/log/${l.id}`} className="poster-tile block group">
+                <Link key={l.id} to={`/log/${l.id}`} className="poster-tile block group" style={{borderBottom: '3px solid ' + (TYPE_META[l.media_item.media_type]?.color || '#666')}}>
                   {l.media_item.cover_image_url ? (
                     <img src={l.media_item.cover_image_url} alt={l.media_item.title} className="w-full h-full object-cover" loading="lazy" />
                   ) : (
@@ -149,7 +167,7 @@ const ListsPage = ({ user }: ListsPageProps) => {
                         </svg>
                       </div>
                     )}
-                    {l.status && (
+                    {l.status && !l.is_favorite && (
                       <span className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style={{background: STATUS_COLORS[l.status] || 'rgba(100,100,100,0.85)'}}>
                         {STATUS_ICONS[l.status] || l.status[0].toUpperCase()}
                       </span>
@@ -165,32 +183,86 @@ const ListsPage = ({ user }: ListsPageProps) => {
                       {l.platform}
                     </div>
                   )}
-                  {l.media_item.media_type === 'movie' && (l.relog_count ?? 0) > 0 && (
+                  {(l.relog_count ?? 0) > 0 ? (
                     <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
                       {(l.relog_count ?? 0) + 1}x
                     </div>
-                  )}
-                  {l.media_item.media_type === 'series' && l.watched_episodes != null && l.total_episodes != null && l.total_episodes > 0 && (
+                  ) : l.media_item.media_type === 'series' && l.watched_episodes != null && l.total_episodes != null && l.total_episodes > 0 ? (
                     <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
                       {l.watched_episodes}/{l.total_episodes}
                     </div>
-                  )}
-                  {l.media_item.media_type === 'game' && l.hours_spent != null && l.hours_spent > 0 && (
+                  ) : l.media_item.media_type === 'game' && l.hours_spent != null && l.hours_spent > 0 ? (
                     <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
                       {l.hours_spent}h
                     </div>
-                  )}
-                  {l.media_item.media_type === 'book' && l.hours_spent != null && l.hours_spent > 0 && (
+                  ) : l.media_item.media_type === 'book' && l.hours_spent != null && l.hours_spent > 0 ? (
                     <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
                       {l.hours_spent}h
                     </div>
-                  )}
+                  ) : null}
                 </Link>
               );
             })}
           </div>
         </section>
       ))}
+
+      {/* Wishlist Section */}
+      {(() => {
+        const filteredWishlist = tab === 'all' ? wishlist : wishlist.filter(l => l.media_item.media_type === tab);
+        if (filteredWishlist.length === 0) return null;
+        return (
+          <section>
+            <div className="flex items-baseline justify-between mb-3">
+              <h2 className="font-display text-xl font-bold">Pretendo</h2>
+              <div className="text-xs text-white/40 uppercase tracking-[0.2em]">{filteredWishlist.length}</div>
+            </div>
+            <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-2">
+              {filteredWishlist.map(l => {
+                const typeEmoji = TYPE_META[l.media_item.media_type]?.emoji || '📄';
+                return (
+                  <div key={l.id} className="poster-tile block group relative" style={{borderBottom: '3px solid ' + (TYPE_META[l.media_item.media_type]?.color || '#666')}}>
+                    {l.media_item.cover_image_url ? (
+                      <img src={l.media_item.cover_image_url} alt={l.media_item.title} className="w-full h-full object-cover" loading="lazy" />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center gap-3 p-3 text-center">
+                        <span className="text-3xl">{typeEmoji}</span>
+                        <div className="text-xs text-white/70 font-medium line-clamp-3">{l.media_item.title}</div>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 pointer-events-none"
+                         style={{background:'linear-gradient(to top, rgba(0,0,0,0.9), rgba(0,0,0,0.3) 50%, transparent)'}}>
+                      <div className="absolute bottom-0 left-0 right-0 p-3">
+                        <div className="text-white text-xs font-semibold truncate">{l.media_item.title}</div>
+                      </div>
+                    </div>
+                    <div className="absolute top-2 left-2">
+                      <span className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style={{background: 'rgba(168,85,247,0.85)'}}>
+                        ★
+                      </span>
+                    </div>
+                    {l.platform && (
+                      <div className="absolute top-2 right-2 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
+                        {l.platform}
+                      </div>
+                    )}
+                    <div className="absolute bottom-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                      <Link to={`/new-log?edit=${l.id}`} onClick={(e) => e.stopPropagation()}
+                        className="w-6 h-6 rounded flex items-center justify-center bg-black/70 text-white/70 hover:text-white backdrop-blur-sm transition-colors">
+                        <Pencil size={12} />
+                      </Link>
+                      <button onClick={(e) => { e.stopPropagation(); deleteWishlistItem(l.id); }}
+                        className="w-6 h-6 rounded flex items-center justify-center bg-black/70 text-white/70 hover:text-red-400 backdrop-blur-sm transition-colors">
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })()}
     </div>
   );
 };

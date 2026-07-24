@@ -40,4 +40,8 @@ export const getUserFavorites = (userId: number, mediaType: string) => {
   return api.get(`/media/users/${userId}/favorites`, { params: { media_type: mediaType } });
 };
 
+export const getUserWishlist = (userId: number, mediaType?: string) => {
+  return api.get('/media/wishlist', { params: { user_id: userId, media_type: mediaType } });
+};
+
 export default api;

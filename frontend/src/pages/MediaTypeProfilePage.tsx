@@ -1,7 +1,7 @@
 ﻿import { useEffect, useState, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api from '../services/api';
-import type { LogEntry, User } from '../types';
+import type { LogEntry, LogReview, User } from '../types';
 import ActivityGraph from '../components/sections/ActivityGraph';
 import GenreChart from '../components/sections/GenreChart';
 import StatsSection from '../components/sections/StatsSection';
@@ -54,8 +54,8 @@ const getStars = (rating?: number) => {
   return stars;
 };
 
-const PosterTile = ({ log, fallbackEmoji }: { log: LogEntry; fallbackEmoji: string }) => (
-  <Link key={log.id} to={'/log/' + log.id} className="poster-tile block group">
+const PosterTile = ({ log, fallbackEmoji, color }: { log: LogEntry; fallbackEmoji: string; color: string }) => (
+  <Link key={log.id} to={'/log/' + log.id} className="poster-tile block group" style={{borderBottom: '3px solid ' + color}}>
     {log.media_item.cover_image_url ? (
       <img src={log.media_item.cover_image_url} alt={log.media_item.title} className="w-full h-full object-cover" loading="lazy"/>
     ) : (
@@ -89,7 +89,7 @@ const PosterTile = ({ log, fallbackEmoji }: { log: LogEntry; fallbackEmoji: stri
           </svg>
         </div>
       )}
-      {log.status && (
+      {log.status && !log.is_favorite && (
         <span className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style={{background: STATUS_COLORS[log.status] || 'rgba(100,100,100,0.85)'}}>
           {STATUS_ICONS[log.status] || log.status[0].toUpperCase()}
         </span>
@@ -105,26 +105,23 @@ const PosterTile = ({ log, fallbackEmoji }: { log: LogEntry; fallbackEmoji: stri
         {log.platform}
       </div>
     )}
-    {log.media_item.media_type === 'movie' && (log.relog_count ?? 0) > 0 && (
+    {(log.relog_count ?? 0) > 0 ? (
       <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
         {(log.relog_count ?? 0) + 1}x
       </div>
-    )}
-    {log.media_item.media_type === 'series' && log.watched_episodes != null && log.total_episodes != null && log.total_episodes > 0 && (
+    ) : log.media_item.media_type === 'series' && log.watched_episodes != null && log.total_episodes != null && log.total_episodes > 0 ? (
       <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
         {log.watched_episodes}/{log.total_episodes}
       </div>
-    )}
-    {log.media_item.media_type === 'game' && log.hours_spent != null && log.hours_spent > 0 && (
+    ) : log.media_item.media_type === 'game' && log.hours_spent != null && log.hours_spent > 0 ? (
       <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
         {log.hours_spent}h
       </div>
-    )}
-    {log.media_item.media_type === 'book' && log.hours_spent != null && log.hours_spent > 0 && (
+    ) : log.media_item.media_type === 'book' && log.hours_spent != null && log.hours_spent > 0 ? (
       <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
         {log.hours_spent}h
       </div>
-    )}
+    ) : null}
   </Link>
 );
 
@@ -132,6 +129,7 @@ const MediaTypeProfilePage = ({ currentUser }: MediaTypeProfilePageProps) => {
   const { username, mediaType: urlMediaType } = useParams<{ username: string; mediaType: string }>();
   const [profileUser, setProfileUser] = useState<User | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [reviewMap, setReviewMap] = useState<Map<number, LogReview[]>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -157,7 +155,23 @@ const MediaTypeProfilePage = ({ currentUser }: MediaTypeProfilePageProps) => {
       }
       setProfileUser(targetUser);
       const logsRes = await api.get('/media/logs', { params: { user_id: targetUser.id, limit: 500 } });
-      setLogs(logsRes.data || []);
+      const allLogs = logsRes.data || [];
+      setLogs(allLogs);
+
+      const reviewLogs = allLogs.filter((l: LogEntry) => l.review && l.review.trim().length > 0);
+      const results = await Promise.all(
+        reviewLogs.map(async (l: LogEntry) => {
+          try {
+            const r = await api.get(`/media/logs/${l.id}/reviews`);
+            return { logId: l.id, reviews: r.data || [] };
+          } catch {
+            return { logId: l.id, reviews: [] };
+          }
+        })
+      );
+      const map = new Map<number, LogReview[]>();
+      results.forEach(({ logId, reviews }) => { if (reviews.length > 0) map.set(logId, reviews); });
+      setReviewMap(map);
     } catch (err) {
       console.error('Failed to fetch profile data', err);
       setError('Perfil nao encontrado');
@@ -170,13 +184,24 @@ const MediaTypeProfilePage = ({ currentUser }: MediaTypeProfilePageProps) => {
     return logs.filter((l) => l.media_item.media_type === mediaType);
   }, [logs, mediaType]);
 
+  const completedLogs = useMemo(() => {
+    return filteredLogs.filter((l) => l.status === 'completed');
+  }, [filteredLogs]);
+
   const recentLogs = useMemo(() => {
     return [...filteredLogs].sort((a, b) => b.id - a.id).slice(0, 10);
   }, [filteredLogs]);
 
-  const reviewLogs = useMemo(() => {
-    return filteredLogs.filter((l) => l.review && l.review.trim().length > 0);
-  }, [filteredLogs]);
+  const reviewEntries = useMemo(() => {
+    const entries: { review: LogReview; log: LogEntry }[] = [];
+    filteredLogs.forEach(l => {
+      const reviews = reviewMap.get(l.id);
+      if (reviews) {
+        reviews.forEach(r => entries.push({ review: r, log: l }));
+      }
+    });
+    return entries.sort((a, b) => b.review.created_at.localeCompare(a.review.created_at));
+  }, [filteredLogs, reviewMap]);
 
   const accentColor = profileUser?.accent_color || meta.color;
 
@@ -245,9 +270,9 @@ const MediaTypeProfilePage = ({ currentUser }: MediaTypeProfilePageProps) => {
               </div>
               <div className="flex items-center gap-2">
                 <div className="text-3xl font-display font-black" style={{color: meta.color}}>
-                  {filteredLogs.length}
+                  {completedLogs.length}
                 </div>
-                <div className="text-xs uppercase tracking-[0.2em] text-white/50">logs</div>
+                <div className="text-xs uppercase tracking-[0.2em] text-white/50">assistidos</div>
               </div>
             </div>
           </div>
@@ -265,8 +290,8 @@ const MediaTypeProfilePage = ({ currentUser }: MediaTypeProfilePageProps) => {
           </div>
         </Link>
         {Object.entries(PAGE_META).map(([key, m]) => {
-          const count = logs.filter(l => l.media_item.media_type === key).length;
-          const hours = logs.filter(l => l.media_item.media_type === key).reduce((acc, l) => acc + (l.hours_spent || 0), 0);
+          const count = logs.filter(l => l.media_item.media_type === key && l.status === 'completed').length;
+          const hours = logs.filter(l => l.media_item.media_type === key && l.status === 'completed').reduce((acc, l) => acc + (l.hours_spent || 0), 0);
           const isActive = mediaType === key;
           return (
             <Link key={key} to={'/profile/' + displayUsername + '/' + (key === 'movie' ? 'movies' : key === 'series' ? 'tvshows' : key === 'game' ? 'games' : 'books')}
@@ -292,58 +317,64 @@ const MediaTypeProfilePage = ({ currentUser }: MediaTypeProfilePageProps) => {
         {recentLogs.length === 0 ? (
           <div className="mdf-card p-8 text-center text-white/50">Nenhum log ainda.</div>
         ) : (
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-2">
             {recentLogs.map(log => (
-              <PosterTile key={log.id} log={log} fallbackEmoji={meta.emoji} />
+              <PosterTile key={log.id} log={log} fallbackEmoji={meta.emoji} color={meta.color} />
             ))}
           </div>
         )}
       </section>
 
-      <ActivityGraph logs={logs} mediaType={mediaType} />
+      <div className="mdf-card p-3">
+        <ActivityGraph logs={logs} mediaType={mediaType} />
+      </div>
       <div className="flex flex-col lg:flex-row lg:items-stretch gap-3">
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 mdf-card p-3">
           <StatsSection logs={logs} accentColor={accentColor} mediaType={mediaType} />
         </div>
-        <div className="lg:w-64 flex-shrink-0">
+        <div className="lg:w-64 flex-shrink-0 mdf-card p-3">
           <RatingDistribution logs={logs} mediaType={mediaType} color={meta.color} />
         </div>
-        <div className="lg:w-64 flex-shrink-0">
+        <div className="lg:w-64 flex-shrink-0 mdf-card p-3">
           <GenreChart logs={logs} accentColor={accentColor} mediaType={mediaType} />
         </div>
       </div>
 
-      {reviewLogs.length > 0 && (
+      {reviewEntries.length > 0 && (
         <section>
-          <h2 className="font-display text-2xl font-bold mb-3">Reviews</h2>
-          <div className="space-y-3">
-            {reviewLogs.slice(0, 10).map(log => (
-              <Link key={log.id} to={'/log/' + log.id} className="mdf-card mdf-card-hover p-4 flex gap-4 transition-colors block">
-                {log.media_item.cover_image_url ? (
-                  <img src={log.media_item.cover_image_url} alt="" className="w-14 h-20 rounded object-cover flex-shrink-0" loading="lazy"/>
-                ) : (
-                  <div className="w-14 h-20 rounded flex items-center justify-center flex-shrink-0" style={{background: meta.color + '22'}}>
-                    <span className="text-2xl">{meta.emoji}</span>
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold text-sm truncate">{log.media_item.title}</span>
-                    {log.rating != null && log.rating > 0 && (
-                      <div className="flex items-center gap-0.5">
-                        {getStars(log.rating).map((star, i) => (
-                          <svg key={i} width="10" height="10" viewBox="0 0 24 24"
-                            fill={star === 'full' || star === 'half' ? 'var(--mdf-yellow)' : 'none'}
-                            stroke="var(--mdf-yellow)" strokeWidth="2">
-                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                          </svg>
-                        ))}
+          <div className="flex items-baseline justify-between mb-3">
+            <h2 className="font-display text-2xl font-bold">Reviews</h2>
+            <Link to={`/profile/${profileUser?.username}/reviews`} className="text-xs text-white/40 uppercase tracking-[0.2em] hover:text-white/60 transition-colors">Ver todas</Link>
+          </div>
+          <div className="grid grid-cols-4 gap-2">
+            {reviewEntries.slice(0, 10).map(e => (
+              <Link key={e.review.id} to={'/log/' + e.log.id} className="mdf-card mdf-card-hover rounded-xl overflow-hidden transition-colors block group">
+                <div className="flex">
+                  <div className="relative flex-shrink-0 w-20" style={{aspectRatio: '2/3', borderBottom: '3px solid ' + (meta.color || '#666')}}>
+                    {e.log.media_item.cover_image_url ? (
+                      <img src={e.log.media_item.cover_image_url} alt="" className="w-full h-full rounded-none object-cover" loading="lazy"/>
+                    ) : (
+                      <div className="w-full h-full rounded-none flex items-center justify-center" style={{background: (meta.color || '#666') + '22'}}>
+                        <span className="text-sm">{meta.emoji || '📄'}</span>
                       </div>
                     )}
                   </div>
-                  <p className="text-sm text-white/60 line-clamp-3">{log.review}</p>
-                  <div className="text-[10px] text-white/30 mt-1">
-                    {new Date(log.log_date).toLocaleDateString('pt-BR')}
+                  <div className="flex-1 min-w-0 flex flex-col overflow-hidden justify-center pl-2 pr-2 pt-3 pb-3" style={{borderLeft: '5px solid var(--mdf-bg)'}}>
+                    <div className="flex items-center justify-between gap-1">
+                      <div className="text-sm font-semibold text-white/80 truncate min-w-0">{e.log.media_item.title}</div>
+                      {e.review.rating != null && e.review.rating > 0 && (
+                        <div className="flex items-center gap-0.5 flex-shrink-0">
+                          {getStars(e.review.rating).map((star, i) => (
+                            <svg key={i} width="12" height="12" viewBox="0 0 24 24"
+                              fill={star === 'full' || star === 'half' ? 'var(--mdf-yellow)' : 'none'}
+                              stroke="var(--mdf-yellow)" strokeWidth="2">
+                              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                            </svg>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {e.review.review_text && <p className="text-[13px] text-white/50 leading-relaxed line-clamp-5 mt-1 flex-1">{e.review.review_text.length > 280 ? e.review.review_text.slice(0, 280) + '…' : e.review.review_text}</p>}
                   </div>
                 </div>
               </Link>
@@ -352,12 +383,12 @@ const MediaTypeProfilePage = ({ currentUser }: MediaTypeProfilePageProps) => {
         </section>
       )}
 
-      {filteredLogs.length > 0 && (
+      {completedLogs.length > 0 && (
         <section>
           <h2 className="font-display text-2xl font-bold mb-3">Todos os {meta.label}</h2>
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
-            {filteredLogs.map(log => (
-              <PosterTile key={log.id} log={log} fallbackEmoji={meta.emoji} />
+          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-2">
+            {completedLogs.map(log => (
+              <PosterTile key={log.id} log={log} fallbackEmoji={meta.emoji} color={meta.color} />
             ))}
           </div>
         </section>

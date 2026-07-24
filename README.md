@@ -27,19 +27,17 @@ Site pessoal para registrar e acompanhar filmes, séries, jogos e livros, inspir
 - **Build/Typecheck**: `npm run build` (frontend)
 - **Sintaxe Backend**: `.\venv\Scripts\python.exe -m py_compile app/main.py`
 
-## 📋 Status Atual & Pendências
+## 📋 Status Atual
 
 ### ✅ Implementado
-- **Top 5 Lists**: Backend completo (model, CRUD, API `/users/{id}/top-list`, `/users/{id}/favorites`), Frontend `TopListsSection` com drag-to-reorder, click-to-add favoritos, save/cancel
+- **Top 5 Lists**: Backend completo (model, CRUD, API), Frontend com reordenção por setas, poster em coluna, adicionar/remover favoritos
 - **Favoritos**: Toggle independente do status (coração no LogForm + badge ❤️ nos poster tiles)
 - **Status por tipo de mídia**: 4 status cada (jogos/filmes/séries/livros)
-- **Layout fixo**: Left sidebar 270px (não colapsa), Right sidebar 324px → 56px (colapsa), conteúdo central com margens fixas
+- **Layout fixo**: Left sidebar 203px (não colapsa), Right sidebar 324px → 56px (colapsa), conteúdo central com margens fixas
 - **Enriquecimento**: TMDb (filmes/séries), IGDB (jogos), Google Books (livros), Steam (achievements/store)
-
-### 🔄 Em Andamento / Pendente
-1. **Top 5 Lists**: Corrigir exibição dos favoritos carregados no `TopListsSection`
-2. **Mapa de Atividade (RightSidebar)**: Título duplicado "Mapa de Atividade"
-3. **Atividade Recente (RightSidebar)**: Mostra 6 itens, deve mostrar 5
-4. **Progresso de Temporada**: Tooltip deve abrir automaticamente no hover
-5. **Botão "Todos"**: Adicionar em `ProfilePage` (já existe em `MediaTypeProfilePage`)
-6. **Reviews de mídia**: Recolocar funcionalidade de reviews nas páginas de mídia
+- **LogReview**: Histórico de reviews por log (snapshots de review_text, rating, platform, created_at)
+- **LogDetailPage**: Conteúdo centralizado, reviews abaixo de todas as seções, estrelas ao lado da nota nas reviews, barra de progresso de temporadas sempre visível, botão marcar todos os episódios sempre visível
+- **Bookmark toggle**: Botão "pretendo reassistir/rejogar" funciona como toggle (criar/remover wishlist)
+- **Reviews**: ProfilePage, MediaTypeProfilePage e ReviewsPage exibem todas as snapshots de reviews do LogReview
+- **Diário**: DiaryPage funcional com reviews agrupados por data
+- **Wishlist**: Entradas separadas de log, auto-cleanup ao completar, deduplicação no backend

@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api from '../services/api';
-import type { LogEntry, User } from '../types';
+import type { LogEntry, LogReview, User } from '../types';
 import TopListsSection from '../components/sections/TopListsSection';
 
 interface ProfilePageProps {
@@ -47,6 +47,7 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
   const { username } = useParams<{ username: string }>();
   const [profileUser, setProfileUser] = useState<User | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [reviewMap, setReviewMap] = useState<Map<number, LogReview[]>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,7 +71,23 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
       }
       setProfileUser(targetUser);
       const logsRes = await api.get('/media/logs', { params: { user_id: targetUser.id, limit: 500 } });
-      setLogs(logsRes.data || []);
+      const allLogs = logsRes.data || [];
+      setLogs(allLogs);
+
+      const reviewLogs = allLogs.filter((l: LogEntry) => l.review && l.review.trim().length > 0);
+      const results = await Promise.all(
+        reviewLogs.map(async (l: LogEntry) => {
+          try {
+            const r = await api.get(`/media/logs/${l.id}/reviews`);
+            return { logId: l.id, reviews: r.data || [] };
+          } catch {
+            return { logId: l.id, reviews: [] };
+          }
+        })
+      );
+      const map = new Map<number, LogReview[]>();
+      results.forEach(({ logId, reviews }) => { if (reviews.length > 0) map.set(logId, reviews); });
+      setReviewMap(map);
     } catch (err) {
       console.error('Failed to fetch profile data', err);
       setError('Perfil não encontrado');
@@ -82,6 +99,17 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
   const recentLogs = useMemo(() => {
     return [...logs].sort((a, b) => b.id - a.id).slice(0, 8);
   }, [logs]);
+
+  const reviewEntries = useMemo(() => {
+    const entries: { review: LogReview; log: LogEntry }[] = [];
+    logs.forEach(l => {
+      const reviews = reviewMap.get(l.id);
+      if (reviews) {
+        reviews.forEach(r => entries.push({ review: r, log: l }));
+      }
+    });
+    return entries.sort((a, b) => b.review.created_at.localeCompare(a.review.created_at));
+  }, [logs, reviewMap]);
 
   const accentColor = profileUser?.accent_color || '#ff6b35';
 
@@ -158,7 +186,16 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
+        <Link to={'/profile/' + profileUser.username} className="mdf-card mdf-card-hover p-5 flex items-center gap-4">
+          <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl" style={{ background: 'rgba(255,255,255,0.08)' }}>
+            👤
+          </div>
+          <div>
+            <div className="text-3xl font-display font-black leading-none">{logs.length}</div>
+            <div className="text-xs uppercase tracking-[0.2em] text-white/50 mt-1">Todos</div>
+          </div>
+        </Link>
         {Object.entries(TYPE_META).map(([key, meta]) => {
           const count = logs.filter(l => l.media_item.media_type === key).length;
           const hours = logs.filter(l => l.media_item.media_type === key).reduce((acc, l) => acc + (l.hours_spent || 0), 0);
@@ -182,11 +219,11 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
         {recentLogs.length === 0 ? (
           <div className="mdf-card p-8 text-center text-white/50">Nenhum log ainda.</div>
         ) : (
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-2">
             {recentLogs.map(log => {
               const typeEmoji = TYPE_META[log.media_item.media_type]?.emoji || '📄';
               return (
-                <Link key={log.id} to={'/log/' + log.id} className="poster-tile block group">
+                <Link key={log.id} to={'/log/' + log.id} className="poster-tile block group" style={{borderBottom: '3px solid ' + (TYPE_META[log.media_item.media_type]?.color || '#666')}}>
                   {log.media_item.cover_image_url ? (
                     <img src={log.media_item.cover_image_url} alt={log.media_item.title} className="w-full h-full object-cover" loading="lazy"/>
                   ) : (
@@ -220,7 +257,7 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
                         </svg>
                       </div>
                     )}
-                    {log.status && (
+                    {log.status && !log.is_favorite && (
                       <span className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style={{background: STATUS_COLORS[log.status] || 'rgba(100,100,100,0.85)'}}>
                         {STATUS_ICONS[log.status] || log.status[0].toUpperCase()}
                       </span>
@@ -236,26 +273,23 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
                       {log.platform}
                     </div>
                   )}
-                  {log.media_item.media_type === 'movie' && (log.relog_count ?? 0) > 0 && (
+                  {(log.relog_count ?? 0) > 0 ? (
                     <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
                       {(log.relog_count ?? 0) + 1}x
                     </div>
-                  )}
-                  {log.media_item.media_type === 'series' && log.watched_episodes != null && log.total_episodes != null && log.total_episodes > 0 && (
+                  ) : log.media_item.media_type === 'series' && log.watched_episodes != null && log.total_episodes != null && log.total_episodes > 0 ? (
                     <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
                       {log.watched_episodes}/{log.total_episodes}
                     </div>
-                  )}
-                  {log.media_item.media_type === 'game' && log.hours_spent != null && log.hours_spent > 0 && (
+                  ) : log.media_item.media_type === 'game' && log.hours_spent != null && log.hours_spent > 0 ? (
                     <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
                       {log.hours_spent}h
                     </div>
-                  )}
-                  {log.media_item.media_type === 'book' && log.hours_spent != null && log.hours_spent > 0 && (
+                  ) : log.media_item.media_type === 'book' && log.hours_spent != null && log.hours_spent > 0 ? (
                     <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
                       {log.hours_spent}h
                     </div>
-                  )}
+                  ) : null}
                 </Link>
               );
             })}
@@ -269,14 +303,60 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
         accentColor={accentColor}
       />
 
+      {reviewEntries.length > 0 && (
+        <section>
+          <div className="flex items-baseline justify-between mb-3">
+            <h2 className="font-display text-2xl font-bold">Reviews</h2>
+            <Link to={`/profile/${profileUser.username}/reviews`} className="text-xs text-white/40 uppercase tracking-[0.2em] hover:text-white/60 transition-colors">Ver todas</Link>
+          </div>
+          <div className="grid grid-cols-4 gap-2">
+            {reviewEntries.slice(0, 10).map(e => {
+              const meta = TYPE_META[e.log.media_item.media_type];
+              return (
+                <Link key={e.review.id} to={'/log/' + e.log.id} className="mdf-card mdf-card-hover rounded-xl overflow-hidden transition-colors block group">
+                  <div className="flex">
+                    <div className="relative flex-shrink-0 w-20" style={{aspectRatio: '2/3', borderBottom: '3px solid ' + (meta?.color || '#666')}}>
+                      {e.log.media_item.cover_image_url ? (
+                        <img src={e.log.media_item.cover_image_url} alt="" className="w-full h-full rounded-none object-cover" loading="lazy"/>
+                      ) : (
+                        <div className="w-full h-full rounded-none flex items-center justify-center" style={{background: (meta?.color || '#666') + '22'}}>
+                          <span className="text-sm">{meta?.emoji || '📄'}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0 flex flex-col overflow-hidden justify-center pl-2 pr-2 pt-3 pb-3" style={{borderLeft: '5px solid var(--mdf-bg)'}}>
+                      <div className="flex items-center justify-between gap-1">
+                        <div className="text-sm font-semibold text-white/80 truncate min-w-0">{e.log.media_item.title}</div>
+                        {e.review.rating != null && e.review.rating > 0 && (
+                          <div className="flex items-center gap-0.5 flex-shrink-0">
+                            {getStars(e.review.rating).map((star, i) => (
+                              <svg key={i} width="12" height="12" viewBox="0 0 24 24"
+                                fill={star === 'full' || star === 'half' ? 'var(--mdf-yellow)' : 'none'}
+                                stroke="var(--mdf-yellow)" strokeWidth="2">
+                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                              </svg>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      {e.review.review_text && <p className="text-[13px] text-white/50 leading-relaxed line-clamp-5 mt-1 flex-1">{e.review.review_text.length > 280 ? e.review.review_text.slice(0, 280) + '…' : e.review.review_text}</p>}
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       {logs.length > 0 && (
         <section>
           <h2 className="font-display text-2xl font-bold mb-3">Todos os Logs</h2>
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-2">
             {logs.map(log => {
               const typeEmoji = TYPE_META[log.media_item.media_type]?.emoji || '📄';
               return (
-                <Link key={log.id} to={'/log/' + log.id} className="poster-tile block group">
+                <Link key={log.id} to={'/log/' + log.id} className="poster-tile block group" style={{borderBottom: '3px solid ' + (TYPE_META[log.media_item.media_type]?.color || '#666')}}>
                   {log.media_item.cover_image_url ? (
                     <img src={log.media_item.cover_image_url} alt={log.media_item.title} className="w-full h-full object-cover" loading="lazy"/>
                   ) : (
@@ -310,7 +390,7 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
                         </svg>
                       </div>
                     )}
-                    {log.status && (
+                    {log.status && !log.is_favorite && (
                       <span className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style={{background: STATUS_COLORS[log.status] || 'rgba(100,100,100,0.85)'}}>
                         {STATUS_ICONS[log.status] || log.status[0].toUpperCase()}
                       </span>
@@ -326,26 +406,23 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
                       {log.platform}
                     </div>
                   )}
-                  {log.media_item.media_type === 'movie' && (log.relog_count ?? 0) > 0 && (
+                  {(log.relog_count ?? 0) > 0 ? (
                     <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
                       {(log.relog_count ?? 0) + 1}x
                     </div>
-                  )}
-                  {log.media_item.media_type === 'series' && log.watched_episodes != null && log.total_episodes != null && log.total_episodes > 0 && (
+                  ) : log.media_item.media_type === 'series' && log.watched_episodes != null && log.total_episodes != null && log.total_episodes > 0 ? (
                     <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
                       {log.watched_episodes}/{log.total_episodes}
                     </div>
-                  )}
-                  {log.media_item.media_type === 'game' && log.hours_spent != null && log.hours_spent > 0 && (
+                  ) : log.media_item.media_type === 'game' && log.hours_spent != null && log.hours_spent > 0 ? (
                     <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
                       {log.hours_spent}h
                     </div>
-                  )}
-                  {log.media_item.media_type === 'book' && log.hours_spent != null && log.hours_spent > 0 && (
+                  ) : log.media_item.media_type === 'book' && log.hours_spent != null && log.hours_spent > 0 ? (
                     <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
                       {log.hours_spent}h
                     </div>
-                  )}
+                  ) : null}
                 </Link>
               );
             })}

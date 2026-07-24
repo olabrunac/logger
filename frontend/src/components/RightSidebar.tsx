@@ -94,16 +94,16 @@ const RightSidebar = ({ user, isCollapsed, onToggleCollapse }: RightSidebarProps
         <div className="h-1 w-12" style={{ background: currentMediaColor, opacity: 0.3 }} />
       </div>
 
-      <div className="space-y-3 pb-8">
-        <div className="transform scale-95 origin-top-left">
+      <div className="space-y-2 pb-8">
+        <div className="mdf-card p-3">
           <StatsSection logs={logs} accentColor={currentMediaColor} mediaType={activeMediaType} />
         </div>
-        
-        <div className="transform scale-95 origin-top-left">
+
+        <div className="mdf-card p-3">
           <RatingDistribution logs={logs} color={currentMediaColor} mediaType={activeMediaType} />
         </div>
 
-        <div className="transform scale-95 origin-top-left">
+        <div className="mdf-card p-3">
           <GenreChart logs={logs} accentColor={currentMediaColor} mediaType={activeMediaType} />
         </div>
 
@@ -121,13 +121,13 @@ const RightSidebar = ({ user, isCollapsed, onToggleCollapse }: RightSidebarProps
         <div className="mdf-card p-3">
           <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-2">Atividade Recente</div>
           {logs.length > 0 ? (
-            <div className="flex gap-2 overflow-x-auto pb-1">
+            <div className="flex gap-1.5 overflow-x-auto pb-1">
               {[...logs]
                 .filter(l => !activeMediaType || l.media_item.media_type === activeMediaType)
                 .sort((a, b) => b.id - a.id)
-                .slice(0, 6)
+                .slice(0, 5)
                 .map(log => (
-                  <Link key={log.id} to={`/log/${log.id}`} className="w-14 h-20 rounded-md overflow-hidden flex-shrink-0 relative group border" style={{ borderColor: 'var(--border)' }} title={log.media_item.title}>
+                  <Link key={log.id} to={`/log/${log.id}`} className="w-[48px] h-[66px] rounded-md overflow-hidden flex-shrink-0 relative group border" style={{ borderColor: 'var(--border)', borderBottom: '3px solid ' + (MEDIA_COLORS[log.media_item.media_type] || '#666') }} title={log.media_item.title}>
                     {log.media_item.cover_image_url ? (
                       <img src={log.media_item.cover_image_url} alt={log.media_item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                     ) : (
