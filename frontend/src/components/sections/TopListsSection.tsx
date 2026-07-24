@@ -188,7 +188,7 @@ const TopListsSection = ({ profileUser, currentUser }: TopListsSectionProps) => 
                             </button>
                           </div>
                         )}
-                        <div className={`w-full relative rounded-md overflow-hidden bg-white/5 ${type === 'game' ? 'aspect-video' : 'aspect-[2/3]'}`}>
+                        <div className="w-full aspect-[2/3] relative rounded-md overflow-hidden bg-white/5">
                           {media?.cover_image_url ? (
                             <img src={media.cover_image_url} alt={media.title} className="w-full h-full object-cover" />
                           ) : (
