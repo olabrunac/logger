@@ -65,8 +65,11 @@ export const deleteCustomList = (userId: number, listId: number) => {
   return api.delete(`/media/users/${userId}/custom-lists/${listId}`);
 };
 
-export const addCustomListItem = (userId: number, listId: number, mediaItemId: number) => {
-  return api.post(`/media/users/${userId}/custom-lists/${listId}/items`, { media_item_id: mediaItemId, position: 0 });
+export const addCustomListItem = (userId: number, listId: number, mediaItem: { id?: number; title: string; media_type: string; tmdb_id?: number; igdb_id?: number; google_books_id?: string; cover_image_url?: string; release_date?: string; synopsis?: string }) => {
+  if (mediaItem.id) {
+    return api.post(`/media/users/${userId}/custom-lists/${listId}/items`, { media_item_id: mediaItem.id, position: 0 });
+  }
+  return api.post(`/media/users/${userId}/custom-lists/${listId}/items`, { media_item: mediaItem, position: 0 });
 };
 
 export const removeCustomListItem = (userId: number, listId: number, itemId: number) => {

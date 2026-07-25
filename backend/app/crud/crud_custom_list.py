@@ -47,16 +47,30 @@ def delete_list(db: Session, *, list_id: int, user_id: int):
     return True
 
 
-def add_item(db: Session, *, list_id: int, user_id: int, obj_in: CustomListItemCreate):
-    custom_list = db.query(CustomList).filter(
-        CustomList.id == list_id, CustomList.user_id == user_id
+def add_item(db: Session, *, list_id: int, user_id: int, obj_in):
+    from app.models.media import CustomList as CustomListModel
+    custom_list = db.query(CustomListModel).filter(
+        CustomListModel.id == list_id, CustomListModel.user_id == user_id
     ).first()
     if not custom_list:
         return None
 
+    # Resolve media_item_id: create if needed
+    media_item_id = obj_in.media_item_id
+    if not media_item_id and obj_in.media_item:
+        from app.crud.crud_media import CRUDMediaItem
+        media_item_crud = CRUDMediaItem.__new__(CRUDMediaItem)
+        from app.models.media import MediaItem
+        media_item_crud.__init__(MediaItem)
+        media_item = media_item_crud.get_or_create(db, obj_in=obj_in.media_item)
+        media_item_id = media_item.id
+
+    if not media_item_id:
+        return None
+
     existing = db.query(CustomListItem).filter(
         CustomListItem.custom_list_id == list_id,
-        CustomListItem.media_item_id == obj_in.media_item_id,
+        CustomListItem.media_item_id == media_item_id,
     ).first()
     if existing:
         return existing
@@ -68,7 +82,7 @@ def add_item(db: Session, *, list_id: int, user_id: int, obj_in: CustomListItemC
 
     db_obj = CustomListItem(
         custom_list_id=list_id,
-        media_item_id=obj_in.media_item_id,
+        media_item_id=media_item_id,
         position=next_pos,
     )
     db.add(db_obj)
