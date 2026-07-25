@@ -32,19 +32,19 @@ const LeftSidebar = ({ user }: LeftSidebarProps) => {
       {/* Profile + Settings */}
       <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
         <div className="flex items-start justify-between">
-          <Link to={`/profile/${user.username}`} className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0 border" style={{ borderColor: 'var(--border)' }}>
+          <Link to={`/profile/${user.username}`} className="flex items-center gap-3 group">
+            <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border" style={{ borderColor: 'var(--border)' }}>
               {avatarUrl ? (
                 <img src={avatarUrl} alt={user.username} className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-xs font-bold" style={{ background: 'var(--accent)', color: '#000' }}>
+                <div className="w-full h-full flex items-center justify-center text-base font-bold" style={{ background: 'var(--accent)', color: '#000' }}>
                   {user.username.charAt(0).toUpperCase()}
                 </div>
               )}
             </div>
             <div className="min-w-0">
-              <div className="text-sm font-semibold text-white truncate group-hover:text-white transition-colors">{user.username}</div>
-              <div className="text-[10px]" style={{ color: 'var(--text-dim)' }}>@{user.username}</div>
+              <div className="text-base font-bold text-white truncate group-hover:text-white transition-colors">{user.username}</div>
+              <div className="text-xs" style={{ color: 'var(--text-dim)' }}>@{user.username}</div>
             </div>
           </Link>
           <NavLink to="/settings" className="mt-1 p-1.5 rounded-md transition-colors hover:bg-white/5"
