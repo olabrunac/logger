@@ -25,7 +25,7 @@ const LeftSidebar = ({ user }: LeftSidebarProps) => {
       style={{ background: 'var(--mdf-bg)', borderColor: 'var(--border)' }}>
 
       {/* Logo */}
-      <Link to="/" className="flex items-center px-5 h-14 flex-shrink-0 border-b" style={{ borderColor: 'var(--border)' }}>
+      <Link to="/" className="flex items-center px-5 h-14 flex-shrink-0" style={{ borderColor: 'var(--border)' }}>
         <div className="font-display font-black tracking-tight text-base">LOGGER</div>
       </Link>
 
