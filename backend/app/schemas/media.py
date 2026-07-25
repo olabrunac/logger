@@ -183,8 +183,10 @@ class CustomListItemBase(BaseModel):
     media_item_id: int
     position: int = 0
 
-class CustomListItemCreate(CustomListItemBase):
-    pass
+class CustomListItemCreate(BaseModel):
+    media_item_id: Optional[int] = None
+    media_item: Optional[MediaItemCreate] = None
+    position: int = 0
 
 class CustomListItemUpdate(BaseModel):
     position: Optional[int] = None

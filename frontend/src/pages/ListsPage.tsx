@@ -132,9 +132,8 @@ const AddMediaModal = ({ open, onClose, userId, listId, onAdded }: {
   }, [search]);
 
   const handleAdd = async (mediaItem: MediaItem) => {
-    if (!mediaItem.id) return;
     try {
-      const res = await addCustomListItem(userId, listId, mediaItem.id);
+      const res = await addCustomListItem(userId, listId, mediaItem);
       onAdded(res.data);
     } catch (err) {
       console.error('Failed to add item', err);
