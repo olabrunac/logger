@@ -24,8 +24,19 @@ const LeftSidebar = ({ user }: LeftSidebarProps) => {
     <aside className="fixed top-0 left-0 h-screen w-[203px] flex flex-col z-40 border-r"
       style={{ background: 'var(--mdf-bg)', borderColor: 'var(--border)' }}>
 
+      {/* Logo */}
+      <Link to="/" className="flex items-center gap-2.5 px-5 h-14 flex-shrink-0 border-b" style={{ borderColor: 'var(--border)' }}>
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--accent)' }}>
+          <span className="font-display font-black text-black text-sm">L</span>
+        </div>
+        <div>
+          <div className="font-display font-black tracking-tight text-base leading-none">LOGGER</div>
+          <div className="text-[9px] uppercase tracking-[0.2em]" style={{ color: 'var(--text-dim)' }}>Diário Cultural</div>
+        </div>
+      </Link>
+
       {/* Profile + Settings */}
-      <div className="px-4 pt-5 pb-4 border-b" style={{ borderColor: 'var(--border)' }}>
+      <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
         <div className="flex items-start justify-between">
           <Link to={`/profile/${user.username}`} className="flex items-center gap-2.5 group">
             <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0 border" style={{ borderColor: 'var(--border)' }}>
@@ -48,17 +59,6 @@ const LeftSidebar = ({ user }: LeftSidebarProps) => {
           </NavLink>
         </div>
       </div>
-
-      {/* Logo */}
-      <Link to="/" className="flex items-center gap-2.5 px-5 h-14 flex-shrink-0 border-b" style={{ borderColor: 'var(--border)' }}>
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--accent)' }}>
-          <span className="font-display font-black text-black text-sm">L</span>
-        </div>
-        <div>
-          <div className="font-display font-black tracking-tight text-base leading-none">LOGGER</div>
-          <div className="text-[9px] uppercase tracking-[0.2em]" style={{ color: 'var(--text-dim)' }}>Diário Cultural</div>
-        </div>
-      </Link>
 
       {/* Nav */}
       <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
