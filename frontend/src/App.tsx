@@ -13,6 +13,7 @@ import ReviewsPage from './pages/ReviewsPage';
 import TimelinePage from './pages/TimelinePage';
 import LeftSidebar from './components/LeftSidebar';
 import RightSidebar from './components/RightSidebar';
+import FloatingLogButton from './components/FloatingLogButton';
 import type { User } from './types';
 
 function App() {
@@ -62,6 +63,7 @@ function App() {
           />
         )}
         <main className="flex-1 min-w-0 overflow-y-auto p-8 transition-all" style={{ marginLeft: fixedSidebarWidths.left, marginRight: fixedSidebarWidths.right }}>
+          {user && <FloatingLogButton user={user} />}
           <Routes>
             <Route
               path="/login"
@@ -82,21 +84,33 @@ function App() {
               }
             />
             <Route
-              path="/calendar"
+              path="/settings"
+              element={
+                user ? <SettingsPage user={user} onUserUpdate={handleUserUpdate} onDeleteAccount={handleLogout} /> : <Navigate to="/login" />
+              }
+            />
+            <Route
+              path="/profile/:username/calendar"
               element={
                 user ? <CalendarPage user={user} /> : <Navigate to="/login" />
               }
             />
             <Route
-              path="/lists"
+              path="/profile/:username/lists"
               element={
-                user ? <ListsPage user={user} /> : <Navigate to="/lists" />
+                user ? <ListsPage user={user} /> : <Navigate to="/login" />
               }
             />
             <Route
-              path="/diary"
+              path="/profile/:username/diary"
               element={
                 user ? <DiaryPage user={user} /> : <Navigate to="/login" />
+              }
+            />
+            <Route
+              path="/profile/:username/reviews"
+              element={
+                user ? <ReviewsPage currentUser={user} /> : <Navigate to="/login" />
               }
             />
             <Route
@@ -109,12 +123,6 @@ function App() {
               path="/profile"
               element={
                 user ? <Navigate to={`/profile/${user.username}`} /> : <Navigate to="/login" />
-              }
-            />
-            <Route
-              path="/profile/:username/reviews"
-              element={
-                user ? <ReviewsPage currentUser={user} /> : <Navigate to="/login" />
               }
             />
             <Route
@@ -133,12 +141,6 @@ function App() {
               path="/log/:id"
               element={
                 user ? <LogDetailPage /> : <Navigate to="/login" />
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                user ? <SettingsPage user={user} onUserUpdate={handleUserUpdate} onDeleteAccount={handleLogout} /> : <Navigate to="/login" />
               }
             />
           </Routes>
