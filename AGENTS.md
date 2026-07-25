@@ -40,6 +40,7 @@
 8. **Reviews acima de conquistas**: ~~Mover as reviews de dentro da aba de conquistas do log de jogo para antes dela~~ ✅
 9. **Medalhas/Conquistas do Usuário**: Sistema de badges que o usuário desbloqueia ao atingir marcos (ex: 10, 50, 100 mídias assistidas/jogadas/lidas, primeiro log, primeira review, streak de logs, completar todos os jogos de uma franquia, etc). Ideia é motivar o usuário a logar tudo o que consome.
 10. **Publicação**: Publicar o site, avaliar ferramentas de hosting do GitHub Students
+11. **Sidebar estilo Twitter mobile**: Reorganizar a barra lateral esquerda seguindo o layout do Twitter/X mobile (perfil no topo, nav items minimalistas, ícones apenas ou com labels compactos)
 
 ## 📁 Estrutura de Pastas Importantes
 - `backend/app/api/endpoints/media.py` - Endpoints de mídia, top lists, favoritos
