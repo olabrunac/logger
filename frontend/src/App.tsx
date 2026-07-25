@@ -43,7 +43,19 @@ function App() {
   };
 
   const accentStyle = user?.accent_color
-    ? { '--mdf-green': user.accent_color, '--accent': user.accent_color } as React.CSSProperties
+    ? (() => {
+        const hex = user.accent_color;
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return {
+          '--mdf-green': hex,
+          '--accent': hex,
+          '--accent-hover': hex,
+          '--accent-bg': `rgba(${r}, ${g}, ${b}, 0.12)`,
+          '--accent-border': `rgba(${r}, ${g}, ${b}, 0.3)`,
+        } as React.CSSProperties;
+      })()
     : {};
 
   // Fixed sidebar widths - content area stays this width always

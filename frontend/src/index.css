@@ -2,14 +2,14 @@
 @import "tailwindcss";
 
 :root {
-  /* MDF design tokens — alias for --mdf-* references */
+  /* MDF design tokens */
   --mdf-bg: #0A0C10;
   --mdf-surface: #14181C;
   --mdf-surface-2: #1C2127;
   --mdf-border: rgba(255,255,255,0.06);
   --mdf-border-strong: rgba(255,255,255,0.12);
-  --mdf-green: #00E054;
-  --mdf-green-hover: #00c030;
+  --mdf-green: var(--accent, #00E054);
+  --mdf-green-hover: var(--accent-hover, #00c030);
   --mdf-pink: #FA3380;
   --mdf-yellow: #F5C518;
 
@@ -56,7 +56,7 @@ body {
   margin: 0;
   min-height: 100vh;
   background:
-    radial-gradient(1200px 500px at 15% -10%, rgba(0,224,84,0.04), transparent 60%),
+    radial-gradient(1200px 500px at 15% -10%, color-mix(in srgb, var(--accent) 4%, transparent), transparent 60%),
     radial-gradient(900px 400px at 100% 0%, rgba(250,51,128,0.03), transparent 60%),
     var(--bg);
 }
