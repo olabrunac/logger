@@ -12,6 +12,37 @@ import datetime
 
 router = APIRouter()
 
+def _levenshtein(s1: str, s2: str) -> int:
+    if len(s1) < len(s2):
+        return _levenshtein(s2, s1)
+    if len(s2) == 0:
+        return len(s1)
+    prev = range(len(s2) + 1)
+    for i, c1 in enumerate(s1):
+        curr = [i + 1]
+        for j, c2 in enumerate(s2):
+            curr.append(min(prev[j + 1] + 1, curr[j] + 1, prev[j] + (c1 != c2)))
+        prev = curr
+    return prev[-1]
+
+def _fuzzy_score(query: str, title: str) -> float:
+    q = query.lower().strip()
+    t = title.lower().strip()
+    if q == t:
+        return 1.0
+    if t.startswith(q):
+        return 0.95
+    if q in t:
+        return 0.85
+    if q.split()[0] in t if q.split() else False:
+        return 0.7
+    lev = _levenshtein(q, t)
+    max_len = max(len(q), len(t))
+    if max_len == 0:
+        return 1.0
+    ratio = 1.0 - (lev / max_len)
+    return max(ratio, 0.0)
+
 def transform_tmdb_result(item: dict, media_type: MediaType) -> dict:
     is_movie = media_type == MediaType.MOVIE
     release_date_str = item.get("release_date") if is_movie else item.get("first_air_date")
@@ -70,7 +101,7 @@ def transform_book_result(item: dict) -> dict:
     }
 
 @router.get("/search", response_model=List[schemas.MediaItemCreate])
-def search_media(*, q: str = Query("", min_length=0), media_type: MediaType, author: Optional[str] = None, year: Optional[int] = None, isbn: Optional[str] = None) -> Any:
+def search_media(*, db: Session = Depends(deps.get_db), q: str = Query("", min_length=0), media_type: MediaType, author: Optional[str] = None, year: Optional[int] = None, isbn: Optional[str] = None) -> Any:
     results = []
     if media_type == MediaType.MOVIE:
         raw_results = tmdb_service.search_media(query=q or "a", media_type="movie", year=year)
@@ -86,6 +117,36 @@ def search_media(*, q: str = Query("", min_length=0), media_type: MediaType, aut
     elif media_type == MediaType.BOOK:
         raw_results = google_books_service.search_books(query=q or "a", author=author, year=year, isbn=isbn)
         results = [transform_book_result(item) for item in raw_results]
+        if not results and q.strip():
+            raw_results2 = google_books_service.search_books(query=q, author=author, year=year, isbn=isbn, use_intitle=False)
+            results = [transform_book_result(item) for item in raw_results2]
+
+    if q.strip():
+        local_items = db.query(MediaItem).filter(
+            MediaItem.media_type == media_type,
+            MediaItem.title.ilike(f"%{q}%")
+        ).limit(10).all()
+        local_results = []
+        seen_titles = {r.get("title", "").lower() for r in results}
+        for item in local_items:
+            if item.title.lower() not in seen_titles:
+                local_results.append({
+                    "title": item.title,
+                    "media_type": item.media_type,
+                    "tmdb_id": item.tmdb_id,
+                    "igdb_id": item.igdb_id,
+                    "google_books_id": item.google_books_id,
+                    "cover_image_url": item.cover_image_url,
+                    "release_date": item.release_date.isoformat() if item.release_date else None,
+                    "synopsis": item.synopsis,
+                    "id": item.id,
+                })
+                seen_titles.add(item.title.lower())
+        results = local_results + results
+
+    if q.strip():
+        results.sort(key=lambda r: _fuzzy_score(q, r.get("title", "")), reverse=True)
+
     return results
 
 @router.post("/logs", response_model=schemas.LogEntryInDB)

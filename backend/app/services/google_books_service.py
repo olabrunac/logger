@@ -3,13 +3,16 @@ from app.core.config import settings
 
 BASE_URL = "https://www.googleapis.com/books/v1/volumes"
 
-def search_books(query: str, author: str = None, year: int = None, isbn: str = None):
+def search_books(query: str, author: str = None, year: int = None, isbn: str = None, use_intitle: bool = True):
     if not settings.GOOGLE_BOOKS_API_KEY:
         return []
     if isbn:
         q_str = f"isbn:{isbn}"
     else:
-        parts = [f"intitle:{query}"]
+        if use_intitle:
+            parts = [f"intitle:{query}"]
+        else:
+            parts = [query]
         if author:
             parts.append(f"inauthor:{author}")
         q_str = " ".join(parts)
