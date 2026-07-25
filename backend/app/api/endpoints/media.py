@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from typing import List, Any, Optional
 import json
 from app import crud, schemas
-from app.crud import crud_top_list
+from app.crud import crud_top_list, crud_custom_list
 from app.api import deps
 from app.services import tmdb_service, igdb_service, google_books_service, steam_service
 from app.models.media import MediaType, MediaItem, LogStatus, LogEntry, LogReview, EpisodeWatched, Achievement, TopListItem
@@ -629,6 +629,67 @@ def get_user_favorites(*, db: Session = Depends(deps.get_db), user_id: int, medi
     favorites = crud.log_entry.get_favorite_media_by_user(db, user_id=user_id, media_type=media_type)
     print(f"[DEBUG] Found {len(favorites)} favorites")
     for f in favorites:
-        print(f"  - {f.title} (type: {f.media_type}, id: {f.id})")
+        print(f"  - {f.title} (type={f.media_type}, id={f.id})")
     return [schemas.MediaItemInDB.model_validate(fav.__dict__) for fav in favorites]
+
+
+# --- Custom Lists ---
+
+@router.get("/users/{user_id}/custom-lists", response_model=List[schemas.CustomListInDB])
+def get_user_custom_lists(*, db: Session = Depends(deps.get_db), user_id: int):
+    return crud_custom_list.get_user_lists(db, user_id=user_id)
+
+
+@router.get("/users/{user_id}/custom-lists/{list_id}", response_model=schemas.CustomListInDB)
+def get_custom_list(*, db: Session = Depends(deps.get_db), user_id: int, list_id: int):
+    lst = crud_custom_list.get_list(db, list_id=list_id, user_id=user_id)
+    if not lst:
+        raise HTTPException(status_code=404, detail="List not found")
+    return lst
+
+
+@router.post("/users/{user_id}/custom-lists", response_model=schemas.CustomListInDB)
+def create_custom_list(*, db: Session = Depends(deps.get_db), user_id: int, obj_in: schemas.CustomListCreate):
+    return crud_custom_list.create_list(db, user_id=user_id, obj_in=obj_in)
+
+
+@router.put("/users/{user_id}/custom-lists/{list_id}", response_model=schemas.CustomListInDB)
+def update_custom_list(*, db: Session = Depends(deps.get_db), user_id: int, list_id: int, obj_in: schemas.CustomListUpdate):
+    lst = crud_custom_list.update_list(db, list_id=list_id, user_id=user_id, obj_in=obj_in)
+    if not lst:
+        raise HTTPException(status_code=404, detail="List not found")
+    return lst
+
+
+@router.delete("/users/{user_id}/custom-lists/{list_id}")
+def delete_custom_list(*, db: Session = Depends(deps.get_db), user_id: int, list_id: int):
+    if not crud_custom_list.delete_list(db, list_id=list_id, user_id=user_id):
+        raise HTTPException(status_code=404, detail="List not found")
+    return {"detail": "List deleted"}
+
+
+@router.post("/users/{user_id}/custom-lists/{list_id}/items", response_model=schemas.CustomListItemInDB)
+def add_custom_list_item(*, db: Session = Depends(deps.get_db), user_id: int, list_id: int, obj_in: schemas.CustomListItemCreate):
+    item = crud_custom_list.add_item(db, list_id=list_id, user_id=user_id, obj_in=obj_in)
+    if item is None:
+        raise HTTPException(status_code=404, detail="List not found")
+    from app.models.media import CustomListItem as CustomListItemModel
+    db_item = db.query(CustomListItemModel).options(
+        joinedload(CustomListItemModel.media_item)
+    ).filter(CustomListItemModel.id == item.id).first()
+    return db_item
+
+
+@router.delete("/users/{user_id}/custom-lists/{list_id}/items/{item_id}")
+def remove_custom_list_item(*, db: Session = Depends(deps.get_db), user_id: int, list_id: int, item_id: int):
+    if not crud_custom_list.remove_item(db, list_id=list_id, item_id=item_id, user_id=user_id):
+        raise HTTPException(status_code=404, detail="Item not found")
+    return {"detail": "Item removed"}
+
+
+@router.post("/users/{user_id}/custom-lists/{list_id}/reorder")
+def reorder_custom_list_items(*, db: Session = Depends(deps.get_db), user_id: int, list_id: int, item_ids: list[int]):
+    if not crud_custom_list.reorder_items(db, list_id=list_id, user_id=user_id, item_ids=item_ids):
+        raise HTTPException(status_code=404, detail="List not found")
+    return {"detail": "Reordered"}
 

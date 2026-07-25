@@ -15,3 +15,4 @@ class User(Base):
     
     logs = relationship("LogEntry", back_populates="user")
     top_list_items = relationship("TopListItem", back_populates="user", cascade="all, delete-orphan")
+    custom_lists = relationship("CustomList", back_populates="user", cascade="all, delete-orphan")
