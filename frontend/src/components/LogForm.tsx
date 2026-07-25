@@ -304,9 +304,9 @@ const LogForm: React.FC<LogFormProps> = ({ onSubmit, onCancel, initialData, medi
                       }}
                       className="text-xs px-3 py-1.5 rounded-full transition-all font-medium"
                       style={{
-                        background: isActive ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.05)',
-                        color: isActive ? '#3B82F6' : 'rgba(255,255,255,0.5)',
-                        border: isActive ? '1px solid rgba(59,130,246,0.4)' : '1px solid transparent',
+                        background: isActive ? 'var(--accent-bg)' : 'rgba(255,255,255,0.05)',
+                        color: isActive ? 'var(--accent)' : 'rgba(255,255,255,0.5)',
+                        border: isActive ? '1px solid var(--accent-border)' : '1px solid transparent',
                         opacity: mediaType === 'book' && !isActive && selected.length >= 2 ? 0.4 : 1,
                       }}
                     >
@@ -438,7 +438,7 @@ const LogForm: React.FC<LogFormProps> = ({ onSubmit, onCancel, initialData, medi
             type="button"
             onClick={handleSubmit}
             className="w-full h-12 rounded-full flex items-center justify-center gap-2 text-white font-bold text-sm transition-all"
-            style={{ background: '#3B82F6' }}
+            style={{ background: 'var(--accent)', color: '#000' }}
           >
             <Check size={18} />
             {isEditing ? 'Salvar Alterações' : isWishlist ? 'Adicionar à Lista' : 'Salvar'}
