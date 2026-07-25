@@ -1,5 +1,5 @@
-import { NavLink, Link } from 'react-router-dom';
-import { Calendar, List, BookOpen, PlusCircle, Settings, MessageSquare, Clock } from 'lucide-react';
+import { NavLink, Link, useLocation } from 'react-router-dom';
+import { Home, Calendar, List, BookOpen, PlusCircle, Settings, MessageSquare, Clock } from 'lucide-react';
 import type { User as UserType } from '../types';
 
 interface LeftSidebarProps {
@@ -7,6 +7,7 @@ interface LeftSidebarProps {
 }
 
 const navItems = [
+  { to: '/', label: 'Inicio', icon: Home },
   { to: '/timeline', label: 'Timeline', icon: Clock },
   { to: '/calendar', label: 'Calendário', icon: Calendar },
   { to: '/lists', label: 'Listas', icon: List },
@@ -16,9 +17,12 @@ const navItems = [
 ];
 
 const LeftSidebar = ({ user }: LeftSidebarProps) => {
+  const location = useLocation();
   const avatarUrl = user.avatar_url
     ? user.avatar_url.startsWith('http') ? user.avatar_url : `http://localhost:8000${user.avatar_url}`
     : null;
+
+  const isHomeActive = location.pathname === `/profile/${user.username}`;
 
   return (
     <aside className="fixed top-0 left-0 h-screen w-[203px] flex flex-col z-40 border-r"
@@ -32,6 +36,21 @@ const LeftSidebar = ({ user }: LeftSidebarProps) => {
       {/* Nav */}
       <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
         {navItems.map(({ to, label, icon: Icon, dynamic }) => {
+          if (to === '/') {
+            return (
+              <Link key={to} to={`/profile/${user.username}`}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all relative ${
+                  isHomeActive ? 'text-white' : 'text-white/50 hover:text-white/80 hover:bg-white/5'
+                }`}
+                style={isHomeActive ? { background: 'rgba(255,255,255,0.06)' } : {}}>
+                {isHomeActive && (
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full" style={{ background: 'var(--accent)' }} />
+                )}
+                <Icon size={18} style={{ color: isHomeActive ? 'var(--accent)' : undefined }} />
+                <span>{label}</span>
+              </Link>
+            );
+          }
           if (dynamic) {
             return (
               <Link key={to} to={`/profile/${user.username}/reviews`}
