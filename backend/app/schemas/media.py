@@ -167,3 +167,45 @@ class LogEntryWithStats(LogEntryInDB):
     total_achievements: Optional[int] = None
 
 
+# --- Custom List Schemas ---
+class CustomListBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+
+class CustomListCreate(CustomListBase):
+    pass
+
+class CustomListUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+
+class CustomListItemBase(BaseModel):
+    media_item_id: int
+    position: int = 0
+
+class CustomListItemCreate(CustomListItemBase):
+    pass
+
+class CustomListItemUpdate(BaseModel):
+    position: Optional[int] = None
+
+class CustomListItemInDB(CustomListItemBase):
+    id: int
+    custom_list_id: int
+    added_at: datetime
+    media_item: Optional[MediaItemInDB] = None
+    class Config:
+        from_attributes = True
+
+class CustomListInDB(CustomListBase):
+    id: int
+    user_id: int
+    created_at: datetime
+    updated_at: datetime
+    items: List[CustomListItemInDB] = []
+    class Config:
+        from_attributes = True
+
+CustomListInDB.model_rebuild()
+
+

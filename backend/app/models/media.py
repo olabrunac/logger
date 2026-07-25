@@ -117,3 +117,28 @@ class TopListItem(Base):
 
     user = relationship("User", back_populates="top_list_items")
     media_item = relationship("MediaItem")
+
+
+class CustomList(Base):
+    __tablename__ = "custom_list"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
+    name = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+    user = relationship("User", back_populates="custom_lists")
+    items = relationship("CustomListItem", back_populates="custom_list", cascade="all, delete-orphan", order_by="CustomListItem.position")
+
+
+class CustomListItem(Base):
+    __tablename__ = "custom_list_item"
+    id = Column(Integer, primary_key=True, index=True)
+    custom_list_id = Column(Integer, ForeignKey("custom_list.id"), nullable=False)
+    media_item_id = Column(Integer, ForeignKey("mediaitem.id"), nullable=False)
+    position = Column(Integer, nullable=False, default=0)
+    added_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    custom_list = relationship("CustomList", back_populates="items")
+    media_item = relationship("MediaItem")

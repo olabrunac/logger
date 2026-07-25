@@ -44,4 +44,37 @@ export const getUserWishlist = (userId: number, mediaType?: string) => {
   return api.get('/media/wishlist', { params: { user_id: userId, media_type: mediaType } });
 };
 
+// Custom Lists API
+export const getUserCustomLists = (userId: number) => {
+  return api.get(`/media/users/${userId}/custom-lists`);
+};
+
+export const getCustomList = (userId: number, listId: number) => {
+  return api.get(`/media/users/${userId}/custom-lists/${listId}`);
+};
+
+export const createCustomList = (userId: number, data: { name: string; description?: string }) => {
+  return api.post(`/media/users/${userId}/custom-lists`, data);
+};
+
+export const updateCustomList = (userId: number, listId: number, data: { name?: string; description?: string }) => {
+  return api.put(`/media/users/${userId}/custom-lists/${listId}`, data);
+};
+
+export const deleteCustomList = (userId: number, listId: number) => {
+  return api.delete(`/media/users/${userId}/custom-lists/${listId}`);
+};
+
+export const addCustomListItem = (userId: number, listId: number, mediaItemId: number) => {
+  return api.post(`/media/users/${userId}/custom-lists/${listId}/items`, { media_item_id: mediaItemId, position: 0 });
+};
+
+export const removeCustomListItem = (userId: number, listId: number, itemId: number) => {
+  return api.delete(`/media/users/${userId}/custom-lists/${listId}/items/${itemId}`);
+};
+
+export const reorderCustomListItems = (userId: number, listId: number, itemIds: number[]) => {
+  return api.post(`/media/users/${userId}/custom-lists/${listId}/reorder`, itemIds);
+};
+
 export default api;

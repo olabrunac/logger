@@ -77,3 +77,22 @@ export interface LogReview {
   platform?: string;
   created_at: string;
 }
+
+export interface CustomListItem {
+  id: number;
+  custom_list_id: number;
+  media_item_id: number;
+  position: number;
+  added_at: string;
+  media_item?: MediaItem;
+}
+
+export interface CustomList {
+  id: number;
+  user_id: number;
+  name: string;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+  items: CustomListItem[];
+}
