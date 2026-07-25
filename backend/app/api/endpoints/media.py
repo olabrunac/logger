@@ -408,13 +408,21 @@ def update_log_entry(*, db: Session = Depends(deps.get_db), log_id: int, updates
             db.refresh(existing_log)
             return existing_log
 
-    # Save a review snapshot for edits
-    if update_data.get('review') or update_data.get('rating') or update_data.get('platform'):
+    # Save a review snapshot only if review content actually changed
+    new_review = update_data.get('review')
+    new_rating = update_data.get('rating')
+    new_platform = update_data.get('platform')
+    review_changed = (
+        (new_review is not None and new_review != log.review) or
+        (new_rating is not None and new_rating != log.rating) or
+        (new_platform is not None and new_platform != log.platform)
+    )
+    if review_changed:
         review_entry = LogReview(
             log_id=log.id,
-            review_text=update_data.get('review', log.review),
-            rating=update_data.get('rating', log.rating),
-            platform=update_data.get('platform', log.platform),
+            review_text=new_review if new_review is not None else log.review,
+            rating=new_rating if new_rating is not None else log.rating,
+            platform=new_platform if new_platform is not None else log.platform,
             created_at=datetime.datetime.utcnow(),
         )
         db.add(review_entry)

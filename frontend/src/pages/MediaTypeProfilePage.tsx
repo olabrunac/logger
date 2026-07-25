@@ -1,12 +1,8 @@
 ﻿import { useEffect, useState, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import api from '../services/api';
-import type { LogEntry, LogReview, User } from '../types';
-import ActivityGraph from '../components/sections/ActivityGraph';
-import GenreChart from '../components/sections/GenreChart';
-import StatsSection from '../components/sections/StatsSection';
-import RatingDistribution from '../components/sections/RatingDistribution';
-import FavoritesSection from '../components/sections/FavoriteGamesSection';
+import api, { getUserCustomLists } from '../services/api';
+import type { LogEntry, LogReview, User, CustomList, TopListItem, MediaItem } from '../types';
+import { TYPE_META, STATUS_COLORS, STATUS_ICONS, getStars } from '../constants/designSystem';
 
 interface MediaTypeProfilePageProps {
   currentUser: User;
@@ -19,39 +15,13 @@ const MEDIA_TYPE_MAP: Record<string, string> = {
   games: 'game',
 };
 
-const PAGE_META: Record<string, { label: string; emoji: string; color: string }> = {
-  movie: { label: 'Filmes', emoji: '🎬', color: '#fbbf24' },
-  series: { label: 'Séries', emoji: '📺', color: '#ef4444' },
-  game: { label: 'Jogos', emoji: '🎮', color: '#60a5fa' },
-  book: { label: 'Livros', emoji: '📚', color: '#4ade80' },
-};
+const PAGE_META = TYPE_META;
 
-const STATUS_COLORS: Record<string, string> = {
-  in_progress: 'rgba(59,130,246,0.85)',
-  completed: 'rgba(34,197,94,0.85)',
-  dropped: 'rgba(239,68,68,0.85)',
-  wishlist: 'rgba(168,85,247,0.85)',
-  soon: 'rgba(168,85,247,0.85)',
-  platinated: 'rgba(250,204,21,0.85)',
-};
-
-const STATUS_ICONS: Record<string, string> = {
-  completed: '✓',
-  in_progress: '•••',
-  dropped: '💀',
-  wishlist: '★',
-  soon: '…',
-};
-
-const getStars = (rating?: number) => {
-  if (!rating) return [];
-  const stars = [];
-  for (let i = 1; i <= 5; i++) {
-    if (i <= Math.floor(rating)) stars.push('full');
-    else if (i - 0.5 <= rating) stars.push('half');
-    else stars.push('empty');
-  }
-  return stars;
+const MEDIA_TYPE_URL_MAP: Record<string, string> = {
+  movie: 'movies',
+  series: 'tvshows',
+  book: 'books',
+  game: 'games',
 };
 
 const PosterTile = ({ log, fallbackEmoji, color }: { log: LogEntry; fallbackEmoji: string; color: string }) => (
@@ -125,6 +95,13 @@ const PosterTile = ({ log, fallbackEmoji, color }: { log: LogEntry; fallbackEmoj
   </Link>
 );
 
+const STATUS_SECTIONS = [
+  { id: 'in_progress', label: 'Em Progresso', status: 'in_progress', emptyMsg: 'Nenhuma mídia em progresso.' },
+  { id: 'completed', label: 'Finalizados', status: 'completed', emptyMsg: 'Nenhuma mídia finalizada.' },
+  { id: 'wishlist', label: 'Na Lista de Desejos', status: 'wishlist', emptyMsg: 'Nenhuma mídia na lista de desejos.' },
+  { id: 'dropped', label: 'Abandonados', status: 'dropped', emptyMsg: 'Nenhuma mídia abandonada.' },
+];
+
 const MediaTypeProfilePage = ({ currentUser }: MediaTypeProfilePageProps) => {
   const { username, mediaType: urlMediaType } = useParams<{ username: string; mediaType: string }>();
   const [profileUser, setProfileUser] = useState<User | null>(null);
@@ -132,6 +109,9 @@ const MediaTypeProfilePage = ({ currentUser }: MediaTypeProfilePageProps) => {
   const [reviewMap, setReviewMap] = useState<Map<number, LogReview[]>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showExpanded, setShowExpanded] = useState<Record<string, boolean>>({});
+  const [customLists, setCustomLists] = useState<CustomList[]>([]);
+  const [topListItems, setTopListItems] = useState<TopListItem[]>([]);
 
   const mediaType = MEDIA_TYPE_MAP[urlMediaType || ''] || 'movie';
   const meta = PAGE_META[mediaType] || PAGE_META.movie;
@@ -154,9 +134,16 @@ const MediaTypeProfilePage = ({ currentUser }: MediaTypeProfilePageProps) => {
         targetUser = userRes.data;
       }
       setProfileUser(targetUser);
-      const logsRes = await api.get('/media/logs', { params: { user_id: targetUser.id, limit: 500 } });
+
+      const [logsRes, customListsRes, topListRes] = await Promise.all([
+        api.get('/media/logs', { params: { user_id: targetUser.id, limit: 500 } }),
+        getUserCustomLists(targetUser.id),
+        api.get(`/media/users/${targetUser.id}/top-list`),
+      ]);
       const allLogs = logsRes.data || [];
       setLogs(allLogs);
+      setCustomLists(customListsRes.data || []);
+      setTopListItems(topListRes.data || []);
 
       const reviewLogs = allLogs.filter((l: LogEntry) => l.review && l.review.trim().length > 0);
       const results = await Promise.all(
@@ -180,38 +167,32 @@ const MediaTypeProfilePage = ({ currentUser }: MediaTypeProfilePageProps) => {
     }
   };
 
-  const filteredLogs = useMemo(() => {
-    return logs.filter((l) => l.media_item.media_type === mediaType);
-  }, [logs, mediaType]);
-
-  const completedLogs = useMemo(() => {
-    return filteredLogs.filter((l) => l.status === 'completed');
-  }, [filteredLogs]);
-
-  const recentLogs = useMemo(() => {
-    return [...filteredLogs].sort((a, b) => b.id - a.id).slice(0, 10);
-  }, [filteredLogs]);
-
+  const filteredLogs = useMemo(() => logs.filter(l => l.media_item.media_type === mediaType), [logs, mediaType]);
+  const completedLogs = useMemo(() => filteredLogs.filter(l => l.status === 'completed'), [filteredLogs]);
   const reviewEntries = useMemo(() => {
     const entries: { review: LogReview; log: LogEntry }[] = [];
     filteredLogs.forEach(l => {
       const reviews = reviewMap.get(l.id);
-      if (reviews) {
-        reviews.forEach(r => entries.push({ review: r, log: l }));
-      }
+      if (reviews) reviews.forEach(r => entries.push({ review: r, log: l }));
     });
     return entries.sort((a, b) => b.review.created_at.localeCompare(a.review.created_at));
   }, [filteredLogs, reviewMap]);
+  const filteredCustomLists = useMemo(() =>
+    customLists.filter(list => list.items.some(item => item.media_item?.media_type === mediaType)),
+    [customLists, mediaType]);
+  const currentTopItems = useMemo(() =>
+    topListItems.filter(item => item.media_item?.media_type === mediaType).sort((a, b) => a.position - b.position),
+    [topListItems, mediaType]);
 
   const accentColor = profileUser?.accent_color || meta.color;
-
   const bannerUrl = profileUser?.banner_url
     ? profileUser.banner_url.startsWith('http') ? profileUser.banner_url : 'http://localhost:8000' + profileUser.banner_url
     : null;
-
   const avatarUrl = profileUser?.avatar_url
     ? profileUser.avatar_url.startsWith('http') ? profileUser.avatar_url : 'http://localhost:8000' + profileUser.avatar_url
     : null;
+
+  const toggleExpand = (key: string) => setShowExpanded(prev => ({ ...prev, [key]: !prev[key] }));
 
   if (loading) {
     return (
@@ -241,12 +222,12 @@ const MediaTypeProfilePage = ({ currentUser }: MediaTypeProfilePageProps) => {
             backgroundImage: 'url(' + bannerUrl + ')',
             backgroundSize: 'cover',
             backgroundPosition: 'center',
-          } : {background:'linear-gradient(135deg, ' + meta.color + '22 0%, #14181C 50%, #0A0C10 100%)'}}>
+          } : {background:'linear-gradient(135deg, ' + meta.color + '22 0%, var(--bg-elevated) 50%, var(--bg) 100%)'}}>
           <div className="absolute inset-0" style={{background:'linear-gradient(to top, var(--mdf-bg), transparent 60%)'}}/>
         </div>
         <div className="flex items-end gap-5 -mt-14 px-4 relative z-10">
           <div className="w-28 h-28 rounded-2xl border-4 overflow-hidden flex-shrink-0"
-            style={{borderColor:'var(--mdf-bg)', background: avatarUrl ? 'transparent' : 'linear-gradient(135deg, ' + accentColor + ', #a855f7)'}}>
+            style={{borderColor:'var(--mdf-bg)', background: avatarUrl ? 'transparent' : 'linear-gradient(135deg, ' + accentColor + ', var(--purple))'}}>
             {avatarUrl ? (
               <img src={avatarUrl} alt={profileUser.username} className="w-full h-full object-cover"/>
             ) : (
@@ -272,7 +253,7 @@ const MediaTypeProfilePage = ({ currentUser }: MediaTypeProfilePageProps) => {
                 <div className="text-3xl font-display font-black" style={{color: meta.color}}>
                   {completedLogs.length}
                 </div>
-                <div className="text-xs uppercase tracking-[0.2em] text-white/50">assistidos</div>
+                <div className="text-xs uppercase tracking-[0.2em] text-white/50">finalizados</div>
               </div>
             </div>
           </div>
@@ -290,11 +271,11 @@ const MediaTypeProfilePage = ({ currentUser }: MediaTypeProfilePageProps) => {
           </div>
         </Link>
         {Object.entries(PAGE_META).map(([key, m]) => {
-          const count = logs.filter(l => l.media_item.media_type === key && l.status === 'completed').length;
-          const hours = logs.filter(l => l.media_item.media_type === key && l.status === 'completed').reduce((acc, l) => acc + (l.hours_spent || 0), 0);
+          const count = logs.filter(l => l.media_item.media_type === key && (l.status === 'completed' || l.status === 'in_progress' || l.status === 'dropped')).length;
+          const hours = logs.filter(l => l.media_item.media_type === key && (l.status === 'completed' || l.status === 'in_progress' || l.status === 'dropped')).reduce((acc, l) => acc + (l.hours_spent || 0), 0);
           const isActive = mediaType === key;
           return (
-            <Link key={key} to={'/profile/' + displayUsername + '/' + (key === 'movie' ? 'movies' : key === 'series' ? 'tvshows' : key === 'game' ? 'games' : 'books')}
+            <Link key={key} to={'/profile/' + displayUsername + '/' + MEDIA_TYPE_URL_MAP[key]}
               className={`mdf-card p-5 flex items-center gap-4 transition-all ${isActive ? 'ring-1' : 'mdf-card-hover'}`}
               style={isActive ? { borderColor: m.color + '44' } : {}}>
               <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl" style={{ background: m.color + '22' }}>
@@ -310,35 +291,77 @@ const MediaTypeProfilePage = ({ currentUser }: MediaTypeProfilePageProps) => {
         })}
       </div>
 
-      <FavoritesSection logs={logs} accentColor={accentColor} mediaType={mediaType} />
+      {currentTopItems.length > 0 && (
+        <section>
+          <div className="flex items-baseline justify-between mb-3">
+            <h2 className="font-display text-2xl font-bold">Top 5</h2>
+          </div>
+          <div className="flex gap-3">
+            {currentTopItems.map((item, index) => {
+              const media = item.media_item as MediaItem | undefined;
+              return (
+                <div key={item.id} className="flex flex-col items-center gap-1.5 w-24">
+                  <div className="relative w-full rounded-lg overflow-hidden" style={{aspectRatio: '2/3'}}>
+                    {media?.cover_image_url ? (
+                      <img src={media.cover_image_url} alt={media.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-white/20 text-xs" style={{background: meta.color + '11'}}>{meta.emoji}</div>
+                    )}
+                    <div className="absolute top-1 left-1 bg-black/70 text-white font-mono text-xs font-bold w-5 h-5 flex items-center justify-center rounded">
+                      {index + 1}
+                    </div>
+                  </div>
+                  <div className="text-xs text-center font-medium truncate w-full">{media?.title || '...'}</div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <section>
-        <h2 className="font-display text-2xl font-bold mb-3">Atividade recente</h2>
-        {recentLogs.length === 0 ? (
-          <div className="mdf-card p-8 text-center text-white/50">Nenhum log ainda.</div>
+        <div className="flex items-baseline justify-between mb-3">
+          <h2 className="font-display text-2xl font-bold">Recentes</h2>
+          <button onClick={() => toggleExpand('recentes')} className="text-xs text-white/40 uppercase tracking-[0.2em] hover:text-white/60 transition-colors">
+            {showExpanded.recentes ? 'Ver menos' : 'Ver todas'}
+          </button>
+        </div>
+        {filteredLogs.length === 0 ? (
+          <div className="mdf-card p-6 text-center text-white/30 text-sm">Nenhuma mídia registrada.</div>
         ) : (
           <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-2">
-            {recentLogs.map(log => (
+            {(showExpanded.recentes ? filteredLogs : filteredLogs.slice(0, 12)).map(log => (
               <PosterTile key={log.id} log={log} fallbackEmoji={meta.emoji} color={meta.color} />
             ))}
           </div>
         )}
       </section>
 
-      <div className="mdf-card p-3">
-        <ActivityGraph logs={logs} mediaType={mediaType} />
-      </div>
-      <div className="flex flex-col lg:flex-row lg:items-stretch gap-3">
-        <div className="flex-1 min-w-0 mdf-card p-3">
-          <StatsSection logs={logs} accentColor={accentColor} mediaType={mediaType} />
-        </div>
-        <div className="lg:w-64 flex-shrink-0 mdf-card p-3">
-          <RatingDistribution logs={logs} mediaType={mediaType} color={meta.color} />
-        </div>
-        <div className="lg:w-64 flex-shrink-0 mdf-card p-3">
-          <GenreChart logs={logs} accentColor={accentColor} mediaType={mediaType} />
-        </div>
-      </div>
+      {STATUS_SECTIONS.map(({ id, label, status, emptyMsg }) => {
+        const sectionLogs = filteredLogs.filter(l => l.status === status);
+        const expanded = showExpanded[id];
+        return (
+          <section key={id}>
+            <div className="flex items-baseline justify-between mb-3">
+              <h2 className="font-display text-2xl font-bold">{label}</h2>
+              {sectionLogs.length > 12 && (
+                <button onClick={() => toggleExpand(id)} className="text-xs text-white/40 uppercase tracking-[0.2em] hover:text-white/60 transition-colors">
+                  {expanded ? 'Ver menos' : 'Ver todas'}
+                </button>
+              )}
+            </div>
+            {sectionLogs.length === 0 ? (
+              <div className="mdf-card p-6 text-center text-white/30 text-sm">{emptyMsg}</div>
+            ) : (
+              <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-2">
+                {(expanded ? sectionLogs : sectionLogs.slice(0, 12)).map(log => (
+                  <PosterTile key={log.id} log={log} fallbackEmoji={meta.emoji} color={meta.color} />
+                ))}
+              </div>
+            )}
+          </section>
+        );
+      })}
 
       {reviewEntries.length > 0 && (
         <section>
@@ -383,12 +406,59 @@ const MediaTypeProfilePage = ({ currentUser }: MediaTypeProfilePageProps) => {
         </section>
       )}
 
-      {completedLogs.length > 0 && (
-        <section>
-          <h2 className="font-display text-2xl font-bold mb-3">Todos os {meta.label}</h2>
+      <section>
+        <div className="flex items-baseline justify-between mb-3">
+          <h2 className="font-display text-2xl font-bold">Todos</h2>
+          <button onClick={() => toggleExpand('all')} className="text-xs text-white/40 uppercase tracking-[0.2em] hover:text-white/60 transition-colors">
+            {showExpanded.all ? 'Ver menos' : 'Ver todas'}
+          </button>
+        </div>
+        {filteredLogs.length === 0 ? (
+          <div className="mdf-card p-6 text-center text-white/30 text-sm">Nenhuma mídia registrada.</div>
+        ) : (
           <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-2">
-            {completedLogs.map(log => (
+            {(showExpanded.all ? filteredLogs : filteredLogs.slice(0, 12)).map(log => (
               <PosterTile key={log.id} log={log} fallbackEmoji={meta.emoji} color={meta.color} />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {filteredCustomLists.length > 0 && (
+        <section>
+          <div className="flex items-baseline justify-between mb-3">
+            <h2 className="font-display text-2xl font-bold">Listas Personalizadas</h2>
+            <Link to={`/profile/${profileUser?.username}/lists`} className="text-xs text-white/40 uppercase tracking-[0.2em] hover:text-white/60 transition-colors">Ver todas</Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {filteredCustomLists.map(list => (
+              <Link key={list.id} to={`/profile/${profileUser?.username}/lists`} className="mdf-card mdf-card-hover rounded-xl p-4 transition-colors block group">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-display text-lg font-bold text-white/80 truncate">{list.name}</h3>
+                  <span className="text-xs text-white/40 font-mono">{list.items.length} itens</span>
+                </div>
+                {list.description && (
+                  <p className="text-sm text-white/40 line-clamp-2 mb-3">{list.description}</p>
+                )}
+                <div className="flex gap-1.5 overflow-hidden">
+                  {list.items.slice(0, 8).map(item => (
+                    <div key={item.id} className="w-12 h-18 rounded-md overflow-hidden flex-shrink-0" style={{aspectRatio: '2/3'}}>
+                      {item.media_item?.cover_image_url ? (
+                        <img src={item.media_item.cover_image_url} alt="" className="w-full h-full object-cover" loading="lazy"/>
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-xs" style={{background: (meta.color || '#666') + '22'}}>
+                          {meta.emoji}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {list.items.length > 8 && (
+                    <div className="w-12 h-18 rounded-md flex items-center justify-center flex-shrink-0 text-xs text-white/40" style={{background: 'var(--bg-elevated)', aspectRatio: '2/3'}}>
+                      +{list.items.length - 8}
+                    </div>
+                  )}
+                </div>
+              </Link>
             ))}
           </div>
         </section>

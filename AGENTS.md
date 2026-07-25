@@ -23,15 +23,19 @@
 
 ## ⚙️ Restrições Principais
 - **Autenticação**: Sem senha, apenas `username`.
-- **Status**: 4 por tipo de mídia.
+- **Status**: 4 por tipo de mídia (completed, in_progress, dropped, wishlist).
 - **Favorito**: Toggle booleano independente do status.
 - **Poster Tiles**: Layout padronizado com badge ❤️ e estatísticas.
 - **Barra lateral esquerda**: Travada em 203px, não colapsa. Right sidebar colapsa para 56px.
 - **Conteúdo central**: Margens fixas (left: 203px, right: 324px) - não redimensiona ao colapsar sidebar.
+- **MediaTypeProfilePage seções**: Ordem fixa: Top 5 → Recentes → Em Progresso → Lista de Desejos → Finalizados → Abandonados → Reviews → Todos → Listas Personalizadas.
+- **MediaTypeProfilePage stats**: Contador de cards soma completed + in_progress + dropped (não wishlist).
+- **Review snapshots**: Endpoint PUT cria LogReview apenas quando review/rating/platform mudam (evita duplicidade ao editar status).
 
 ## 📋 Pendências (TODO)
 1. **Início**: ~~Arrumar a página inicial (HomePage)~~ ✅
-2. **Páginas de mídia**: Arrumar as páginas individuais de cada tipo de mídia (MediaTypeProfilePage)
+2. **Páginas de mídia**: ~~Arrumar as páginas individuais de cada tipo de mídia (MediaTypeProfilePage)~~ ✅
+12. **Edição de layout por tipo de mídia**: No MediaTypeProfilePage, permitir ao usuário reordenar as seções (drag-and-drop), ocultar Top 5, e selecionar quais listas personalizadas exibir (salvar config per-media-type no campo `section_order` do User)
 3. **Perfil na sidebar**: Mudar o layout do perfil na barra lateral esquerda
 4. **Cadastro completo**: Implementar cadastro de usuário com email e senha (atualmente só username)
 5. **Interação entre contas**: Implementar sistema de seguir/curtir posts na timeline
