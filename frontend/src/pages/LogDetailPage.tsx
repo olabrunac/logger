@@ -653,9 +653,11 @@ const LogDetailPage = () => {
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); toggleAllAch(unlockedCount < achievements.length); }}
-                  className="px-2 py-0.5 text-[10px] font-bold rounded bg-white/10 text-white/60 hover:bg-white/20 transition-colors"
+                  className="flex-shrink-0"
                 >
-                  {unlockedCount < achievements.length ? 'Marcar todas' : 'Desmarcar todas'}
+                  {unlockedCount < achievements.length
+                    ? <CheckCircle2 size={20} style={{ color: 'var(--mdf-green)' }} />
+                    : <Circle size={20} className="text-white/30 hover:text-white/50 transition-colors" />}
                 </button>
               )}
               <ChevronDown size={16} className={`text-white/40 transition-transform ${openAch ? 'rotate-180' : ''}`} />
