@@ -188,9 +188,9 @@ const TopListsSection = ({ profileUser, currentUser }: TopListsSectionProps) => 
                             </button>
                           </div>
                         )}
-                        <div className="w-full aspect-[2/3] relative rounded-md overflow-hidden bg-white/5">
+                        <div className="relative rounded-md overflow-hidden bg-white/5" style={{ width: '100%', aspectRatio: '2/3' }}>
                           {media?.cover_image_url ? (
-                            <img src={media.cover_image_url} alt={media.title} className="w-full h-full object-cover" />
+                            <img src={media.cover_image_url} alt={media.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-white/20 text-xs">?</div>
                           )}
