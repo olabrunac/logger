@@ -30,7 +30,7 @@
 - **Conteúdo central**: Margens fixas (left: 203px, right: 324px) - não redimensiona ao colapsar sidebar.
 
 ## 📋 Pendências (TODO)
-1. **Início**: Arrumar a página inicial (HomePage)
+1. **Início**: ~~Arrumar a página inicial (HomePage)~~ ✅
 2. **Páginas de mídia**: Arrumar as páginas individuais de cada tipo de mídia (MediaTypeProfilePage)
 3. **Perfil na sidebar**: Mudar o layout do perfil na barra lateral esquerda
 4. **Cadastro completo**: Implementar cadastro de usuário com email e senha (atualmente só username)
@@ -52,3 +52,4 @@
 - `frontend/src/pages/ReviewsPage.tsx` - Página de reviews (histórico de reviews por log)
 - `frontend/src/pages/DiaryPage.tsx` - Diário de reviews
 - `frontend/src/pages/LogDetailPage.tsx` - Detalhe do log (reviews, conquistas, temporadas)
+- `frontend/src/pages/TimelinePage.tsx` - Timeline (placeholder, em desenvolvimento)

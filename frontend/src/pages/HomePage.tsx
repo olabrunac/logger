@@ -31,6 +31,17 @@ const STATUS_COLORS: Record<string, string> = {
   platinated: 'rgba(250,204,21,0.85)',
 };
 
+const getStars = (rating?: number) => {
+  if (!rating) return [];
+  const stars = [];
+  for (let i = 1; i <= 5; i++) {
+    if (i <= Math.floor(rating)) stars.push('full');
+    else if (i - 0.5 <= rating) stars.push('half');
+    else stars.push('empty');
+  }
+  return stars;
+};
+
 const HomePage = ({ user }: HomePageProps) => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,17 +62,6 @@ const HomePage = ({ user }: HomePageProps) => {
     }
   };
 
-  const getStars = (rating?: number) => {
-    if (!rating) return [];
-    const stars = [];
-    for (let i = 1; i <= 5; i++) {
-      if (i <= Math.floor(rating)) stars.push('full');
-      else if (i - 0.5 <= rating) stars.push('half');
-      else stars.push('empty');
-    }
-    return stars;
-  };
-
   const movieCount = logs.filter(l => l.media_item.media_type === 'movie').length;
   const seriesCount = logs.filter(l => l.media_item.media_type === 'series').length;
   const gameCount = logs.filter(l => l.media_item.media_type === 'game').length;
@@ -74,18 +74,43 @@ const HomePage = ({ user }: HomePageProps) => {
     { label: 'Livros', value: bookCount, emoji: '📚', color: '#4ade80', slug: 'books' },
   ];
 
+  const bannerUrl = user.banner_url
+    ? user.banner_url.startsWith('http') ? user.banner_url : `http://localhost:8000${user.banner_url}`
+    : null;
+
+  const avatarUrl = user.avatar_url
+    ? user.avatar_url.startsWith('http') ? user.avatar_url : `http://localhost:8000${user.avatar_url}`
+    : null;
+
   return (
     <div className="space-y-10">
       <div className="relative">
-        <div className="h-52 md:h-64 rounded-2xl overflow-hidden relative border border-white/5">
-          <div className="w-full h-full" style={{background:'linear-gradient(135deg, #14181C 0%, #1C2127 50%, #0A0C10 100%)'}}/>
-          <div className="absolute inset-0" style={{background:'radial-gradient(circle at 20% 80%, rgba(0,224,84,0.1) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(250,51,128,0.08) 0%, transparent 50%)'}}/>
+        <div className="h-52 md:h-64 rounded-2xl overflow-hidden relative border border-white/5"
+          style={bannerUrl ? {
+            backgroundImage: `url(${bannerUrl})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          } : {
+            background: 'linear-gradient(135deg, #14181C 0%, #1C2127 50%, #0A0C10 100%)',
+          }}>
+          {!bannerUrl && <div className="absolute inset-0" style={{background:'radial-gradient(circle at 20% 80%, rgba(0,224,84,0.1) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(250,51,128,0.08) 0%, transparent 50%)'}}/>}
           <div className="absolute bottom-0 left-0 right-0 h-16" style={{background:'linear-gradient(to top, var(--mdf-bg), transparent)'}}/>
         </div>
         <div className="flex items-end justify-between px-6 -mt-14 relative z-10">
-          <div>
-            <h1 className="font-display text-3xl md:text-4xl font-black tracking-tight">Bem-vindo, {user.username}!</h1>
-            <p className="text-white/50 text-sm mt-1">Continue registrando suas experiências</p>
+          <div className="flex items-end gap-4">
+            <Link to={`/profile/${user.username}`} className="w-20 h-20 rounded-2xl overflow-hidden border-4 flex-shrink-0" style={{ borderColor: 'var(--mdf-bg)' }}>
+              {avatarUrl ? (
+                <img src={avatarUrl} alt={user.username} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-2xl font-display font-black" style={{ background: user.accent_color || 'var(--accent)', color: '#000' }}>
+                  {user.username.charAt(0).toUpperCase()}
+                </div>
+              )}
+            </Link>
+            <div className="pb-1">
+              <h1 className="font-display text-2xl font-black tracking-tight">{user.username}</h1>
+              <p className="text-white/50 text-sm mt-0.5">Continue registrando suas experiências</p>
+            </div>
           </div>
           <Link to="/new-log" className="mdf-btn-primary">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
