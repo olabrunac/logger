@@ -30,7 +30,13 @@
 - **Conteúdo central**: Margens fixas (left: 203px, right: 324px) - não redimensiona ao colapsar sidebar.
 
 ## 📋 Pendências (TODO)
-_(Nenhuma pendência no momento)_
+1. **Início**: Arrumar a página inicial (HomePage)
+2. **Páginas de mídia**: Arrumar as páginas individuais de cada tipo de mídia (MediaTypeProfilePage)
+3. **Perfil na sidebar**: Mudar o layout do perfil na barra lateral esquerda
+4. **Cadastro completo**: Implementar cadastro de usuário com email e senha (atualmente só username)
+5. **Interação entre contas**: Implementar sistema de seguir/curtir posts na timeline
+6. **Timeline**: Implementar feed/timeline com posts dos seguidos
+7. **Importação de logs**: Implementar importação de logs de outras plataformas (ex: Letterboxd, IGDB, etc)
 
 ## 📁 Estrutura de Pastas Importantes
 - `backend/app/api/endpoints/media.py` - Endpoints de mídia, top lists, favoritos
