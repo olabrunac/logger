@@ -24,8 +24,33 @@ const LeftSidebar = ({ user }: LeftSidebarProps) => {
     <aside className="fixed top-0 left-0 h-screen w-[203px] flex flex-col z-40 border-r"
       style={{ background: 'var(--mdf-bg)', borderColor: 'var(--border)' }}>
 
+      {/* Profile + Settings */}
+      <div className="px-4 pt-5 pb-4 border-b" style={{ borderColor: 'var(--border)' }}>
+        <div className="flex items-start justify-between">
+          <Link to={`/profile/${user.username}`} className="flex items-center gap-2.5 group">
+            <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0 border" style={{ borderColor: 'var(--border)' }}>
+              {avatarUrl ? (
+                <img src={avatarUrl} alt={user.username} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-xs font-bold" style={{ background: 'var(--accent)', color: '#000' }}>
+                  {user.username.charAt(0).toUpperCase()}
+                </div>
+              )}
+            </div>
+            <div className="min-w-0">
+              <div className="text-sm font-semibold text-white truncate group-hover:text-white transition-colors">{user.username}</div>
+              <div className="text-[10px]" style={{ color: 'var(--text-dim)' }}>@{user.username}</div>
+            </div>
+          </Link>
+          <NavLink to="/settings" className="mt-1 p-1.5 rounded-md transition-colors hover:bg-white/5"
+            style={{ color: 'var(--text-dim)' }}>
+            <Settings size={16} />
+          </NavLink>
+        </div>
+      </div>
+
       {/* Logo */}
-      <Link to="/" className="flex items-center gap-2.5 px-5 h-16 flex-shrink-0 border-b" style={{ borderColor: 'var(--border)' }}>
+      <Link to="/" className="flex items-center gap-2.5 px-5 h-14 flex-shrink-0 border-b" style={{ borderColor: 'var(--border)' }}>
         <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--accent)' }}>
           <span className="font-display font-black text-black text-sm">L</span>
         </div>
@@ -72,35 +97,12 @@ const LeftSidebar = ({ user }: LeftSidebarProps) => {
       </nav>
 
       {/* Footer */}
-      <div className="px-4 py-3 border-t space-y-3" style={{ borderColor: 'var(--border)' }}>
+      <div className="px-4 py-3 border-t" style={{ borderColor: 'var(--border)' }}>
         <div className="flex items-center gap-2 text-[10px]" style={{ color: 'var(--text-dim)' }}>
           <span>v1.0.0</span>
           <span>·</span>
           <span>Powered by <span style={{ color: 'var(--accent)' }}>TMDb</span></span>
         </div>
-
-        {/* Mini Profile */}
-        <Link to={`/profile/${user.username}`} className="flex items-center gap-2.5 group">
-          <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 border" style={{ borderColor: 'var(--border)' }}>
-            {avatarUrl ? (
-              <img src={avatarUrl} alt={user.username} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-xs font-bold" style={{ background: 'var(--accent)', color: '#000' }}>
-                {user.username.charAt(0).toUpperCase()}
-              </div>
-            )}
-          </div>
-          <div className="min-w-0">
-            <div className="text-sm font-semibold text-white truncate group-hover:text-white transition-colors">{user.username}</div>
-            <div className="text-[10px]" style={{ color: 'var(--text-dim)' }}>@{user.username}</div>
-          </div>
-        </Link>
-
-        <NavLink to="/settings" className="flex items-center gap-2 text-[11px] transition-colors"
-          style={{ color: 'var(--text-dim)' }}>
-          <Settings size={12} />
-          <span>Configurações</span>
-        </NavLink>
       </div>
     </aside>
   );
