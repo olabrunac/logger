@@ -51,3 +51,5 @@ Site pessoal para registrar e acompanhar filmes, séries, jogos e livros, inspir
 5. **Interação entre contas**: Sistema de seguir/curtir posts
 6. **Timeline**: Feed com posts dos seguidos
 7. **Importação de logs**: Importar de outras plataformas (Letterboxd, IGDB, etc)
+8. **Reviews acima de conquistas**: Mover reviews de dentro da aba de conquistas do log de jogo para antes dela
+9. **Publicação**: Publicar o site, avaliar ferramentas de hosting do GitHub Students
