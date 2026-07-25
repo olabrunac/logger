@@ -52,8 +52,8 @@ const FloatingLogButton = ({ user }: FloatingLogButtonProps) => {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-8 right-8 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-110 active:scale-95"
-        style={{ background: 'var(--mdf-green)', color: '#000' }}
+        className="fixed bottom-8 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-110 active:scale-95"
+        style={{ background: 'var(--mdf-green)', color: '#000', right: 'calc(2rem + 324px)' }}
         title="Novo Log"
       >
         <Plus size={28} strokeWidth={2.5} />
