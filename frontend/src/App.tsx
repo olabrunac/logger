@@ -11,6 +11,7 @@ import SettingsPage from './pages/SettingsPage';
 import ListsPage from './pages/ListsPage';
 import DiaryPage from './pages/DiaryPage';
 import ReviewsPage from './pages/ReviewsPage';
+import TimelinePage from './pages/TimelinePage';
 import LeftSidebar from './components/LeftSidebar';
 import RightSidebar from './components/RightSidebar';
 import type { User } from './types';
@@ -97,6 +98,12 @@ function App() {
               path="/diary"
               element={
                 user ? <DiaryPage user={user} /> : <Navigate to="/login" />
+              }
+            />
+            <Route
+              path="/timeline"
+              element={
+                user ? <TimelinePage user={user} /> : <Navigate to="/login" />
               }
             />
             <Route
