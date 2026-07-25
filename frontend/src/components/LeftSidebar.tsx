@@ -25,14 +25,8 @@ const LeftSidebar = ({ user }: LeftSidebarProps) => {
       style={{ background: 'var(--mdf-bg)', borderColor: 'var(--border)' }}>
 
       {/* Logo */}
-      <Link to="/" className="flex items-center gap-2.5 px-5 h-14 flex-shrink-0 border-b" style={{ borderColor: 'var(--border)' }}>
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--accent)' }}>
-          <span className="font-display font-black text-black text-sm">L</span>
-        </div>
-        <div>
-          <div className="font-display font-black tracking-tight text-base leading-none">LOGGER</div>
-          <div className="text-[9px] uppercase tracking-[0.2em]" style={{ color: 'var(--text-dim)' }}>Diário Cultural</div>
-        </div>
+      <Link to="/" className="flex items-center px-5 h-14 flex-shrink-0 border-b" style={{ borderColor: 'var(--border)' }}>
+        <div className="font-display font-black tracking-tight text-base">LOGGER</div>
       </Link>
 
       {/* Profile + Settings */}
