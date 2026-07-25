@@ -67,12 +67,7 @@ const LeftSidebar = ({ user }: LeftSidebarProps) => {
 
       {/* Footer */}
       <div className="px-4 py-3 border-t" style={{ borderColor: 'var(--border)' }}>
-        <div className="flex items-center gap-2 text-[10px] mb-3" style={{ color: 'var(--text-dim)' }}>
-          <span>v1.0.0</span>
-          <span>·</span>
-          <span>Powered by <span style={{ color: 'var(--accent)' }}>TMDb</span></span>
-        </div>
-        <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between mb-3">
           <Link to={`/profile/${user.username}`} className="flex items-center gap-3 group">
             <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border" style={{ borderColor: 'var(--border)' }}>
               {avatarUrl ? (
@@ -92,6 +87,11 @@ const LeftSidebar = ({ user }: LeftSidebarProps) => {
             style={{ color: 'var(--text-dim)' }}>
             <Settings size={16} />
           </NavLink>
+        </div>
+        <div className="flex items-center gap-2 text-[10px]" style={{ color: 'var(--text-dim)' }}>
+          <span>v1.0.0</span>
+          <span>·</span>
+          <span>Powered by <span style={{ color: 'var(--accent)' }}>TMDb</span></span>
         </div>
       </div>
     </aside>
