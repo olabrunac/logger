@@ -41,3 +41,13 @@ Site pessoal para registrar e acompanhar filmes, séries, jogos e livros, inspir
 - **Reviews**: ProfilePage, MediaTypeProfilePage e ReviewsPage exibem todas as snapshots de reviews do LogReview
 - **Diário**: DiaryPage funcional com reviews agrupados por data
 - **Wishlist**: Entradas separadas de log, auto-cleanup ao completar, deduplicação no backend
+- **Top 5**: Capas com aspect ratio correto (inline styles)
+
+### 🔄 Em Andamento / Pendente
+1. **Início**: Arrumar a página inicial (HomePage)
+2. **Páginas de mídia**: Arrumar as páginas individuais de cada tipo de mídia
+3. **Perfil na sidebar**: Mudar o layout do perfil na barra lateral esquerda
+4. **Cadastro completo**: Cadastro com email e senha (atualmente só username)
+5. **Interação entre contas**: Sistema de seguir/curtir posts
+6. **Timeline**: Feed com posts dos seguidos
+7. **Importação de logs**: Importar de outras plataformas (Letterboxd, IGDB, etc)
