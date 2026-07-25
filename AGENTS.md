@@ -37,7 +37,7 @@
 5. **Interação entre contas**: Implementar sistema de seguir/curtir posts na timeline
 6. **Timeline**: Implementar feed/timeline com posts dos seguidos
 7. **Importação de logs**: Implementar importação de logs de outras plataformas (ex: Letterboxd, IGDB, etc)
-8. **Reviews acima de conquistas**: Mover as reviews de dentro da aba de conquistas do log de jogo para antes dela
+8. **Reviews acima de conquistas**: ~~Mover as reviews de dentro da aba de conquistas do log de jogo para antes dela~~ ✅
 9. **Publicação**: Publicar o site, avaliar ferramentas de hosting do GitHub Students
 
 ## 📁 Estrutura de Pastas Importantes
