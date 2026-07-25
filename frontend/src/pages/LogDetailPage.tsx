@@ -72,6 +72,7 @@ const LogDetailPage = () => {
 
   const [achievements, setAchievements] = useState<AchievementItem[]>([]);
   const [achLoading, setAchLoading] = useState(false);
+  const [openAch, setOpenAch] = useState(true);
   const [bookmarked, setBookmarked] = useState(false);
   const [wishlistLogId, setWishlistLogId] = useState<number | null>(null);
   const [bookmarking, setBookmarking] = useState(false);
@@ -255,6 +256,19 @@ const LogDetailPage = () => {
       image_url: a.image_url || '', unlocked: newUnlocked,
     });
     setAchievements(achievements.map(x => x.external_id === a.external_id ? { ...x, unlocked: newUnlocked, id: data.id } : x));
+  };
+
+  const toggleAllAch = async (markUnlocked: boolean) => {
+    if (!id) return;
+    for (const a of achievements) {
+      if (a.unlocked !== markUnlocked) {
+        await api.post('/media/logs/' + id + '/achievements', {
+          external_id: a.external_id, name: a.name, description: a.description || '',
+          image_url: a.image_url || '', unlocked: markUnlocked,
+        });
+      }
+    }
+    setAchievements(achievements.map(x => ({ ...x, unlocked: markUnlocked })));
   };
 
   const renderStars = (rating: number | undefined, onChange?: (v: number) => void) => {
@@ -590,52 +604,6 @@ const LogDetailPage = () => {
         </div>
       )}
 
-      {/* Achievements */}
-      {md.media_type === 'game' && (
-        <div>
-          <div className="flex items-baseline justify-between mb-3">
-            <h3 className="font-display text-xl font-bold flex items-center gap-2">
-              <Trophy size={18} style={{ color: 'var(--mdf-yellow)' }} />
-              Conquistas
-            </h3>
-            {achievements.length > 0 && (
-              <div className="text-sm text-white/60 font-mono">{unlockedCount}/{achievements.length}</div>
-            )}
-          </div>
-          {achLoading && <div className="text-white/50 text-sm">Carregando conquistas...</div>}
-          {!achLoading && achievements.length === 0 && (
-            <div className="mdf-card p-6 text-center text-white/50 text-sm">
-              {md.igdb_id ? 'Sem conquistas encontradas para este jogo no Steam.' : 'Busque por um jogo para importar conquistas.'}
-            </div>
-          )}
-          {achievements.length > 0 && (
-            <>
-              <div className="h-1 rounded-full bg-white/10 overflow-hidden mb-4">
-                <div className="h-full rounded-full bg-[var(--mdf-yellow)] transition-all" style={{ width: (achievements.length ? (unlockedCount / achievements.length) * 100 : 0) + '%' }} />
-              </div>
-              <div className="grid sm:grid-cols-2 gap-2">
-                {achievements.map(a => (
-                  <button key={a.external_id} onClick={() => toggleAch(a)}
-                    className={`mdf-card p-3 flex items-center gap-3 text-left transition-colors ${a.unlocked ? 'border border-[var(--mdf-green)]/30 bg-[var(--mdf-green)]/5' : 'hover:bg-white/5'}`}>
-                    <div className="w-10 h-10 rounded flex-shrink-0 overflow-hidden bg-white/5">
-                      {a.image_url && <img src={a.image_url} alt="" className={`w-full h-full object-cover ${!a.unlocked ? 'grayscale opacity-50' : ''}`} />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className={`text-sm font-semibold truncate ${a.unlocked ? 'text-white' : 'text-white/60'}`}>{a.name}</div>
-                      {a.description && <div className="text-xs text-white/50 truncate">{a.description}</div>}
-                      {!a.description && a.unlock_percentage != null && (
-                        <div className="text-xs text-white/40">{a.unlock_percentage}% dos jogadores</div>
-                      )}
-                    </div>
-                    {a.unlocked && <CheckCircle2 size={18} style={{ color: 'var(--mdf-green)' }} />}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
       {/* Reviews */}
       {reviewHistory.length > 0 && (
         <div>
@@ -666,6 +634,64 @@ const LogDetailPage = () => {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Achievements */}
+      {md.media_type === 'game' && (
+        <div>
+          <button onClick={() => setOpenAch(!openAch)} className="w-full flex items-center justify-between mb-3 hover:bg-white/5 rounded-lg p-1 -m-1 transition-colors">
+            <div className="flex items-center gap-2">
+              <Trophy size={18} style={{ color: 'var(--mdf-yellow)' }} />
+              <h3 className="font-display text-xl font-bold">Conquistas</h3>
+              {achievements.length > 0 && (
+                <span className="text-sm text-white/60 font-mono">{unlockedCount}/{achievements.length}</span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {achievements.length > 0 && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); toggleAllAch(unlockedCount < achievements.length); }}
+                  className="px-2 py-0.5 text-[10px] font-bold rounded bg-white/10 text-white/60 hover:bg-white/20 transition-colors"
+                >
+                  {unlockedCount < achievements.length ? 'Marcar todas' : 'Desmarcar todas'}
+                </button>
+              )}
+              <ChevronDown size={16} className={`text-white/40 transition-transform ${openAch ? 'rotate-180' : ''}`} />
+            </div>
+          </button>
+          {achLoading && <div className="text-white/50 text-sm">Carregando conquistas...</div>}
+          {!achLoading && achievements.length === 0 && (
+            <div className="mdf-card p-6 text-center text-white/50 text-sm">
+              {md.igdb_id ? 'Sem conquistas encontradas para este jogo no Steam.' : 'Busque por um jogo para importar conquistas.'}
+            </div>
+          )}
+          {openAch && achievements.length > 0 && (
+            <>
+              <div className="h-1 rounded-full bg-white/10 overflow-hidden mb-4">
+                <div className="h-full rounded-full bg-[var(--mdf-yellow)] transition-all" style={{ width: (achievements.length ? (unlockedCount / achievements.length) * 100 : 0) + '%' }} />
+              </div>
+              <div className="grid sm:grid-cols-2 gap-2">
+                {achievements.map(a => (
+                  <button key={a.external_id} onClick={() => toggleAch(a)}
+                    className={`mdf-card p-3 flex items-center gap-3 text-left transition-colors ${a.unlocked ? 'border border-[var(--mdf-green)]/30 bg-[var(--mdf-green)]/5' : 'hover:bg-white/5'}`}>
+                    <div className="w-10 h-10 rounded flex-shrink-0 overflow-hidden bg-white/5">
+                      {a.image_url && <img src={a.image_url} alt="" className={`w-full h-full object-cover ${!a.unlocked ? 'grayscale opacity-50' : ''}`} />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className={`text-sm font-semibold truncate ${a.unlocked ? 'text-white' : 'text-white/60'}`}>{a.name}</div>
+                      {a.description && <div className="text-xs text-white/50 truncate">{a.description}</div>}
+                      {!a.description && a.unlock_percentage != null && (
+                        <div className="text-xs text-white/40">{a.unlock_percentage}% dos jogadores</div>
+                      )}
+                    </div>
+                    {a.unlocked && <CheckCircle2 size={18} style={{ color: 'var(--mdf-green)' }} />}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )}
 
