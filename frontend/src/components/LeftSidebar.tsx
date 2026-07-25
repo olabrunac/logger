@@ -1,5 +1,5 @@
 import { NavLink, Link } from 'react-router-dom';
-import { Home, Calendar, List, BookOpen, PlusCircle, Settings, MessageSquare, Clock } from 'lucide-react';
+import { Calendar, List, BookOpen, PlusCircle, Settings, MessageSquare, Clock } from 'lucide-react';
 import type { User as UserType } from '../types';
 
 interface LeftSidebarProps {
@@ -7,7 +7,6 @@ interface LeftSidebarProps {
 }
 
 const navItems = [
-  { to: '/', label: 'Inicio', icon: Home },
   { to: '/timeline', label: 'Timeline', icon: Clock },
   { to: '/calendar', label: 'Calendário', icon: Calendar },
   { to: '/lists', label: 'Listas', icon: List },

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import NewLogPage from './pages/NewLogPage';
 import CalendarPage from './pages/CalendarPage';
@@ -73,7 +72,7 @@ function App() {
             <Route
               path="/"
               element={
-                user ? <HomePage user={user} /> : <Navigate to="/login" />
+                user ? <Navigate to={`/profile/${user.username}`} /> : <Navigate to="/login" />
               }
             />
             <Route
