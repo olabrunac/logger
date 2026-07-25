@@ -60,23 +60,25 @@ const FloatingLogButton = ({ user }: FloatingLogButtonProps) => {
       </button>
 
       {open && createPortal(
-        <div className="fixed inset-0 z-[100] flex flex-col" style={{ background: 'var(--mdf-bg)' }}>
-          <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border)' }}>
-            <h2 className="font-display text-lg font-bold">Novo Log</h2>
-            <button onClick={handleClose} className="p-2 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors">
-              <X size={20} />
-            </button>
-          </div>
-          <div className="flex-1 overflow-y-auto p-6">
-            {!selectedMedia ? (
-              <SearchMedia onSelectMedia={setSelectedMedia} />
-            ) : (
-              <LogForm
-                onSubmit={handleLogSubmit}
-                onCancel={() => setSelectedMedia(null)}
-                mediaItem={selectedMedia}
-              />
-            )}
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70" onClick={handleClose}>
+          <div className="mdf-card w-full max-w-2xl max-h-[85vh] flex flex-col mx-4" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0" style={{ borderColor: 'var(--border)' }}>
+              <h2 className="font-display text-lg font-bold">Novo Log</h2>
+              <button onClick={handleClose} className="p-2 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6">
+              {!selectedMedia ? (
+                <SearchMedia onSelectMedia={setSelectedMedia} />
+              ) : (
+                <LogForm
+                  onSubmit={handleLogSubmit}
+                  onCancel={() => setSelectedMedia(null)}
+                  mediaItem={selectedMedia}
+                />
+              )}
+            </div>
           </div>
         </div>,
         document.body
