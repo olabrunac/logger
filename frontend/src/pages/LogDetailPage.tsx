@@ -655,7 +655,7 @@ const LogDetailPage = () => {
                   onClick={(e) => { e.stopPropagation(); toggleAllAch(unlockedCount < achievements.length); }}
                   className="flex-shrink-0"
                 >
-                  {unlockedCount < achievements.length
+                  {unlockedCount === achievements.length
                     ? <CheckCircle2 size={20} style={{ color: 'var(--mdf-green)' }} />
                     : <Circle size={20} className="text-white/30 hover:text-white/50 transition-colors" />}
                 </button>
