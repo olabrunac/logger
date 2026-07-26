@@ -126,8 +126,21 @@ def _has_all_types(db: Session, user_id: int) -> bool:
 
 
 def _count_favorites(db: Session, user_id: int) -> int:
-    from app.models.media import LogEntry
-    return db.query(func.count(LogEntry.id)).filter(LogEntry.user_id == user_id, LogEntry.is_favorite == True).scalar()
+    from app.models.media import LogEntry, LogStatus
+    return (
+        db.query(func.count(LogEntry.id))
+        .filter(LogEntry.user_id == user_id, LogEntry.is_favorite == True, LogEntry.status.notin_([LogStatus.WISHLIST, LogStatus.SOON]))
+        .scalar()
+    )
+
+
+def _count_total_hours(db: Session, user_id: int) -> float:
+    from app.models.media import LogEntry, LogStatus
+    return (
+        db.query(func.coalesce(func.sum(LogEntry.hours_spent), 0))
+        .filter(LogEntry.user_id == user_id, LogEntry.status.notin_([LogStatus.WISHLIST, LogStatus.SOON]))
+        .scalar()
+    ) or 0
 
 
 def check_and_unlock(db: Session, user_id: int) -> List[dict]:
@@ -149,6 +162,7 @@ def check_and_unlock(db: Session, user_id: int) -> List[dict]:
     total = _total_logs(db, user_id)
     all_types = _has_all_types(db, user_id)
     fav_count = _count_favorites(db, user_id)
+    total_hours = _count_total_hours(db, user_id)
 
     checks = []
     for media_type in ["movie", "series", "game", "book"]:
@@ -176,6 +190,8 @@ def check_and_unlock(db: Session, user_id: int) -> List[dict]:
     checks.append(("fav_25", fav_count >= 25))
     checks.append(("fav_100", fav_count >= 100))
     checks.append(("fav_250", fav_count >= 250))
+    checks.append(("hours_332", total_hours >= 332))
+    checks.append(("hours_666", total_hours >= 666))
 
     for key, condition in checks:
         if condition and key not in unlocked_keys and key in BADGE_DEFS:
@@ -189,6 +205,15 @@ def check_and_unlock(db: Session, user_id: int) -> List[dict]:
                 "rarity": defn.rarity,
                 "unlocked_at": badge.unlocked_at.isoformat() if badge.unlocked_at else "",
             })
+
+    fav_remove_keys = []
+    fav_thresholds = [("fav_5", 5), ("fav_25", 25), ("fav_100", 100), ("fav_250", 250)]
+    for key, threshold in fav_thresholds:
+        if key in unlocked_keys and fav_count < threshold:
+            db.query(UserBadge).filter(UserBadge.user_id == user_id, UserBadge.badge_key == key).delete()
+            fav_remove_keys.append(key)
+    if fav_remove_keys:
+        db.commit()
 
     return new_badges
 
@@ -223,14 +248,7 @@ def get_user_badges_with_progress(db: Session, user_id: int) -> dict:
     follower_count = _count_followers(db, user_id)
     total = _total_logs(db, user_id)
     fav_count = _count_favorites(db, user_id)
-
-    progress_map = {
-        "movie": counts["movie"], "series": counts["series"],
-        "game": counts["game"], "book": counts["book"],
-        "platina": platina_count, "review": review_count,
-        "streak": streak, "follower": follower_count,
-        "total": total, "fav": fav_count,
-    }
+    total_hours = _count_total_hours(db, user_id)
 
     next_milestones = []
     media_thresholds = [10, 25, 50, 100, 250, 500, 1000, 2500, 5000]
@@ -277,7 +295,7 @@ def get_user_badges_with_progress(db: Session, user_id: int) -> dict:
             })
             break
 
-    for key in ["first_post", "first_log", "omnivoro", "total_100", "total_500", "total_1000"]:
+    for key in ["first_post", "first_log", "omnivoro", "total_100", "total_500", "total_1000", "hours_332", "hours_666"]:
         if key not in unlocked_keys and key in BADGE_DEFS:
             defn = BADGE_DEFS[key]
             if key == "omnivoro":
@@ -285,7 +303,7 @@ def get_user_badges_with_progress(db: Session, user_id: int) -> dict:
                     "key": key, "title": defn.title, "icon": defn.icon,
                     "category": defn.category,
                     "rarity": defn.rarity,
-                    "current": sum(1 for v in counts.values() if v > 0), "target": 4,
+                    "current": sum(1 for mt in ["movie", "series", "game", "book"] if counts[mt] > 0), "target": 4,
                 })
             elif key == "first_post":
                 next_milestones.append({
@@ -293,6 +311,13 @@ def get_user_badges_with_progress(db: Session, user_id: int) -> dict:
                     "category": defn.category,
                     "rarity": defn.rarity,
                     "current": 0 if not _has_posts(db, user_id) else 1, "target": 1,
+                })
+            elif key.startswith("hours_"):
+                next_milestones.append({
+                    "key": key, "title": defn.title, "icon": defn.icon,
+                    "category": defn.category,
+                    "rarity": defn.rarity,
+                    "current": total_hours, "target": defn.threshold,
                 })
             else:
                 next_milestones.append({
