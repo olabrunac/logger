@@ -3,7 +3,8 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from app.api import deps
-from app.crud import crud_post, crud_user
+from app.crud import crud_post
+from app.crud.crud_user import user as crud_user
 from app.models.user import User
 
 router = APIRouter()
@@ -23,7 +24,7 @@ def create_post(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     post = crud_post.create_post(db, user_id=user_id, content=content)
-    return _post_response(post, db)
+    return _post_response(post, db, current_user_id=user_id)
 
 
 @router.post("/posts/{post_id}/reply")
@@ -55,7 +56,7 @@ def get_feed(
     offset: int = 0,
 ):
     posts = crud_post.get_feed(db, user_id=user_id, limit=limit, offset=offset)
-    return [_post_response(p, db) for p in posts]
+    return [_post_response(p, db, current_user_id=user_id) for p in posts]
 
 
 @router.get("/posts/user/{target_user_id}")
@@ -63,10 +64,11 @@ def get_user_posts(
     *,
     db: Session = Depends(deps.get_db),
     target_user_id: int,
+    current_user_id: int = None,
     limit: int = 50,
 ):
     posts = crud_post.get_user_posts(db, user_id=target_user_id, limit=limit)
-    return [_post_response(p, db) for p in posts]
+    return [_post_response(p, db, current_user_id=current_user_id) for p in posts]
 
 
 @router.get("/posts/{post_id}/replies")
@@ -122,7 +124,35 @@ async def upload_post_image(
     return {"url": f"/uploads/{filename}", "is_gif": is_gif}
 
 
-def _post_response(post, db):
+@router.post("/posts/{post_id}/like")
+def like_post(
+    *,
+    db: Session = Depends(deps.get_db),
+    post_id: int,
+    user_id: int,
+):
+    post = crud_post.get_post(db, post_id=post_id)
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    crud_post.like_post(db, post_id=post_id, user_id=user_id)
+    return {"liked": True, "likes_count": crud_post.get_likes_count(db, post_id)}
+
+
+@router.delete("/posts/{post_id}/like")
+def unlike_post(
+    *,
+    db: Session = Depends(deps.get_db),
+    post_id: int,
+    user_id: int,
+):
+    post = crud_post.get_post(db, post_id=post_id)
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    crud_post.unlike_post(db, post_id=post_id, user_id=user_id)
+    return {"liked": False, "likes_count": crud_post.get_likes_count(db, post_id)}
+
+
+def _post_response(post, db, current_user_id: int = None):
     user = crud_user.get(db, id=post.user_id)
     images = [{"id": img.id, "url": img.url, "is_gif": img.is_gif, "position": img.position} for img in post.images]
     return {
@@ -133,6 +163,8 @@ def _post_response(post, db):
         "content": post.content,
         "images": images,
         "replies_count": crud_post.get_replies_count(db, post.id),
+        "likes_count": crud_post.get_likes_count(db, post.id),
+        "is_liked": crud_post.has_liked(db, post.id, current_user_id) if current_user_id else False,
         "created_at": post.created_at.isoformat() if post.created_at else "",
     }
 

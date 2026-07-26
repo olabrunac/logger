@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import api, { uploadFile } from '../services/api';
 import type { User } from '../types';
 import { getStars, TYPE_META, STATUS_COLORS, STATUS_ICONS } from '../constants/designSystem';
-import { Send, Image as ImageIcon, X, MessageCircle, Trash2, Clock, Heart } from 'lucide-react';
+import { Send, Image as ImageIcon, X, MessageCircle, Trash2, Clock, Heart, ThumbsUp } from 'lucide-react';
 
 interface TimelinePageProps {
   user: User;
@@ -34,6 +34,8 @@ interface Post {
   content: string;
   images: PostImage[];
   replies_count: number;
+  likes_count: number;
+  is_liked: boolean;
   created_at: string;
   _type: 'post';
 }
@@ -63,11 +65,12 @@ const statusLabels: Record<string, string> = {
   wishlist: 'quer jogar',
 };
 
-const PostCard = ({ post, currentUser, onReply, onDelete }: {
+const PostCard = ({ post, currentUser, onReply, onDelete, onLike }: {
   post: Post;
   currentUser: User;
   onReply: (postId: number, content: string) => Promise<void>;
   onDelete: (postId: number) => void;
+  onLike: (postId: number) => void;
 }) => {
   const [showReplies, setShowReplies] = useState(false);
   const [replies, setReplies] = useState<PostReply[]>([]);
@@ -154,6 +157,10 @@ const PostCard = ({ post, currentUser, onReply, onDelete }: {
         <button onClick={toggleReplies} className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition-colors">
           <MessageCircle size={14} />
           {post.replies_count > 0 ? `${post.replies_count} resposta${post.replies_count > 1 ? 's' : ''}` : 'Responder'}
+        </button>
+        <button onClick={() => onLike(post.id)} className="flex items-center gap-1.5 text-xs transition-colors" style={{ color: post.is_liked ? 'var(--accent)' : 'rgba(255,255,255,0.4)' }}>
+          <ThumbsUp size={14} fill={post.is_liked ? 'currentColor' : 'none'} />
+          {post.likes_count > 0 ? post.likes_count : 'Curtir'}
         </button>
       </div>
 
@@ -405,6 +412,30 @@ const TimelinePage = ({ user }: TimelinePageProps) => {
     } catch {}
   };
 
+  const handleLike = async (postId: number) => {
+    const post = posts.find(p => p.id === postId);
+    if (!post) return;
+    const wasLiked = post.is_liked;
+    setPosts(prev => prev.map(p => p.id === postId ? {
+      ...p,
+      is_liked: !wasLiked,
+      likes_count: wasLiked ? p.likes_count - 1 : p.likes_count + 1,
+    } : p));
+    try {
+      if (wasLiked) {
+        await api.delete(`/posts/posts/${postId}/like`, { params: { user_id: user.id } });
+      } else {
+        await api.post(`/posts/posts/${postId}/like`, null, { params: { user_id: user.id } });
+      }
+    } catch {
+      setPosts(prev => prev.map(p => p.id === postId ? {
+        ...p,
+        is_liked: wasLiked,
+        likes_count: wasLiked ? p.likes_count + 1 : p.likes_count - 1,
+      } : p));
+    }
+  };
+
   const merged: FeedItem[] = [
     ...posts.map(p => ({ ...p, _sortDate: new Date(p.created_at).getTime() } as FeedItem & { _sortDate: number })),
     ...entries.filter(e => e.log_date).map(e => ({ ...e, _sortDate: new Date(e.log_date!).getTime() } as FeedItem & { _sortDate: number })),
@@ -495,7 +526,7 @@ const TimelinePage = ({ user }: TimelinePageProps) => {
         <div className="space-y-3">
           {merged.map((item) =>
             item._type === 'post' ? (
-              <PostCard key={`post-${item.id}`} post={item as Post} currentUser={user} onReply={handleReply} onDelete={handleDelete} />
+              <PostCard key={`post-${item.id}`} post={item as Post} currentUser={user} onReply={handleReply} onDelete={handleDelete} onLike={handleLike} />
             ) : (
               <LogCard key={`log-${item.id}`} entry={item as TimelineEntry} />
             )
