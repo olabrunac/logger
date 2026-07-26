@@ -59,9 +59,20 @@ const BadgeItem = ({ icon, title, rarity, description, isUnlocked, badgeCount, p
 
   return (
     <div
-      className={`group flex w-full flex-col items-center gap-1 rounded-xl p-1.5 transition-colors ${!isUnlocked ? 'opacity-60' : ''}`}
-      title={description}
+      className={`group relative flex w-full flex-col items-center gap-1 rounded-xl p-1.5 transition-colors ${!isUnlocked ? 'opacity-60' : ''}`}
     >
+      <div className="absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg border px-3 py-2 text-left opacity-0 shadow-lg transition-opacity duration-150 pointer-events-none group-hover:opacity-100"
+        style={{ background: '#1C2127', borderColor: 'rgba(255,255,255,0.08)' }}>
+        <div className="flex items-center gap-2 mb-1">
+          <BadgeIcon name={icon} className="h-4 w-4" style={{ color: hex }} />
+          <span className="text-xs font-bold text-white">{title}</span>
+        </div>
+        <div className="text-[11px] text-white/60">{description}</div>
+        <div className="mt-1 flex items-center gap-1.5">
+          <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: hex }} />
+          <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: hex }}>{rarityLabel}</span>
+        </div>
+      </div>
       <div className="relative">
         <div
           className="flex h-11 w-11 items-center justify-center rounded-full transition-transform group-hover:scale-105"
