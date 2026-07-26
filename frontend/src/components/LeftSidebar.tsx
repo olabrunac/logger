@@ -30,6 +30,12 @@ const LeftSidebar = ({ user }: LeftSidebarProps) => {
       className="fixed top-0 left-0 h-screen w-[203px] flex flex-col z-40 border-r"
       style={{ background: 'var(--mdf-bg)', borderColor: 'var(--border)' }}
     >
+      {/* Logo */}
+      <Link to="/" className="flex items-center px-5 h-12 flex-shrink-0 border-b transition-colors hover:bg-white/[0.03]"
+        style={{ borderColor: 'var(--border)' }}>
+        <div className="font-display font-black tracking-tight text-base" style={{ color: 'var(--accent)' }}>LOGGER</div>
+      </Link>
+
       {/* Profile Section */}
       <Link
         to={`/profile/${user.username}`}
