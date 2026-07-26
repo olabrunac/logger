@@ -48,23 +48,25 @@ for t in [7, 30, 90, 180, 365, 730, 1095]:
     names = {7: ("Fogo Aceso", "7 dias seguidos com log"), 30: ("Em Chamas", "30 dias seguidos com log"), 90: ("Incombustível", "90 dias seguidos com log"), 180: ("Eterno", "180 dias seguidos com log"), 365: ("Lenda Viva", "365 dias seguidos com log"), 730: ("Imortal", "730 dias seguidos com log"), 1095: ("Arcano", "1.095 dias seguidos com log")}
     _reg(BadgeDef(f"streak_{t}", names[t][0], names[t][1], "Flame", "streak", t, rarity={7: "bronze", 30: "prata", 90: "ouro", 180: "diamante", 365: "lendario", 730: "imortal", 1095: "arcano"}[t]))
 
-_reg(BadgeDef("first_follower", "Primeiro Seguidor", "Tem 1 seguidor", "UserPlus", "social", 1, rarity="bronze"))
+_reg(BadgeDef("first_follower", "Primeiro Seguidor", "Tem 1 seguidor", "UserPlus", "social", 1, rarity="celestial"))
 _reg(BadgeDef("10_followers", "Popular", "Tem 10 seguidores", "Users", "social", 10, rarity="prata"))
 _reg(BadgeDef("50_followers", "Influencer", "Tem 50 seguidores", "Users", "social", 50, rarity="ouro"))
 _reg(BadgeDef("100_followers", "Celebridade", "Tem 100 seguidores", "Users", "social", 100, rarity="diamante"))
 _reg(BadgeDef("250_followers", "Lenda Social", "Tem 250 seguidores", "Users", "social", 250, rarity="lendario"))
 _reg(BadgeDef("500_followers", "Ícone", "Tem 500 seguidores", "Users", "social", 500, rarity="imortal"))
-_reg(BadgeDef("first_post", "Primeira Postagem", "Fez 1º post na timeline", "MessageCircle", "social", 1, rarity="bronze"))
+_reg(BadgeDef("first_post", "Primeira Postagem", "Fez 1º post na timeline", "MessageCircle", "social", 1, rarity="celestial"))
 
-_reg(BadgeDef("first_log", "Primeiro Log", "Criou seu 1º log", "Target", "general", 1, rarity="bronze"))
+_reg(BadgeDef("first_log", "Primeiro Log", "Criou seu 1º log", "Target", "general", 1, rarity="celestial"))
 _reg(BadgeDef("total_100", "Dedicado", "100 logs no total", "Award", "general", 100, rarity="diamante"))
 _reg(BadgeDef("total_500", "Obsecado", "500 logs no total", "Award", "general", 500, rarity="imortal"))
 _reg(BadgeDef("total_1000", "Lenda Viva", "1.000 logs no total", "Award", "general", 1000, rarity="arcano"))
-_reg(BadgeDef("omnivoro", "Omnívoro", "Tem logs de filmes, séries, jogos e livros", "Compass", "general", 1, rarity="prata"))
+_reg(BadgeDef("omnivoro", "Omnívoro", "Tem logs de filmes, séries, jogos e livros", "Compass", "general", 1, rarity="celestial"))
 _reg(BadgeDef("fav_5", "Fã de Coração", "5 favoritos", "Heart", "general", 5, rarity="prata"))
 _reg(BadgeDef("fav_25", "Colecionador", "25 favoritos", "Heart", "general", 25, rarity="ouro"))
 _reg(BadgeDef("fav_100", "Colecionador Expert", "100 favoritos", "Heart", "general", 100, rarity="diamante"))
 _reg(BadgeDef("fav_250", "Colecionador Lenda", "250 favoritos", "Heart", "general", 250, rarity="lendario"))
+_reg(BadgeDef("hours_332", "332 Horas", "332 horas de mídia total", "Clock", "general", 332, rarity="celestial"))
+_reg(BadgeDef("hours_666", "666 Horas", "666 horas de mídia total", "Flame", "general", 666, rarity="cosmico"))
 
 BADGE_CATEGORIES = {
     "special": "Especial",

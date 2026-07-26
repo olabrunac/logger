@@ -1,7 +1,7 @@
 import { useEffect, useState, type ComponentType } from 'react';
 import {
   Wrench, Film, Tv, Gamepad2, BookOpen, Trophy, Star, Flame,
-  Users, UserPlus, MessageCircle, Target, Award, Heart, Compass,
+  Users, UserPlus, MessageCircle, Target, Award, Heart, Compass, Clock,
 } from 'lucide-react';
 import { getUserBadges } from '../../services/api';
 import type { UserBadge, BadgeResponse } from '../../types';
@@ -12,7 +12,7 @@ interface BadgesSectionProps {
 
 const ICON_MAP: Record<string, ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
   Wrench, Film, Tv, Gamepad2, BookOpen, Trophy, Star, Flame,
-  Users, UserPlus, MessageCircle, Target, Award, Heart, Compass,
+  Users, UserPlus, MessageCircle, Target, Award, Heart, Compass, Clock,
 };
 
 const RARITY_LABELS: Record<string, string> = {
