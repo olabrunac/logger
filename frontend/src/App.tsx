@@ -11,7 +11,6 @@ import ListsPage from './pages/ListsPage';
 import DiaryPage from './pages/DiaryPage';
 import ReviewsPage from './pages/ReviewsPage';
 import TimelinePage from './pages/TimelinePage';
-import ActivityPage from './pages/ActivityPage';
 import LeftSidebar from './components/LeftSidebar';
 import RightSidebar from './components/RightSidebar';
 import FloatingLogButton from './components/FloatingLogButton';
@@ -141,12 +140,6 @@ function App() {
               path="/timeline"
               element={
                 user ? <TimelinePage user={user} /> : <Navigate to="/login" />
-              }
-            />
-            <Route
-              path="/activity"
-              element={
-                user ? <ActivityPage user={user} /> : <Navigate to="/login" />
               }
             />
             <Route

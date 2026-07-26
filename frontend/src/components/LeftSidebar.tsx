@@ -1,5 +1,5 @@
 import { NavLink, Link, useLocation } from 'react-router-dom';
-import { Home, Calendar, List, BookOpen, Settings, MessageSquare, Clock, LogOut, Activity } from 'lucide-react';
+import { Home, Calendar, List, BookOpen, Settings, MessageSquare, Clock, LogOut } from 'lucide-react';
 import type { User as UserType } from '../types';
 
 interface LeftSidebarProps {
@@ -17,7 +17,6 @@ const LeftSidebar = ({ user, onLogout }: LeftSidebarProps) => {
   const navItems = [
     { path: profileBase, label: 'Inicio', icon: Home, exact: true },
     { path: '/timeline', label: 'Timeline', icon: Clock, exact: true },
-    { path: '/activity', label: 'Atividade', icon: Activity, exact: true },
     { path: `${profileBase}/calendar`, label: 'Calendario', icon: Calendar, exact: true },
     { path: `${profileBase}/lists`, label: 'Listas', icon: List, exact: true },
     { path: `${profileBase}/diary`, label: 'Diario', icon: BookOpen, exact: true },
