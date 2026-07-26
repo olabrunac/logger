@@ -144,9 +144,7 @@ const RightSidebar = ({ user, isCollapsed, onToggleCollapse }: RightSidebarProps
         </div>
 
         <div className="mdf-card p-3">
-          <h4 className="font-display font-semibold text-xs mb-1" style={{ color: 'var(--text-primary)' }}>
-            Conquistas e Medalhas
-          </h4>
+          <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-2">Conquistas e Medalhas</div>
           <div className="text-[11px] text-white/40 py-2 text-center">Em breve...</div>
         </div>
       </div>
