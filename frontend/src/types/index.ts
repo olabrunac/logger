@@ -106,6 +106,7 @@ export interface UserBadge {
   description: string;
   icon: string;
   category: string;
+  rarity: string;
   unlocked_at: string;
 }
 
@@ -114,6 +115,7 @@ export interface BadgeProgress {
   title: string;
   icon: string;
   category: string;
+  rarity: string;
   current: number;
   target: number;
 }
