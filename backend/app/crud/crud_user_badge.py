@@ -51,7 +51,10 @@ def _count_reviews(db: Session, user_id: int) -> int:
     from app.models.media import LogEntry
     return (
         db.query(func.count(LogEntry.id))
-        .filter(LogEntry.user_id == user_id, LogEntry.rating.isnot(None), LogEntry.rating > 0)
+        .filter(
+            LogEntry.user_id == user_id,
+            ((LogEntry.rating.isnot(None) & (LogEntry.rating > 0)) | (LogEntry.review.isnot(None) & (LogEntry.review != "")))
+        )
         .scalar()
     )
 
@@ -76,16 +79,18 @@ def _calc_streak(db: Session, user_id: int) -> int:
     today = datetime.utcnow().date()
     streak = 0
     expected = today
+    first = True
     for d in dates:
         if d == expected:
             streak += 1
             expected -= timedelta(days=1)
-        elif d == expected - timedelta(days=1):
+        elif first and d == expected - timedelta(days=1):
             expected = d
             streak += 1
             expected -= timedelta(days=1)
         else:
             break
+        first = False
     return streak
 
 
@@ -100,16 +105,20 @@ def _has_posts(db: Session, user_id: int) -> bool:
 
 
 def _total_logs(db: Session, user_id: int) -> int:
-    from app.models.media import LogEntry
-    return db.query(func.count(LogEntry.id)).filter(LogEntry.user_id == user_id).scalar()
+    from app.models.media import LogEntry, LogStatus
+    return (
+        db.query(func.count(LogEntry.id))
+        .filter(LogEntry.user_id == user_id, LogEntry.status.notin_([LogStatus.WISHLIST, LogStatus.SOON]))
+        .scalar()
+    )
 
 
 def _has_all_types(db: Session, user_id: int) -> bool:
-    from app.models.media import LogEntry, MediaItem
+    from app.models.media import LogEntry, LogStatus, MediaItem
     types = (
         db.query(MediaItem.media_type)
         .join(LogEntry, LogEntry.media_item_id == MediaItem.id)
-        .filter(LogEntry.user_id == user_id)
+        .filter(LogEntry.user_id == user_id, LogEntry.status.notin_([LogStatus.WISHLIST, LogStatus.SOON]))
         .distinct()
         .all()
     )

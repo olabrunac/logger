@@ -390,6 +390,8 @@ def update_log_entry(*, db: Session = Depends(deps.get_db), log_id: int, updates
                 existing_log.status = LogStatus.IN_PROGRESS
             elif new_status == 'dropped':
                 existing_log.status = LogStatus.DROPPED
+            elif new_status == 'platinated':
+                existing_log.status = LogStatus.PLATINATED
             if update_data.get('rating'):
                 existing_log.rating = update_data['rating']
             if update_data.get('hours_spent'):
