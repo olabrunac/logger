@@ -88,4 +88,8 @@ export const checkBadges = (userId: number) => {
   return api.post(`/badges/check/${userId}`);
 };
 
+export const getLogsReviewsBatch = (logIds: number[]) => {
+  return api.post('/media/logs/reviews-batch', logIds);
+};
+
 export default api;

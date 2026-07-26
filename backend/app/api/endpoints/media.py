@@ -351,6 +351,22 @@ def read_log_reviews(*, db: Session = Depends(deps.get_db), log_id: int) -> Any:
     reviews = db.query(LogReview).filter(LogReview.log_id == log_id).order_by(LogReview.created_at.desc()).all()
     return reviews
 
+
+@router.post("/logs/reviews-batch")
+def read_logs_reviews_batch(*, db: Session = Depends(deps.get_db), log_ids: List[int]) -> Any:
+    if not log_ids:
+        return {}
+    reviews = (
+        db.query(LogReview)
+        .filter(LogReview.log_id.in_(log_ids))
+        .order_by(LogReview.created_at.desc())
+        .all()
+    )
+    result: dict[int, list] = {lid: [] for lid in log_ids}
+    for r in reviews:
+        result[r.log_id].append(schemas.LogReviewInDB.model_validate(r).model_dump())
+    return result
+
 @router.put("/logs/{log_id}", response_model=schemas.LogEntryInDB)
 def update_log_entry(*, db: Session = Depends(deps.get_db), log_id: int, updates: schemas.LogEntryUpdate) -> Any:
     log = crud.log_entry.get(db, id=log_id)

@@ -42,19 +42,14 @@ const ReviewsPage = ({ currentUser }: ReviewsPageProps) => {
       setLogs(allLogs);
 
       const reviewLogs = allLogs.filter((l: LogEntry) => l.review && l.review.trim().length > 0);
-      const results = await Promise.all(
-        reviewLogs.map(async (l: LogEntry) => {
-          try {
-            const r = await api.get(`/media/logs/${l.id}/reviews`);
-            return { logId: l.id, reviews: r.data || [] };
-          } catch {
-            return { logId: l.id, reviews: [] };
-          }
-        })
-      );
-      const map = new Map<number, LogReview[]>();
-      results.forEach(({ logId, reviews }) => { if (reviews.length > 0) map.set(logId, reviews); });
-      setReviewMap(map);
+      if (reviewLogs.length > 0) {
+        const r = await api.post('/media/logs/reviews-batch', reviewLogs.map((l: LogEntry) => l.id));
+        const map = new Map<number, LogReview[]>();
+        Object.entries(r.data).forEach(([logId, reviews]) => {
+          if ((reviews as LogReview[]).length > 0) map.set(Number(logId), reviews as LogReview[]);
+        });
+        setReviewMap(map);
+      }
     } catch (err) {
       console.error('Failed to fetch reviews', err);
     } finally {

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey, Boolean, UniqueConstraint
 from sqlalchemy.orm import relationship
 from app.db.base import Base
 import datetime
@@ -51,4 +51,4 @@ class PostLike(Base):
     user_id = Column(Integer, ForeignKey("user.id"), nullable=False, index=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
-    __table_args__ = ({"unique_together": ("post_id", "user_id")},)
+    __table_args__ = (UniqueConstraint("post_id", "user_id", name="uq_postlike_post_user"),)
