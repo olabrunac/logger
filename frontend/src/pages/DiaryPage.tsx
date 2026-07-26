@@ -5,17 +5,11 @@ import type { LogEntry, MediaType } from '../types';
 import { Heart } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { TYPE_META } from '../constants/designSystem';
 
 interface DiaryPageProps {
   user: { id: number; username: string };
 }
-
-const TYPE_META: Record<MediaType, { color: string }> = {
-  movie: { color: '#fbbf24' },
-  series: { color: '#ef4444' },
-  game: { color: '#60a5fa' },
-  book: { color: '#4ade80' },
-};
 
 const FILTERS: { key: MediaType | 'all'; label: string }[] = [
   { key: 'all', label: 'Tudo' },

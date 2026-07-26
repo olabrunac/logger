@@ -214,7 +214,7 @@ main {
   position: relative;
   width: 100%;
   height: 300px;
-  background: linear-gradient(135deg, #14181C 0%, #1C2127 50%, #0A0C10 100%);
+  background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-card) 50%, var(--bg) 100%);
   border-radius: 0 0 var(--radius-lg) var(--radius-lg);
   overflow: hidden;
 }
@@ -253,7 +253,7 @@ main {
   width: 128px;
   height: 128px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent), #FA3380);
+  background: linear-gradient(135deg, var(--accent), var(--pink));
   border: 4px solid var(--bg);
   display: flex;
   align-items: center;
@@ -636,7 +636,7 @@ main {
   position: relative;
   width: 100%;
   height: 160px;
-  background: linear-gradient(135deg, #14181C 0%, #1C2127 50%, #0A0C10 100%);
+  background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-card) 50%, var(--bg) 100%);
   border-radius: var(--radius-lg);
   overflow: hidden;
   margin-bottom: 2rem;
@@ -1221,7 +1221,7 @@ main {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(10, 12, 16, 0.8);
+  background: rgba(10, 12, 16, 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   display: flex;

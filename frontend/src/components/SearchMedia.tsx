@@ -135,7 +135,7 @@ const SearchMedia = ({ onSelectMedia, initialMediaType }: SearchMediaProps) => {
             className="form-input"
             style={{ flex: 1 }}
           />
-          <button type="submit" disabled={isLoading || (!query.trim() && !isbn.trim())} className="btn btn-primary" style={{ whiteSpace: 'nowrap' }}>
+          <button type="submit" disabled={isLoading || (!query.trim() && !isbn.trim())} className="mdf-btn-primary" style={{ whiteSpace: 'nowrap' }}>
             Buscar
           </button>
         </div>
@@ -174,10 +174,10 @@ const SearchMedia = ({ onSelectMedia, initialMediaType }: SearchMediaProps) => {
       {error && (
         <div style={{
           padding: '0.75rem 1rem',
-          background: 'rgba(248, 113, 113, 0.15)',
+          background: 'var(--error-bg-strong)',
           border: '1px solid rgba(248, 113, 113, 0.3)',
           borderRadius: 'var(--radius-sm)',
-          color: '#fca5a5',
+          color: 'var(--error-text)',
           fontSize: '0.875rem',
         }}>
           {error}

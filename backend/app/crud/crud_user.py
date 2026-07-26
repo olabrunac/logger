@@ -1,11 +1,18 @@
 from typing import Optional
+import bcrypt
 from sqlalchemy.orm import Session
-from passlib.context import CryptContext
 from app.crud.base import CRUDBase
 from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def hash_password(password: str) -> str:
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
+
 
 class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
     def get_by_username(self, db: Session, *, username: str) -> Optional[User]:
@@ -18,7 +25,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         db_obj = User(
             username=obj_in.username,
             email=obj_in.email,
-            password_hash=pwd_context.hash(obj_in.password),
+            password_hash=hash_password(obj_in.password),
         )
         db.add(db_obj)
         db.commit()
@@ -26,9 +33,9 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         return db_obj
 
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:
-        return pwd_context.verify(plain_password, hashed_password)
+        return verify_password(plain_password, hashed_password)
 
     def hash_password(self, password: str) -> str:
-        return pwd_context.hash(password)
+        return hash_password(password)
 
 user = CRUDUser(User)

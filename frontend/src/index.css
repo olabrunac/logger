@@ -31,6 +31,10 @@
   --yellow: #F5C518;
   --yellow-bg: rgba(245, 197, 24, 0.12);
   --error: #f87171;
+  --error-bg: rgba(248, 113, 113, 0.1);
+  --error-bg-strong: rgba(248, 113, 113, 0.15);
+  --error-text: #fca5a5;
+  --purple: #a855f7;
   --rating-gold: #F5C518;
   --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   --shadow-hover: 0 20px 60px rgba(0, 0, 0, 0.5);
@@ -154,7 +158,7 @@ ul {
 }
 
 .mdf-glass {
-  background: rgba(10, 12, 16, 0.7);
+  background: rgba(10, 12, 16, 0.85);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border-bottom: 1px solid var(--border);
