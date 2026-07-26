@@ -1,21 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ComponentType } from 'react';
+import {
+  Wrench, Film, Tv, Gamepad2, BookOpen, Trophy, Star, Flame,
+  Users, UserPlus, MessageCircle, Target, Award, Heart, Compass,
+} from 'lucide-react';
 import { getUserBadges } from '../../services/api';
-import type { UserBadge, BadgeProgress, BadgeResponse } from '../../types';
+import type { UserBadge, BadgeResponse } from '../../types';
 
 interface BadgesSectionProps {
   userId: number;
 }
 
-const CATEGORY_ORDER = ["special", "media", "platinum", "reviews", "streak", "social", "general"];
-
-const CATEGORY_LABELS: Record<string, string> = {
-  special: "Especial",
-  media: "Por Tipo de Mídia",
-  platinum: "Platina",
-  reviews: "Reviews",
-  streak: "Sequência",
-  social: "Social",
-  general: "Gerais",
+const ICON_MAP: Record<string, ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
+  Wrench, Film, Tv, Gamepad2, BookOpen, Trophy, Star, Flame,
+  Users, UserPlus, MessageCircle, Target, Award, Heart, Compass,
 };
 
 const RARITY_LABELS: Record<string, string> = {
@@ -35,6 +32,70 @@ const hexToRgb = (hex: string) => {
   return `${r},${g},${b}`;
 };
 
+const BadgeIcon = ({ name, className, style }: { name: string; className?: string; style?: React.CSSProperties }) => {
+  const Icon = ICON_MAP[name];
+  if (!Icon) return <span className={className}>?</span>;
+  return <Icon className={className} style={style} />;
+};
+
+interface BadgeItemProps {
+  icon: string;
+  title: string;
+  rarity: string;
+  description?: string;
+  isUnlocked: boolean;
+  badgeCount?: number;
+  progressCurrent?: number;
+  progressTarget?: number;
+}
+
+const BadgeItem = ({ icon, title, rarity, description, isUnlocked, badgeCount, progressCurrent, progressTarget }: BadgeItemProps) => {
+  const hex = isUnlocked ? (RARITY_HEX[rarity] || RARITY_HEX.bronze) : "#3F4555";
+  const rgb = hexToRgb(hex);
+  const rarityLabel = RARITY_LABELS[rarity] || rarity;
+  const progressLabel = progressTarget != null
+    ? progressTarget > 999 ? `${(progressTarget / 1000).toFixed(progressTarget % 1000 === 0 ? 0 : 1)}k` : String(progressTarget)
+    : null;
+
+  return (
+    <div
+      className={`group flex w-full flex-col items-center gap-1 rounded-xl p-1.5 transition-colors ${!isUnlocked ? 'opacity-60' : ''}`}
+      title={description}
+    >
+      <div className="relative">
+        <div
+          className="flex h-11 w-11 items-center justify-center rounded-full transition-transform group-hover:scale-105"
+          style={{ background: isUnlocked ? `rgba(${rgb}, 0.133)` : 'transparent', boxShadow: `${hex} 0px 0px 0px 2px` }}
+        >
+          <BadgeIcon name={icon} className={`h-5 w-5 ${!isUnlocked ? 'opacity-40' : ''}`} style={{ color: hex }} />
+        </div>
+        {badgeCount != null && badgeCount > 1 && (
+          <span
+            className="absolute -bottom-1 -right-1 inline-flex min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold tabular-nums ring-2 ring-[#14181C]"
+            style={{ background: '#14181C', color: hex }}
+          >
+            x{badgeCount}
+          </span>
+        )}
+        {!isUnlocked && progressLabel && (
+          <span
+            className="absolute -bottom-1 -right-1 inline-flex min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold tabular-nums ring-2 ring-[#14181C]"
+            style={{ background: '#14181C', color: hex }}
+          >
+            {progressCurrent}/{progressLabel}
+          </span>
+        )}
+      </div>
+      <span className="line-clamp-1 text-[10px] font-bold leading-none text-white">
+        {title}
+      </span>
+      <span className="text-[8px] font-semibold uppercase leading-none tracking-wider" style={{ color: hex }}>
+        {rarityLabel}
+      </span>
+    </div>
+  );
+};
+
 const BadgesSection = ({ userId }: BadgesSectionProps) => {
   const [data, setData] = useState<BadgeResponse | null>(null);
 
@@ -43,111 +104,57 @@ const BadgesSection = ({ userId }: BadgesSectionProps) => {
   }, [userId]);
 
   if (!data) return null;
-
-  const unlockedByCategory: Record<string, UserBadge[]> = {};
-  data.unlocked.forEach((b: UserBadge) => {
-    if (!unlockedByCategory[b.category]) unlockedByCategory[b.category] = [];
-    unlockedByCategory[b.category].push(b);
-  });
-
-  const milestonesByCategory: Record<string, BadgeProgress[]> = {};
-  data.next_milestones.forEach((m: BadgeProgress) => {
-    if (!milestonesByCategory[m.category]) milestonesByCategory[m.category] = [];
-    milestonesByCategory[m.category].push(m);
-  });
-
-  const categories = CATEGORY_ORDER.filter(c => unlockedByCategory[c] || milestonesByCategory[c]);
-
   if (data.unlocked.length === 0 && data.next_milestones.length === 0) return null;
 
+  const unlockedKeys = new Set(data.unlocked.map((b: UserBadge) => b.key));
+
+  const items: Array<{ key: string; icon: string; title: string; rarity: string; description: string; isUnlocked: boolean; badgeCount?: number; progressCurrent?: number; progressTarget?: number; sortPriority: number }> = [];
+
+  for (const badge of data.unlocked) {
+    items.push({
+      key: badge.key,
+      icon: badge.icon,
+      title: badge.title,
+      rarity: badge.rarity,
+      description: badge.description,
+      isUnlocked: true,
+      sortPriority: 0,
+    });
+  }
+
+  for (const m of data.next_milestones) {
+    if (!unlockedKeys.has(m.key)) {
+      items.push({
+        key: m.key,
+        icon: m.icon,
+        title: m.title,
+        rarity: m.rarity,
+        description: `${m.current}/${m.target}`,
+        isUnlocked: false,
+        progressCurrent: m.current,
+        progressTarget: m.target,
+        sortPriority: 1,
+      });
+    }
+  }
+
+  items.sort((a, b) => a.sortPriority - b.sortPriority);
+
   return (
-    <div className="flex flex-col gap-3">
-      {categories.map(cat => {
-        const unlocked = unlockedByCategory[cat] || [];
-        const milestones = milestonesByCategory[cat] || [];
-        return (
-          <div key={cat}>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-1.5">
-              {CATEGORY_LABELS[cat] || cat}
-            </div>
-            <div className="flex flex-col gap-1.5">
-              {unlocked.length > 0 && (
-                <div className="grid grid-cols-5 gap-1.5">
-                  {unlocked.map((badge) => {
-                    const hex = RARITY_HEX[badge.rarity] || RARITY_HEX.bronze;
-                    const rgb = hexToRgb(hex);
-                    const rarityLabel = RARITY_LABELS[badge.rarity] || badge.rarity;
-                    return (
-                      <div
-                        key={badge.key}
-                        className="group flex w-full flex-col items-center gap-1 rounded-xl p-1.5 transition-colors"
-                        title={badge.description}
-                      >
-                        <div className="relative">
-                          <div
-                            className="flex h-11 w-11 items-center justify-center rounded-full transition-transform group-hover:scale-105"
-                            style={{ background: `rgba(${rgb}, 0.133)`, boxShadow: `${hex} 0px 0px 0px 2px` }}
-                          >
-                            <span className="text-xl">{badge.icon}</span>
-                          </div>
-                        </div>
-                        <span className="line-clamp-1 text-[10px] font-bold leading-none text-white">
-                          {badge.title}
-                        </span>
-                        <span className="text-[8px] font-semibold uppercase leading-none tracking-wider" style={{ color: hex }}>
-                          {rarityLabel}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-              {milestones.length > 0 && (
-                <div className="grid grid-cols-5 gap-1.5">
-                  {milestones.map((m) => {
-                    const pct = Math.min((m.current / m.target) * 100, 100);
-                    const isUnlocked = pct >= 100;
-                    const hex = isUnlocked ? (RARITY_HEX[m.rarity] || RARITY_HEX.bronze) : "#3F4555";
-                    const rgb = hexToRgb(hex);
-                    const rarityLabel = RARITY_LABELS[m.rarity] || m.rarity;
-                    const label = m.target > 999 ? `${(m.target / 1000).toFixed(m.target % 1000 === 0 ? 0 : 1)}k` : String(m.target);
-                    return (
-                      <div
-                        key={m.key}
-                        className={`group flex w-full flex-col items-center gap-1 rounded-xl p-1.5 transition-colors ${!isUnlocked ? 'opacity-60' : ''}`}
-                        title={`${m.title} — ${m.current}/${m.target}`}
-                      >
-                        <div className="relative">
-                          <div
-                            className="flex h-11 w-11 items-center justify-center rounded-full transition-transform"
-                            style={{ background: isUnlocked ? `rgba(${rgb}, 0.133)` : 'transparent', boxShadow: `${hex} 0px 0px 0px 2px` }}
-                          >
-                            <span className={`text-xl ${!isUnlocked ? 'opacity-40' : ''}`}>{m.icon}</span>
-                          </div>
-                          {!isUnlocked && (
-                            <span
-                              className="absolute -bottom-1 -right-1 inline-flex min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold tabular-nums ring-2 ring-[#14181C]"
-                              style={{ background: '#14181C', color: hex }}
-                            >
-                              {m.current}/{label}
-                            </span>
-                          )}
-                        </div>
-                        <span className="line-clamp-1 text-[10px] font-bold leading-none text-white">
-                          {m.title}
-                        </span>
-                        <span className="text-[8px] font-semibold uppercase leading-none tracking-wider" style={{ color: hex }}>
-                          {rarityLabel}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        );
-      })}
+    <div className="grid grid-cols-5 gap-1.5">
+      {items.map((item) => (
+        <BadgeItem
+          key={item.key}
+          icon={item.icon}
+          title={item.title}
+          rarity={item.rarity}
+          description={item.description}
+          isUnlocked={item.isUnlocked}
+          badgeCount={item.badgeCount}
+          progressCurrent={item.progressCurrent}
+          progressTarget={item.progressTarget}
+        />
+      ))}
     </div>
   );
 };
