@@ -1,7 +1,7 @@
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from app.models.post import Post, PostImage, PostReply
+from app.models.post import Post, PostImage, PostReply, PostLike
 
 
 def create_post(db: Session, user_id: int, content: str, image_urls: List[str] = None) -> Post:
@@ -83,3 +83,31 @@ def delete_post(db: Session, post_id: int, user_id: int) -> bool:
     db.delete(post)
     db.commit()
     return True
+
+
+def like_post(db: Session, post_id: int, user_id: int) -> PostLike:
+    existing = db.query(PostLike).filter(PostLike.post_id == post_id, PostLike.user_id == user_id).first()
+    if existing:
+        return existing
+    like = PostLike(post_id=post_id, user_id=user_id)
+    db.add(like)
+    db.commit()
+    db.refresh(like)
+    return like
+
+
+def unlike_post(db: Session, post_id: int, user_id: int) -> bool:
+    like = db.query(PostLike).filter(PostLike.post_id == post_id, PostLike.user_id == user_id).first()
+    if not like:
+        return False
+    db.delete(like)
+    db.commit()
+    return True
+
+
+def get_likes_count(db: Session, post_id: int) -> int:
+    return db.query(func.count(PostLike.id)).filter(PostLike.post_id == post_id).scalar()
+
+
+def has_liked(db: Session, post_id: int, user_id: int) -> bool:
+    return db.query(PostLike).filter(PostLike.post_id == post_id, PostLike.user_id == user_id).first() is not None

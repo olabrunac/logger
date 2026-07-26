@@ -1,14 +1,43 @@
 import { NavLink, Link, useLocation } from 'react-router-dom';
-import { Home, Calendar, List, BookOpen, Settings, MessageSquare, Clock, LogOut } from 'lucide-react';
+import { Home, Calendar, List, BookOpen, Settings, MessageSquare, Clock, LogOut, LogIn } from 'lucide-react';
 import type { User as UserType } from '../types';
 
 interface LeftSidebarProps {
-  user: UserType;
+  user: UserType | null;
   onLogout: () => void;
 }
 
 const LeftSidebar = ({ user, onLogout }: LeftSidebarProps) => {
   const location = useLocation();
+
+  if (!user) {
+    return (
+      <aside
+        className="fixed top-0 left-0 h-screen w-[203px] flex flex-col z-40 border-r"
+        style={{ background: 'var(--mdf-bg)', borderColor: 'var(--border)' }}
+      >
+        <Link to="/" className="flex items-center px-5 h-12 flex-shrink-0 border-b transition-colors hover:bg-white/[0.03]"
+          style={{ borderColor: 'var(--border)' }}>
+          <div className="font-display font-black tracking-tight text-base" style={{ color: 'var(--accent)' }}>LOGGER</div>
+        </Link>
+
+        <nav className="flex-1 py-3 px-3 space-y-1">
+          <NavLink
+            to="/login"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/50 hover:text-white/80 hover:bg-white/5 transition-all"
+          >
+            <LogIn size={18} style={{ color: 'var(--accent)' }} />
+            <span>Entrar</span>
+          </NavLink>
+        </nav>
+
+        <div className="px-5 py-4 border-t text-[10px] text-white/20" style={{ borderColor: 'var(--border)' }}>
+          Logger v1.0
+        </div>
+      </aside>
+    );
+  }
+
   const profileBase = `/profile/${user.username}`;
   const avatarUrl = user.avatar_url
     ? user.avatar_url.startsWith('http') ? user.avatar_url : `http://localhost:8000${user.avatar_url}`

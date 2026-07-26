@@ -72,12 +72,12 @@ function App() {
   // Fixed sidebar widths - content area stays this width always
   const fixedSidebarWidths = user
     ? { left: 203, right: 324 }
-    : { left: 0, right: 0 };
+    : { left: 203, right: 0 };
 
   return (
     <Router>
       <div style={accentStyle} className="min-h-screen flex">
-        {user && <LeftSidebar user={user} onLogout={handleLogout} />}
+        <LeftSidebar user={user} onLogout={handleLogout} />
         {user && (
           <RightSidebar
             user={user}

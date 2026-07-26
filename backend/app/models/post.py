@@ -41,3 +41,14 @@ class PostReply(Base):
 
     post = relationship("Post", back_populates="replies")
     user = relationship("User")
+
+
+class PostLike(Base):
+    __tablename__ = "postlike"
+
+    id = Column(Integer, primary_key=True, index=True)
+    post_id = Column(Integer, ForeignKey("post.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("user.id"), nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    __table_args__ = ({"unique_together": ("post_id", "user_id")},)
