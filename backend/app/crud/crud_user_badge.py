@@ -143,24 +143,30 @@ def check_and_unlock(db: Session, user_id: int) -> List[dict]:
 
     checks = []
     for media_type in ["movie", "series", "game", "book"]:
-        for t in [10, 25, 50, 100, 250]:
+        for t in [10, 25, 50, 100, 250, 500, 1000, 2500, 5000]:
             checks.append((f"{media_type}_{t}", counts[media_type] >= t))
-    for t in [1, 5, 10, 25]:
+    for t in [1, 5, 10, 25, 50, 100, 250, 500, 1000]:
         checks.append((f"platina_{t}", platina_count >= t))
-    for t in [1, 10, 50, 100]:
+    for t in [1, 10, 50, 100, 250, 500, 1000]:
         checks.append((f"review_{t}", review_count >= t))
-    for t in [7, 30, 90, 365]:
+    for t in [7, 30, 90, 180, 365, 730, 1095]:
         checks.append((f"streak_{t}", streak >= t))
     checks.append(("first_follower", follower_count >= 1))
     checks.append(("10_followers", follower_count >= 10))
     checks.append(("50_followers", follower_count >= 50))
     checks.append(("100_followers", follower_count >= 100))
+    checks.append(("250_followers", follower_count >= 250))
+    checks.append(("500_followers", follower_count >= 500))
     checks.append(("first_post", has_post))
     checks.append(("first_log", total >= 1))
     checks.append(("total_100", total >= 100))
+    checks.append(("total_500", total >= 500))
+    checks.append(("total_1000", total >= 1000))
     checks.append(("omnivoro", all_types))
     checks.append(("fav_5", fav_count >= 5))
     checks.append(("fav_25", fav_count >= 25))
+    checks.append(("fav_100", fav_count >= 100))
+    checks.append(("fav_250", fav_count >= 250))
 
     for key, condition in checks:
         if condition and key not in unlocked_keys and key in BADGE_DEFS:
@@ -171,6 +177,7 @@ def check_and_unlock(db: Session, user_id: int) -> List[dict]:
                 "title": defn.title,
                 "description": defn.description,
                 "icon": defn.icon,
+                "rarity": defn.rarity,
                 "unlocked_at": badge.unlocked_at.isoformat() if badge.unlocked_at else "",
             })
 
@@ -191,6 +198,7 @@ def get_user_badges_with_progress(db: Session, user_id: int) -> dict:
                 "description": defn.description,
                 "icon": defn.icon,
                 "category": defn.category,
+                "rarity": defn.rarity,
                 "unlocked_at": b.unlocked_at.isoformat() if b.unlocked_at else "",
             })
 
@@ -216,7 +224,7 @@ def get_user_badges_with_progress(db: Session, user_id: int) -> dict:
     }
 
     next_milestones = []
-    media_thresholds = [10, 25, 50, 100, 250]
+    media_thresholds = [10, 25, 50, 100, 250, 500, 1000, 2500, 5000]
     for media_type in ["movie", "series", "game", "book"]:
         current = counts[media_type]
         for t in media_thresholds:
@@ -226,12 +234,13 @@ def get_user_badges_with_progress(db: Session, user_id: int) -> dict:
                 next_milestones.append({
                     "key": key, "title": defn.title, "icon": defn.icon,
                     "category": defn.category,
+                    "rarity": defn.rarity,
                     "current": current, "target": t,
                 })
                 break
 
     for prefix, current in [("platina", platina_count), ("review", review_count), ("streak", streak), ("fav", fav_count)]:
-        thresholds = [1, 5, 10, 25] if prefix == "platina" else [1, 10, 50, 100] if prefix == "review" else [7, 30, 90, 365] if prefix == "streak" else [5, 25]
+        thresholds = [1, 5, 10, 25, 50, 100, 250, 500, 1000] if prefix == "platina" else [1, 10, 50, 100, 250, 500, 1000] if prefix == "review" else [7, 30, 90, 180, 365, 730, 1095] if prefix == "streak" else [5, 25, 100, 250]
         for t in thresholds:
             key = f"{prefix}_{t}"
             if key not in unlocked_keys and key in BADGE_DEFS:
@@ -239,12 +248,14 @@ def get_user_badges_with_progress(db: Session, user_id: int) -> dict:
                 next_milestones.append({
                     "key": key, "title": defn.title, "icon": defn.icon,
                     "category": defn.category,
+                    "rarity": defn.rarity,
                     "current": current, "target": t,
                 })
                 break
 
     follower_thresholds = [
-        ("first_follower", 1), ("10_followers", 10), ("50_followers", 50), ("100_followers", 100)
+        ("first_follower", 1), ("10_followers", 10), ("50_followers", 50), ("100_followers", 100),
+        ("250_followers", 250), ("500_followers", 500)
     ]
     for key, t in follower_thresholds:
         if key not in unlocked_keys and key in BADGE_DEFS:
@@ -252,38 +263,34 @@ def get_user_badges_with_progress(db: Session, user_id: int) -> dict:
             next_milestones.append({
                 "key": key, "title": defn.title, "icon": defn.icon,
                 "category": defn.category,
+                "rarity": defn.rarity,
                 "current": follower_count, "target": t,
             })
             break
 
-    if "total_100" not in unlocked_keys and "total_100" in BADGE_DEFS:
-        defn = BADGE_DEFS["total_100"]
-        next_milestones.append({
-            "key": "total_100", "title": defn.title, "icon": defn.icon,
-            "category": defn.category,
-            "current": total, "target": 100,
-        })
-
-    for key in ["first_post", "first_log", "omnivoro"]:
+    for key in ["first_post", "first_log", "omnivoro", "total_100", "total_500", "total_1000"]:
         if key not in unlocked_keys and key in BADGE_DEFS:
             defn = BADGE_DEFS[key]
             if key == "omnivoro":
                 next_milestones.append({
                     "key": key, "title": defn.title, "icon": defn.icon,
                     "category": defn.category,
+                    "rarity": defn.rarity,
                     "current": sum(1 for v in counts.values() if v > 0), "target": 4,
                 })
             elif key == "first_post":
                 next_milestones.append({
                     "key": key, "title": defn.title, "icon": defn.icon,
                     "category": defn.category,
+                    "rarity": defn.rarity,
                     "current": 0 if not _has_posts(db, user_id) else 1, "target": 1,
                 })
             else:
                 next_milestones.append({
                     "key": key, "title": defn.title, "icon": defn.icon,
                     "category": defn.category,
-                    "current": min(total, 1), "target": 1,
+                    "rarity": defn.rarity,
+                    "current": min(total, defn.threshold), "target": defn.threshold,
                 })
 
     return {"unlocked": unlocked_list, "next_milestones": next_milestones}

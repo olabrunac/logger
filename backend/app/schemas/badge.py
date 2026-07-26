@@ -1,5 +1,4 @@
 from pydantic import BaseModel
-from typing import Optional
 
 
 class UserBadgeOut(BaseModel):
@@ -8,6 +7,7 @@ class UserBadgeOut(BaseModel):
     description: str
     icon: str
     category: str
+    rarity: str
     unlocked_at: str
 
     class Config:
@@ -19,6 +19,7 @@ class BadgeProgressOut(BaseModel):
     title: str
     icon: str
     category: str
+    rarity: str
     current: int
     target: int
 
@@ -33,4 +34,5 @@ class NewBadgeOut(BaseModel):
     title: str
     description: str
     icon: str
+    rarity: str
     unlocked_at: str
