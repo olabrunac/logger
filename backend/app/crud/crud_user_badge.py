@@ -259,7 +259,7 @@ def get_user_badges_with_progress(db: Session, user_id: int) -> dict:
             if key not in unlocked_keys and key in BADGE_DEFS:
                 defn = BADGE_DEFS[key]
                 next_milestones.append({
-                    "key": key, "title": defn.title, "icon": defn.icon,
+                    "key": key, "title": defn.title, "description": defn.description, "icon": defn.icon,
                     "category": defn.category,
                     "rarity": defn.rarity,
                     "current": current, "target": t,
@@ -273,7 +273,7 @@ def get_user_badges_with_progress(db: Session, user_id: int) -> dict:
             if key not in unlocked_keys and key in BADGE_DEFS:
                 defn = BADGE_DEFS[key]
                 next_milestones.append({
-                    "key": key, "title": defn.title, "icon": defn.icon,
+                    "key": key, "title": defn.title, "description": defn.description, "icon": defn.icon,
                     "category": defn.category,
                     "rarity": defn.rarity,
                     "current": current, "target": t,
@@ -288,7 +288,7 @@ def get_user_badges_with_progress(db: Session, user_id: int) -> dict:
         if key not in unlocked_keys and key in BADGE_DEFS:
             defn = BADGE_DEFS[key]
             next_milestones.append({
-                "key": key, "title": defn.title, "icon": defn.icon,
+                "key": key, "title": defn.title, "description": defn.description, "icon": defn.icon,
                 "category": defn.category,
                 "rarity": defn.rarity,
                 "current": follower_count, "target": t,
@@ -300,28 +300,28 @@ def get_user_badges_with_progress(db: Session, user_id: int) -> dict:
             defn = BADGE_DEFS[key]
             if key == "omnivoro":
                 next_milestones.append({
-                    "key": key, "title": defn.title, "icon": defn.icon,
+                    "key": key, "title": defn.title, "description": defn.description, "icon": defn.icon,
                     "category": defn.category,
                     "rarity": defn.rarity,
                     "current": sum(1 for mt in ["movie", "series", "game", "book"] if counts[mt] > 0), "target": 4,
                 })
             elif key == "first_post":
                 next_milestones.append({
-                    "key": key, "title": defn.title, "icon": defn.icon,
+                    "key": key, "title": defn.title, "description": defn.description, "icon": defn.icon,
                     "category": defn.category,
                     "rarity": defn.rarity,
                     "current": 0 if not _has_posts(db, user_id) else 1, "target": 1,
                 })
             elif key.startswith("hours_"):
                 next_milestones.append({
-                    "key": key, "title": defn.title, "icon": defn.icon,
+                    "key": key, "title": defn.title, "description": defn.description, "icon": defn.icon,
                     "category": defn.category,
                     "rarity": defn.rarity,
                     "current": total_hours, "target": defn.threshold,
                 })
             else:
                 next_milestones.append({
-                    "key": key, "title": defn.title, "icon": defn.icon,
+                    "key": key, "title": defn.title, "description": defn.description, "icon": defn.icon,
                     "category": defn.category,
                     "rarity": defn.rarity,
                     "current": min(total, defn.threshold), "target": defn.threshold,

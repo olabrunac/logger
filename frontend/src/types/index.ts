@@ -113,6 +113,7 @@ export interface UserBadge {
 export interface BadgeProgress {
   key: string;
   title: string;
+  description: string;
   icon: string;
   category: string;
   rarity: string;
