@@ -7,6 +7,7 @@ import RatingDistribution from './sections/RatingDistribution';
 import GenreChart from './sections/GenreChart';
 import ActivityGraph from './sections/ActivityGraph';
 import HoursPieChart from './sections/HoursPieChart';
+import BadgesSection from './sections/BadgesSection';
 import type { LogEntry, User } from '../types';
 
 interface RightSidebarProps {
@@ -145,7 +146,7 @@ const RightSidebar = ({ user, isCollapsed, onToggleCollapse }: RightSidebarProps
 
         <div className="mdf-card p-3">
           <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-2">Conquistas e Medalhas</div>
-          <div className="text-[11px] text-white/40 py-2 text-center">Em breve...</div>
+          <BadgesSection userId={user.id} />
         </div>
       </div>
     </aside>

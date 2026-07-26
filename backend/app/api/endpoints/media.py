@@ -307,6 +307,12 @@ def create_log_entry(*, db: Session = Depends(deps.get_db), payload: schemas.Log
         print(f"Enrichment error (non-fatal): {e}")
         db.rollback()
 
+    try:
+        from app.crud.crud_user_badge import check_and_unlock
+        check_and_unlock(db, user_id)
+    except Exception:
+        pass
+
     return log
 
 @router.get("/logs", response_model=List[schemas.LogEntryWithStats])

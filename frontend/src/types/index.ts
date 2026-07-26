@@ -99,3 +99,26 @@ export interface CustomList {
   updated_at: string;
   items: CustomListItem[];
 }
+
+export interface UserBadge {
+  key: string;
+  title: string;
+  description: string;
+  icon: string;
+  category: string;
+  unlocked_at: string;
+}
+
+export interface BadgeProgress {
+  key: string;
+  title: string;
+  icon: string;
+  category: string;
+  current: number;
+  target: number;
+}
+
+export interface BadgeResponse {
+  unlocked: UserBadge[];
+  next_milestones: BadgeProgress[];
+}
