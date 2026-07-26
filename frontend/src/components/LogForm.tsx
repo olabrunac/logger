@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import type { LogStatus } from '../types';
 import type { MediaItem } from '../types/media';
 import { ChevronLeft, ChevronDown, ChevronUp, X, Check, Gamepad2, Film, Tv, Book, Flag, MessageCircle, Skull, Eye, Heart, Clock, Calendar, Star } from 'lucide-react';
+import { TYPE_META } from '../constants/designSystem';
 
 interface LogFormProps {
   onSubmit: (logDetails: any) => void;
@@ -11,37 +12,37 @@ interface LogFormProps {
   isEditing?: boolean;
 }
 
-const STATUS_CONFIG: Record<string, { options: { value: LogStatus; label: string; icon: typeof Film }[] }> = {
+const STATUS_CONFIG: Record<string, { options: { value: LogStatus; label: string; icon: typeof Film; color: string }[] }> = {
   game: {
     options: [
-      { value: 'in_progress', label: 'Jogando', icon: Gamepad2 },
-      { value: 'completed', label: 'Finalizado', icon: Flag },
-      { value: 'wishlist', label: 'Pretendo Jogar', icon: MessageCircle },
-      { value: 'dropped', label: 'Abandonado', icon: Skull },
+      { value: 'completed', label: 'Finalizado', icon: Flag, color: '#22c55e' },
+      { value: 'in_progress', label: 'Jogando', icon: Gamepad2, color: '#3b82f6' },
+      { value: 'wishlist', label: 'Pretendo Jogar', icon: MessageCircle, color: '#a855f7' },
+      { value: 'dropped', label: 'Abandonado', icon: Skull, color: '#ef4444' },
     ],
   },
   movie: {
     options: [
-      { value: 'in_progress', label: 'Assistindo', icon: Eye },
-      { value: 'completed', label: 'Assistido', icon: Flag },
-      { value: 'wishlist', label: 'Pretendo Assistir', icon: Film },
-      { value: 'dropped', label: 'Abandonado', icon: Skull },
+      { value: 'completed', label: 'Assistido', icon: Flag, color: '#22c55e' },
+      { value: 'in_progress', label: 'Assistindo', icon: Eye, color: '#3b82f6' },
+      { value: 'wishlist', label: 'Pretendo Assistir', icon: Film, color: '#a855f7' },
+      { value: 'dropped', label: 'Abandonado', icon: Skull, color: '#ef4444' },
     ],
   },
   series: {
     options: [
-      { value: 'in_progress', label: 'Assistindo', icon: Eye },
-      { value: 'completed', label: 'Finalizado', icon: Flag },
-      { value: 'wishlist', label: 'Pretendo Assistir', icon: Tv },
-      { value: 'dropped', label: 'Abandonado', icon: Skull },
+      { value: 'completed', label: 'Finalizado', icon: Flag, color: '#22c55e' },
+      { value: 'in_progress', label: 'Assistindo', icon: Eye, color: '#3b82f6' },
+      { value: 'wishlist', label: 'Pretendo Assistir', icon: Tv, color: '#a855f7' },
+      { value: 'dropped', label: 'Abandonado', icon: Skull, color: '#ef4444' },
     ],
   },
   book: {
     options: [
-      { value: 'in_progress', label: 'Lendo', icon: Book },
-      { value: 'completed', label: 'Lido', icon: Flag },
-      { value: 'wishlist', label: 'Pretendo Ler', icon: Book },
-      { value: 'dropped', label: 'Abandonado', icon: Skull },
+      { value: 'completed', label: 'Lido', icon: Flag, color: '#22c55e' },
+      { value: 'in_progress', label: 'Lendo', icon: Book, color: '#3b82f6' },
+      { value: 'wishlist', label: 'Pretendo Ler', icon: Book, color: '#a855f7' },
+      { value: 'dropped', label: 'Abandonado', icon: Skull, color: '#ef4444' },
     ],
   },
 };
@@ -51,13 +52,6 @@ const PLATFORM_OPTIONS: Record<string, string[]> = {
   movie: ['Netflix', 'Prime Video', 'Disney+', 'HBO Max', 'Apple TV+', 'Cinema', 'Blu-ray', 'Stremio', 'Não especificado'],
   series: ['Netflix', 'Prime Video', 'Disney+', 'HBO Max', 'Apple TV+', 'Crunchyroll', 'Stremio', 'YouTube', 'Não especificado'],
   book: ['Físico', 'Kindle', 'PDF', 'Audiobook', 'Web', 'Pirata', 'Não especificado'],
-};
-
-const TYPE_META: Record<string, { emoji: string; color: string; label: string }> = {
-  movie: { emoji: '🎬', color: '#fbbf24', label: 'Filme' },
-  series: { emoji: '📺', color: '#ef4444', label: 'Série' },
-  game: { emoji: '🎮', color: '#60a5fa', label: 'Jogo' },
-  book: { emoji: '📚', color: '#4ade80', label: 'Livro' },
 };
 
 const LogForm: React.FC<LogFormProps> = ({ onSubmit, onCancel, initialData, mediaItem, isEditing = false }) => {
@@ -177,7 +171,7 @@ const LogForm: React.FC<LogFormProps> = ({ onSubmit, onCancel, initialData, medi
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}>
-      <div ref={modalRef} className="w-full max-w-[480px] max-h-[90vh] overflow-y-auto rounded-2xl" style={{ background: '#151821' }}>
+      <div ref={modalRef} className="w-full max-w-[480px] max-h-[90vh] overflow-y-auto rounded-2xl" style={{ background: 'var(--bg-elevated)' }}>
 
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
@@ -185,7 +179,7 @@ const LogForm: React.FC<LogFormProps> = ({ onSubmit, onCancel, initialData, medi
             <ChevronLeft size={20} />
           </button>
           <span className="text-base font-bold text-white">
-            {isEditing ? 'Editar' : isWishlist ? 'Adicionar à Lista' : 'Adicionar'} {meta.label}
+            {isEditing ? 'Editar' : isWishlist ? 'Adicionar à Lista' : 'Adicionar'} {meta.singular}
           </span>
           <button onClick={onCancel} className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors" style={{ color: 'rgba(255,255,255,0.5)' }}>
             <X size={20} />
@@ -252,10 +246,10 @@ const LogForm: React.FC<LogFormProps> = ({ onSubmit, onCancel, initialData, medi
                     style={{
                       background: isActive ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.03)',
                       opacity: isActive ? 1 : 0.5,
-                      border: isActive ? `1px solid ${meta.color}44` : '1px solid transparent',
+                      border: isActive ? `1px solid ${opt.color}44` : '1px solid transparent',
                     }}
                   >
-                    <Icon size={22} style={{ color: isActive ? meta.color : 'rgba(255,255,255,0.4)' }} />
+                    <Icon size={22} style={{ color: isActive ? opt.color : 'rgba(255,255,255,0.4)' }} />
                     <span className="text-[9px] font-medium text-center leading-tight" style={{ color: isActive ? '#fff' : 'rgba(255,255,255,0.4)' }}>
                       {opt.label}
                     </span>

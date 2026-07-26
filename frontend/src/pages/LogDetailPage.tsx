@@ -5,6 +5,7 @@ import api from '../services/api';
 import type { LogEntry, LogReview } from '../types';
 import { ChevronDown, Trash2, CheckCircle2, Circle, Trophy, Pencil, Bookmark } from 'lucide-react';
 import LogForm from '../components/LogForm';
+import { TYPE_META } from '../constants/designSystem';
 
 const STATUS_LABELS: Record<string, string> = {
   in_progress: 'Em progresso',
@@ -48,13 +49,6 @@ interface AchievementItem {
   unlocked: boolean;
   unlock_percentage?: number | null;
 }
-
-const TYPE_META: Record<string, { emoji: string; color: string; label: string }> = {
-  movie: { emoji: '🎬', color: '#fbbf24', label: 'Filme' },
-  series: { emoji: '📺', color: '#ef4444', label: 'Série' },
-  game: { emoji: '🎮', color: '#60a5fa', label: 'Jogo' },
-  book: { emoji: '📚', color: '#4ade80', label: 'Livro' },
-};
 
 const LogDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -324,7 +318,7 @@ const LogDetailPage = () => {
           <div className="flex items-start gap-3 flex-wrap mb-4">
             <span className="px-3 py-1 rounded-full text-xs font-bold" style={{ background: meta.color + '22', color: meta.color }}>{meta.label}</span>
             <span className="px-3 py-1 rounded-full text-xs font-bold" style={{
-              background: log.status === 'completed' ? 'rgba(34,197,94,0.2)' : log.status === 'in_progress' ? 'rgba(59,130,246,0.2)' :
+              background: log.status === 'completed' ? 'var(--accent-bg)' : log.status === 'in_progress' ? 'rgba(59,130,246,0.2)' :
                 log.status === 'dropped' ? 'rgba(239,68,68,0.2)' : log.status === 'platinated' ? 'rgba(250,204,21,0.2)' : 'rgba(168,85,247,0.2)',
             }}>{STATUS_LABELS[log.status] || log.status}</span>
             {log.is_relog && <span className="px-3 py-1 rounded-full text-xs font-bold" style={{ background: 'rgba(99,102,241,0.2)', color: '#818cf8' }}>Rejogado</span>}
@@ -376,7 +370,7 @@ const LogDetailPage = () => {
           <div className="flex items-center gap-3 mb-3">
             <h3 className="font-display text-xl font-bold">Dados da Steam</h3>
             {md.metacritic_score != null && (
-              <span className="px-2 py-0.5 rounded text-xs font-bold" style={{ background: md.metacritic_score >= 75 ? 'rgba(34,197,94,0.2)' : md.metacritic_score >= 50 ? 'rgba(250,204,21,0.2)' : 'rgba(239,68,68,0.2)', color: md.metacritic_score >= 75 ? '#22c55e' : md.metacritic_score >= 50 ? '#fbbf24' : '#ef4444' }}>
+              <span className="px-2 py-0.5 rounded text-xs font-bold" style={{ background: md.metacritic_score >= 75 ? 'var(--accent-bg)' : md.metacritic_score >= 50 ? 'rgba(250,204,21,0.2)' : 'rgba(239,68,68,0.2)', color: md.metacritic_score >= 75 ? 'var(--accent)' : md.metacritic_score >= 50 ? '#fbbf24' : '#ef4444' }}>
                 Metacritic {md.metacritic_score}
               </span>
             )}
@@ -723,7 +717,7 @@ const LogDetailPage = () => {
             <div className="modal-footer">
               <button onClick={() => setShowDeleteConfirm(false)} className="mdf-btn-ghost text-sm" disabled={deleting}>Cancelar</button>
               <button onClick={handleDelete} disabled={deleting}
-                className="text-sm py-2 px-4 rounded-xl font-bold" style={{ background: '#ef4444', color: '#fff' }}>
+                className="text-sm py-2 px-4 rounded-xl font-bold" style={{ background: 'var(--error)', color: '#fff' }}>
                 {deleting ? 'Excluindo...' : 'Excluir'}
               </button>
             </div>

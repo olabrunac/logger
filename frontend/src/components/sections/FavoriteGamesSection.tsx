@@ -1,53 +1,12 @@
 import { Link } from 'react-router-dom';
 import type { LogEntry } from '../../types';
+import { STATUS_COLORS, STATUS_ICONS, TYPE_COLORS, TYPE_EMOJI, getStars } from '../../constants/designSystem';
 
 interface FavoritesSectionProps {
   logs: LogEntry[];
   accentColor: string;
   mediaType?: string;
 }
-
-const STATUS_COLORS: Record<string, string> = {
-  in_progress: 'rgba(59,130,246,0.85)',
-  completed: 'rgba(34,197,94,0.85)',
-  dropped: 'rgba(239,68,68,0.85)',
-  wishlist: 'rgba(168,85,247,0.85)',
-  soon: 'rgba(168,85,247,0.85)',
-  platinated: 'rgba(250,204,21,0.85)',
-};
-
-const STATUS_ICONS: Record<string, string> = {
-  completed: '✓',
-  in_progress: '•••',
-  dropped: '💀',
-  wishlist: '★',
-  soon: '…',
-};
-
-const TYPE_COLORS: Record<string, string> = {
-  movie: '#fbbf24',
-  series: '#ef4444',
-  game: '#60a5fa',
-  book: '#4ade80',
-};
-
-const TYPE_EMOJI: Record<string, string> = {
-  movie: '🎬',
-  series: '📺',
-  game: '🎮',
-  book: '📚',
-};
-
-const getStars = (rating?: number) => {
-  if (!rating) return [];
-  const stars = [];
-  for (let i = 1; i <= 5; i++) {
-    if (i <= Math.floor(rating)) stars.push('full');
-    else if (i - 0.5 <= rating) stars.push('half');
-    else stars.push('empty');
-  }
-  return stars;
-};
 
 const FavoritesSection = ({ logs, accentColor: _accentColor, mediaType }: FavoritesSectionProps) => {
   const favorites = logs

@@ -2,13 +2,9 @@ import { useEffect, useState } from 'react';
 import { Trash2, ChevronUp, ChevronDown } from 'lucide-react';
 import api, { getUserFavorites } from '../../services/api';
 import type { User, TopListItem, MediaItem } from '../../types';
+import { TYPE_META } from '../../constants/designSystem';
 
-const TYPE_CONFIG: Record<string, { emoji: string; color: string; label: string; slug: string }> = {
-  movie: { emoji: '🎬', color: '#fbbf24', label: 'Filmes', slug: 'movies' },
-  series: { emoji: '📺', color: '#ef4444', label: 'Séries', slug: 'tvshows' },
-  game: { emoji: '🎮', color: '#60a5fa', label: 'Jogos', slug: 'games' },
-  book: { emoji: '📚', color: '#4ade80', label: 'Livros', slug: 'books' },
-};
+const TYPE_CONFIG = TYPE_META;
 
 interface TopListsSectionProps {
   profileUser: User;
@@ -153,9 +149,10 @@ const TopListsSection = ({ profileUser, currentUser }: TopListsSectionProps) => 
                     onClick={isEditing[type] ? () => saveList(type) : () => startEditing(type)}
                     className={`px-3 py-1 text-xs font-bold rounded transition-colors ${
                       isEditing[type]
-                        ? 'bg-green-600 text-white hover:bg-green-500'
+                        ? 'text-black'
                         : 'bg-white/10 text-white/80 hover:bg-white/20'
                     }`}
+                    style={isEditing[type] ? { background: 'var(--accent)' } : undefined}
                   >
                     {isEditing[type] ? 'Salvar' : 'Editar'}
                   </button>
@@ -234,7 +231,7 @@ const TopListsSection = ({ profileUser, currentUser }: TopListsSectionProps) => 
                               {alreadyAdded ? (
                                 <span className="text-xs text-white/30">Já na lista</span>
                               ) : (
-                                <span className="text-xs text-green-400 opacity-0 group-hover:opacity-100 transition-opacity">+ Adicionar</span>
+                                <span className="text-xs opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: 'var(--accent)' }}>+ Adicionar</span>
                               )}
                             </button>
                           );

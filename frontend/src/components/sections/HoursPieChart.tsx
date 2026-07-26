@@ -1,17 +1,15 @@
 import { useMemo, useState } from 'react';
 import type { LogEntry } from '../../types';
+import { TYPE_META } from '../../constants/designSystem';
 
 interface HoursPieChartProps {
   logs: LogEntry[];
   mediaType?: string;
 }
 
-const TYPE_CONFIG: Record<string, { color: string; label: string }> = {
-  game: { color: '#60a5fa', label: 'Jogos' },
-  movie: { color: '#fbbf24', label: 'Filmes' },
-  series: { color: '#ef4444', label: 'Séries' },
-  book: { color: '#4ade80', label: 'Livros' },
-};
+const TYPE_CONFIG = Object.fromEntries(
+  Object.entries(TYPE_META).map(([k, v]) => [k, { color: v.color, label: v.label }])
+);
 
 const polarToCartesian = (cx: number, cy: number, r: number, angleDeg: number) => {
   const rad = ((angleDeg - 90) * Math.PI) / 180;

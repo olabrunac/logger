@@ -5,17 +5,11 @@ import type { LogEntry, LogReview, User, MediaType } from '../types';
 import { Heart } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { TYPE_META } from '../constants/designSystem';
 
 interface ReviewsPageProps {
   currentUser: User;
 }
-
-const TYPE_META: Record<string, { emoji: string; color: string; label: string }> = {
-  movie: { emoji: '🎬', color: '#fbbf24', label: 'Filmes' },
-  series: { emoji: '📺', color: '#ef4444', label: 'Séries' },
-  game: { emoji: '🎮', color: '#60a5fa', label: 'Jogos' },
-  book: { emoji: '📚', color: '#4ade80', label: 'Livros' },
-};
 
 const FILTERS: { key: MediaType | 'all'; label: string }[] = [
   { key: 'all', label: 'Tudo' },

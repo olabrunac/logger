@@ -1,46 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
-import type { User, LogEntry, MediaType } from '../types';
+import type { User, LogEntry } from '../types';
+import { TYPE_META, STATUS_COLORS, STATUS_ICONS, getStars } from '../constants/designSystem';
 
 interface HomePageProps {
   user: User;
 }
-
-const TYPE_META: Record<MediaType, { emoji: string; color: string }> = {
-  movie: { emoji: '🎬', color: '#fbbf24' },
-  series: { emoji: '📺', color: '#ef4444' },
-  game: { emoji: '🎮', color: '#60a5fa' },
-  book: { emoji: '📚', color: '#4ade80' },
-};
-
-const STATUS_ICONS: Record<string, string> = {
-  completed: '✓',
-  in_progress: '•••',
-  dropped: '💀',
-  wishlist: '★',
-  soon: '…',
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  in_progress: 'rgba(59,130,246,0.85)',
-  completed: 'rgba(34,197,94,0.85)',
-  dropped: 'rgba(239,68,68,0.85)',
-  wishlist: 'rgba(168,85,247,0.85)',
-  soon: 'rgba(168,85,247,0.85)',
-  platinated: 'rgba(250,204,21,0.85)',
-};
-
-const getStars = (rating?: number) => {
-  if (!rating) return [];
-  const stars = [];
-  for (let i = 1; i <= 5; i++) {
-    if (i <= Math.floor(rating)) stars.push('full');
-    else if (i - 0.5 <= rating) stars.push('half');
-    else stars.push('empty');
-  }
-  return stars;
-};
 
 const HomePage = ({ user }: HomePageProps) => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -91,9 +57,9 @@ const HomePage = ({ user }: HomePageProps) => {
             backgroundSize: 'cover',
             backgroundPosition: 'center',
           } : {
-            background: 'linear-gradient(135deg, #14181C 0%, #1C2127 50%, #0A0C10 100%)',
+            background: 'linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-card) 50%, var(--bg) 100%)',
           }}>
-          {!bannerUrl && <div className="absolute inset-0" style={{background:'radial-gradient(circle at 20% 80%, rgba(0,224,84,0.1) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(250,51,128,0.08) 0%, transparent 50%)'}}/>}
+          {!bannerUrl && <div className="absolute inset-0" style={{background:'radial-gradient(circle at 20% 80%, color-mix(in srgb, var(--accent) 10%, transparent) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(250,51,128,0.08) 0%, transparent 50%)'}}/>}
           <div className="absolute bottom-0 left-0 right-0 h-16" style={{background:'linear-gradient(to top, var(--mdf-bg), transparent)'}}/>
         </div>
         <div className="flex items-end justify-between px-6 -mt-14 relative z-10">
