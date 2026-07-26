@@ -111,3 +111,47 @@ def delete_user(
     db.delete(user)
     db.commit()
     return {"detail": "User deleted"}
+
+
+@router.put("/{user_id}/change-email", response_model=schemas.User)
+def change_email(
+    *,
+    db: Session = Depends(deps.get_db),
+    user_id: int,
+    data: schemas.ChangeEmailRequest,
+):
+    user = crud.user.get(db, id=user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if not user.password_hash:
+        raise HTTPException(status_code=400, detail="Account has no password set")
+    if not crud.user.verify_password(data.current_password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Incorrect password")
+    existing = crud.user.get_by_email(db, email=data.new_email)
+    if existing and existing.id != user_id:
+        raise HTTPException(status_code=400, detail="Email already in use")
+    user.email = data.new_email
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+@router.put("/{user_id}/change-password")
+def change_password(
+    *,
+    db: Session = Depends(deps.get_db),
+    user_id: int,
+    data: schemas.ChangePasswordRequest,
+):
+    user = crud.user.get(db, id=user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if not user.password_hash:
+        raise HTTPException(status_code=400, detail="Account has no password set")
+    if not crud.user.verify_password(data.current_password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Incorrect password")
+    user.password_hash = crud.user.hash_password(data.new_password)
+    db.add(user)
+    db.commit()
+    return {"message": "Password changed successfully"}

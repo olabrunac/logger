@@ -42,21 +42,32 @@ function App() {
     setUser(null);
   };
 
-  const accentStyle = user?.accent_color
-    ? (() => {
-        const hex = user.accent_color;
-        const r = parseInt(hex.slice(1, 3), 16);
-        const g = parseInt(hex.slice(3, 5), 16);
-        const b = parseInt(hex.slice(5, 7), 16);
-        return {
-          '--mdf-green': hex,
-          '--accent': hex,
-          '--accent-hover': hex,
-          '--accent-bg': `rgba(${r}, ${g}, ${b}, 0.12)`,
-          '--accent-border': `rgba(${r}, ${g}, ${b}, 0.3)`,
-        } as React.CSSProperties;
-      })()
-    : {};
+  const accentHex = user?.accent_color || '#ff6b35';
+  const accentStyle = (() => {
+    const r = parseInt(accentHex.slice(1, 3), 16);
+    const g = parseInt(accentHex.slice(3, 5), 16);
+    const b = parseInt(accentHex.slice(5, 7), 16);
+    return {
+      '--mdf-green': accentHex,
+      '--accent': accentHex,
+      '--accent-hover': accentHex,
+      '--accent-bg': `rgba(${r}, ${g}, ${b}, 0.12)`,
+      '--accent-border': `rgba(${r}, ${g}, ${b}, 0.3)`,
+    } as React.CSSProperties;
+  })();
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const r = parseInt(accentHex.slice(1, 3), 16);
+    const g = parseInt(accentHex.slice(3, 5), 16);
+    const b = parseInt(accentHex.slice(5, 7), 16);
+    root.style.setProperty('--accent', accentHex);
+    root.style.setProperty('--accent-hover', accentHex);
+    root.style.setProperty('--accent-bg', `rgba(${r}, ${g}, ${b}, 0.12)`);
+    root.style.setProperty('--accent-border', `rgba(${r}, ${g}, ${b}, 0.3)`);
+    root.style.setProperty('--mdf-green', accentHex);
+    root.style.setProperty('--mdf-green-hover', accentHex);
+  }, [accentHex]);
 
   // Fixed sidebar widths - content area stays this width always
   const fixedSidebarWidths = user
@@ -66,7 +77,7 @@ function App() {
   return (
     <Router>
       <div style={accentStyle} className="min-h-screen flex">
-        {user && <LeftSidebar user={user} />}
+        {user && <LeftSidebar user={user} onLogout={handleLogout} />}
         {user && (
           <RightSidebar
             user={user}
