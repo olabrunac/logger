@@ -17,6 +17,7 @@ class UserBadgeOut(BaseModel):
 class BadgeProgressOut(BaseModel):
     key: str
     title: str
+    description: str
     icon: str
     category: str
     rarity: str

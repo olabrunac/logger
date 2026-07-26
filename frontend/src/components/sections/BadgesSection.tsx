@@ -59,7 +59,7 @@ const BadgeItem = ({ icon, title, rarity, description, isUnlocked, badgeCount, p
 
   return (
     <div
-      className={`group relative flex w-full flex-col items-center gap-1 rounded-xl p-1.5 transition-colors ${!isUnlocked ? 'opacity-60' : ''}`}
+      className={`group relative flex w-full flex-col items-center gap-1 rounded-xl p-1.5 transition-colors`}
     >
       <div className="absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg border px-3 py-2 text-left opacity-0 shadow-lg transition-opacity duration-150 pointer-events-none group-hover:opacity-100"
         style={{ background: '#1C2127', borderColor: 'rgba(255,255,255,0.08)' }}>
@@ -68,6 +68,9 @@ const BadgeItem = ({ icon, title, rarity, description, isUnlocked, badgeCount, p
           <span className="text-xs font-bold text-white">{title}</span>
         </div>
         <div className="text-[11px] text-white/60">{description}</div>
+        {!isUnlocked && progressCurrent != null && progressTarget != null && (
+          <div className="mt-1 text-[10px] text-white/40">{progressCurrent}/{progressTarget > 999 ? `${(progressTarget / 1000).toFixed(progressTarget % 1000 === 0 ? 0 : 1)}k` : progressTarget}</div>
+        )}
         <div className="mt-1 flex items-center gap-1.5">
           <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: hex }} />
           <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: hex }}>{rarityLabel}</span>
@@ -78,7 +81,7 @@ const BadgeItem = ({ icon, title, rarity, description, isUnlocked, badgeCount, p
           className="flex h-11 w-11 items-center justify-center rounded-full transition-transform group-hover:scale-105"
           style={{ background: isUnlocked ? `rgba(${rgb}, 0.133)` : 'transparent', boxShadow: `${hex} 0px 0px 0px 2px` }}
         >
-          <BadgeIcon name={icon} className={`h-5 w-5 ${!isUnlocked ? 'opacity-40' : ''}`} style={{ color: hex }} />
+          <BadgeIcon name={icon} className={`h-5 w-5`} style={{ color: hex }} />
         </div>
         {badgeCount != null && badgeCount > 1 && (
           <span
@@ -140,7 +143,7 @@ const BadgesSection = ({ userId }: BadgesSectionProps) => {
         icon: m.icon,
         title: m.title,
         rarity: m.rarity,
-        description: `${m.current}/${m.target}`,
+        description: m.description,
         isUnlocked: false,
         progressCurrent: m.current,
         progressTarget: m.target,
