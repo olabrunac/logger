@@ -38,7 +38,14 @@ const RatingDistribution = ({ logs, mediaType, color }: RatingDistributionProps)
     return { buckets, total, maxCount };
   }, [logs, mediaType]);
 
-  if (data.total === 0) return null;
+  if (data.total === 0) {
+    return (
+      <div>
+        <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-2">Avaliações</div>
+        <div className="text-[11px] text-white/40 py-3 text-center">Nenhuma avaliação ainda</div>
+      </div>
+    );
+  }
 
   const { h, s } = hexToHsl(color);
   const barColors = [

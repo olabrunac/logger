@@ -35,7 +35,14 @@ const GenreChart = ({ logs, accentColor, mediaType }: GenreChartProps) => {
       .slice(0, 5);
   }, [logs, mediaType]);
 
-  if (genreData.length === 0) return null;
+  if (genreData.length === 0) {
+    return (
+      <div>
+        <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-2">Gêneros / Categorias</div>
+        <div className="text-[11px] text-white/40 py-3 text-center">Nenhum gênero registrado</div>
+      </div>
+    );
+  }
 
   const colors = [
     accentColor,

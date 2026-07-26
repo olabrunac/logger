@@ -45,7 +45,14 @@ const HoursPieChart = ({ logs, mediaType }: HoursPieChartProps) => {
       .sort((a, b) => b.hours - a.hours);
   }, [logs, mediaType]);
 
-  if (data.length === 0) return null;
+  if (data.length === 0) {
+    return (
+      <div className="flex flex-col gap-0">
+        <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 w-full text-left">Horas por Mídia</div>
+        <div className="text-[11px] text-white/40 py-3 text-center">Nenhuma hora registrada</div>
+      </div>
+    );
+  }
 
   const totalHours = data.reduce((s, d) => s + d.hours, 0);
 
