@@ -59,8 +59,8 @@ _reg(BadgeDef("fav_5", "Favorito", "Marque 5 logs como favoritos (não conta wis
 _reg(BadgeDef("fav_25", "Favorito", "Marque 25 logs como favoritos", "Heart", "general", 25, rarity="ouro"))
 _reg(BadgeDef("fav_100", "Favorito", "Marque 100 logs como favoritos", "Heart", "general", 100, rarity="diamante"))
 _reg(BadgeDef("fav_250", "Favorito", "Marque 250 logs como favoritos", "Heart", "general", 250, rarity="lendario"))
-_reg(BadgeDef("hours_332", "Horas", "Acumule 332 horas totais de mídia (exceto wishlist)", "Clock", "general", 332, rarity="celestial"))
-_reg(BadgeDef("hours_666", "Horas", "Acumule 666 horas totais de mídia (exceto wishlist)", "Flame", "general", 666, rarity="cosmico"))
+_reg(BadgeDef("hours_332", "332h", "Acumule 332 horas totais de mídia (exceto wishlist)", "Clock", "general", 332, rarity="celestial"))
+_reg(BadgeDef("hours_666", "666h", "Acumule 666 horas totais de mídia (exceto wishlist)", "Flame", "general", 666, rarity="cosmico"))
 
 BADGE_CATEGORIES = {
     "special": "Especial",
