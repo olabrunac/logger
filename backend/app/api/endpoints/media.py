@@ -412,6 +412,11 @@ def update_log_entry(*, db: Session = Depends(deps.get_db), log_id: int, updates
             db.delete(log)
             db.commit()
             db.refresh(existing_log)
+            try:
+                from app.crud.crud_user_badge import check_and_unlock
+                check_and_unlock(db, existing_log.user_id)
+            except Exception:
+                pass
             return existing_log
 
     # Save a review snapshot only if review content actually changed
@@ -500,6 +505,12 @@ def update_log_entry(*, db: Session = Depends(deps.get_db), log_id: int, updates
             db.add(log.media_item)
             db.commit()
 
+    try:
+        from app.crud.crud_user_badge import check_and_unlock
+        check_and_unlock(db, log.user_id)
+    except Exception:
+        pass
+
     return log
 
 @router.patch("/logs/{log_id}", response_model=schemas.LogEntryInDB)
@@ -513,6 +524,11 @@ def patch_log_entry(*, db: Session = Depends(deps.get_db), log_id: int, updates:
     db.add(log)
     db.commit()
     db.refresh(log)
+    try:
+        from app.crud.crud_user_badge import check_and_unlock
+        check_and_unlock(db, log.user_id)
+    except Exception:
+        pass
     return log
 
 @router.delete("/logs/{log_id}")
