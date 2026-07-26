@@ -1,12 +1,13 @@
 import { NavLink, Link, useLocation } from 'react-router-dom';
-import { Home, Calendar, List, BookOpen, Settings, MessageSquare, Clock } from 'lucide-react';
+import { Home, Calendar, List, BookOpen, Settings, MessageSquare, Clock, LogOut } from 'lucide-react';
 import type { User as UserType } from '../types';
 
 interface LeftSidebarProps {
   user: UserType;
+  onLogout: () => void;
 }
 
-const LeftSidebar = ({ user }: LeftSidebarProps) => {
+const LeftSidebar = ({ user, onLogout }: LeftSidebarProps) => {
   const location = useLocation();
   const profileBase = `/profile/${user.username}`;
   const avatarUrl = user.avatar_url
@@ -37,31 +38,36 @@ const LeftSidebar = ({ user }: LeftSidebarProps) => {
       </Link>
 
       {/* Profile Section */}
-      <Link
-        to={`/profile/${user.username}`}
-        className="flex items-center gap-3 px-4 py-4 flex-shrink-0 border-b transition-colors hover:bg-white/[0.03]"
-        style={{ borderColor: 'var(--border)' }}
-      >
-        <div
-          className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0 border-2"
-          style={{ borderColor: 'var(--accent)' }}
+      <div className="flex items-center gap-2 px-3 py-3 flex-shrink-0 border-b" style={{ borderColor: 'var(--border)' }}>
+        <Link to={`/profile/${user.username}`} className="flex items-center gap-3 flex-1 min-w-0 group">
+          <div
+            className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border-2 transition-colors"
+            style={{ borderColor: 'var(--accent)' }}
+          >
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={user.username} className="w-full h-full object-cover" />
+            ) : (
+              <div
+                className="w-full h-full flex items-center justify-center text-sm font-bold"
+                style={{ background: 'var(--accent)', color: '#000' }}
+              >
+                {user.username.charAt(0).toUpperCase()}
+              </div>
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-bold text-white truncate group-hover:text-white transition-colors">{user.username}</div>
+            <div className="text-xs text-white/40 truncate">@{user.username}</div>
+          </div>
+        </Link>
+        <button
+          onClick={onLogout}
+          className="p-2 rounded-lg text-white/40 hover:text-white/80 hover:bg-white/5 transition-all flex-shrink-0"
+          title="Sair"
         >
-          {avatarUrl ? (
-            <img src={avatarUrl} alt={user.username} className="w-full h-full object-cover" />
-          ) : (
-            <div
-              className="w-full h-full flex items-center justify-center text-sm font-bold"
-              style={{ background: 'var(--accent)', color: '#000' }}
-            >
-              {user.username.charAt(0).toUpperCase()}
-            </div>
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="text-sm font-bold text-white truncate">{user.username}</div>
-          <div className="text-xs text-white/40 truncate">@{user.username}</div>
-        </div>
-      </Link>
+          <LogOut size={16} />
+        </button>
+      </div>
 
       {/* Followers / Following */}
       <div

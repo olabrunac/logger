@@ -3,6 +3,7 @@ import type { MediaItem } from './media';
 export interface User {
   id: number;
   username: string;
+  email?: string;
   banner_url?: string;
   avatar_url?: string;
   accent_color?: string;

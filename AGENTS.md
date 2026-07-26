@@ -37,7 +37,7 @@
 2. **Páginas de mídia**: ~~Arrumar as páginas individuais de cada tipo de mídia (MediaTypeProfilePage)~~ ✅
 12. **Edição de layout por tipo de mídia**: No MediaTypeProfilePage, permitir ao usuário reordenar as seções (drag-and-drop), ocultar Top 5, e selecionar quais listas personalizadas exibir (salvar config per-media-type no campo `section_order` do User)
 3. **Perfil na sidebar**: ~~Mudar o layout do perfil na barra lateral esquerda~~ ✅
-4. **Cadastro completo**: Implementar cadastro de usuário com email e senha (atualmente só username)
+4. **Cadastro completo**: ~~Implementar cadastro de usuário com email e senha (atualmente só username)~~ ✅
 5. **Interação entre contas**: Implementar sistema de seguir/curtir posts na timeline
 6. **Timeline**: Implementar feed/timeline com posts dos seguidos
 7. **Importação de logs**: Implementar importação de logs de outras plataformas (ex: Letterboxd, IGDB, etc)
