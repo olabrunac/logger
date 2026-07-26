@@ -37,7 +37,7 @@ for t in [10, 25, 50, 100, 250, 500, 1000, 2500, 5000]:
     _reg(BadgeDef(f"book_{t}", names[t][0], names[t][1], "BookOpen", "media", t, rarity={10: "bronze", 25: "prata", 50: "ouro", 100: "diamante", 250: "lendario", 500: "imortal", 1000: "arcano", 2500: "celestial", 5000: "cosmico"}[t]))
 
 for t in [1, 5, 10, 25, 50, 100, 250, 500, 1000]:
-    names = {1: ("Platinador", "Platinou 1 jogo"), 5: ("Platinador Expert", "Platinou 5 jogos"), 10: ("Platinador Mestre", "Platinou 10 jogos"), 25: ("Platinador Lenda", "Platinou 25 jogos"), 50: ("Platinador Imortal", "Platinou 50 jogos"), 100: ("Platinador Arcano", "Platinou 100 jogos"), 250: ("Platinador Celestial", "Platinou 250 jogos"), 500: ("Platinador Cósmico", "Platinou 500 jogos"), 1000: ("Platinador Cósmico", "Platinou 1.000 jogos")}
+    names = {1: ("Platinador", "Platinou 1 jogo"), 5: ("Platinador Expert", "Platinou 5 jogos"), 10: ("Platinador Mestre", "Platinou 10 jogos"), 25: ("Platinador Lenda", "Platinou 25 jogos"), 50: ("Platinador Imortal", "Platinou 50 jogos"), 100: ("Platinador Arcano", "Platinou 100 jogos"), 250: ("Platinador Celestial", "Platinou 250 jogos"), 500: ("Platinador Cósmico", "Platinou 500 jogos"), 1000: ("Platinador Transcendental", "Platinou 1.000 jogos")}
     _reg(BadgeDef(f"platina_{t}", names[t][0], names[t][1], "Trophy", "platinum", t, rarity={1: "bronze", 5: "prata", 10: "ouro", 25: "diamante", 50: "lendario", 100: "imortal", 250: "arcano", 500: "celestial", 1000: "cosmico"}[t]))
 
 for t in [1, 10, 50, 100, 250, 500, 1000]:
