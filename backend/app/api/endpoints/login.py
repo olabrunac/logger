@@ -11,7 +11,15 @@ router = APIRouter()
 RESET_TOKEN_EXPIRY_HOURS = 24
 
 
-@router.post("/register", response_model=schemas.User)
+def _enrich_user(user: User, db: Session) -> dict:
+    from app.crud import crud_follow
+    data = schemas.User.model_validate(user).model_dump()
+    data["followers_count"] = crud_follow.get_follower_count(db, user.id)
+    data["following_count"] = crud_follow.get_following_count(db, user.id)
+    return data
+
+
+@router.post("/register")
 def register(
     *,
     db: Session = Depends(deps.get_db),
@@ -25,10 +33,10 @@ def register(
     if existing_email:
         raise HTTPException(status_code=400, detail="Email already registered")
     user = crud.user.create(db, obj_in=user_in)
-    return user
+    return _enrich_user(user, db)
 
 
-@router.post("/", response_model=schemas.User)
+@router.post("/")
 def login(
     *,
     db: Session = Depends(deps.get_db),
@@ -39,7 +47,7 @@ def login(
     if login_data.email_or_username == "bruna" and login_data.password == "":
         user = crud.user.get_by_username(db, username="bruna")
         if user:
-            return user
+            return _enrich_user(user, db)
 
     user = crud.user.get_by_username(db, username=login_data.email_or_username)
     if not user:
@@ -50,10 +58,10 @@ def login(
         raise HTTPException(status_code=401, detail="Account has no password set. Please reset your password.")
     if not crud.user.verify_password(login_data.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    return user
+    return _enrich_user(user, db)
 
 
-@router.get("/by-username/{username}", response_model=schemas.User)
+@router.get("/by-username/{username}")
 def get_user_by_username(
     *,
     db: Session = Depends(deps.get_db),
@@ -63,7 +71,7 @@ def get_user_by_username(
     user = crud.user.get_by_username(db, username=username)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    return user
+    return _enrich_user(user, db)
 
 
 @router.post("/forgot-password")

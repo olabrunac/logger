@@ -3,45 +3,11 @@ import { Link, useParams } from 'react-router-dom';
 import api from '../services/api';
 import type { LogEntry, LogReview, User } from '../types';
 import TopListsSection from '../components/sections/TopListsSection';
+import { TYPE_META, STATUS_COLORS, STATUS_ICONS, getStars } from '../constants/designSystem';
 
 interface ProfilePageProps {
   currentUser: User;
 }
-
-const TYPE_META: Record<string, { emoji: string; color: string; label: string; slug: string }> = {
-  movie: { emoji: '🎬', color: '#fbbf24', label: 'Filmes', slug: 'movies' },
-  series: { emoji: '📺', color: '#ef4444', label: 'Séries', slug: 'tvshows' },
-  game: { emoji: '🎮', color: '#60a5fa', label: 'Jogos', slug: 'games' },
-  book: { emoji: '📚', color: '#4ade80', label: 'Livros', slug: 'books' },
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  in_progress: 'rgba(59,130,246,0.85)',
-  completed: 'rgba(34,197,94,0.85)',
-  dropped: 'rgba(239,68,68,0.85)',
-  wishlist: 'rgba(168,85,247,0.85)',
-  soon: 'rgba(168,85,247,0.85)',
-  platinated: 'rgba(250,204,21,0.85)',
-};
-
-const STATUS_ICONS: Record<string, string> = {
-  completed: '✓',
-  in_progress: '•••',
-  dropped: '💀',
-  wishlist: '★',
-  soon: '…',
-};
-
-const getStars = (rating?: number) => {
-  if (!rating) return [];
-  const stars = [];
-  for (let i = 1; i <= 5; i++) {
-    if (i <= Math.floor(rating)) stars.push('full');
-    else if (i - 0.5 <= rating) stars.push('half');
-    else stars.push('empty');
-  }
-  return stars;
-};
 
 const ProfilePage = ({ currentUser }: ProfilePageProps) => {
   const { username } = useParams<{ username: string }>();
@@ -50,6 +16,8 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
   const [reviewMap, setReviewMap] = useState<Map<number, LogReview[]>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
 
   const displayUsername = username || currentUser.username;
   const isOwnProfile = displayUsername === currentUser.username;
@@ -73,6 +41,13 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
       const logsRes = await api.get('/media/logs', { params: { user_id: targetUser.id, limit: 500 } });
       const allLogs = logsRes.data || [];
       setLogs(allLogs);
+
+      if (!isOwnProfile) {
+        try {
+          const followRes = await api.get(`/users/${currentUser.id}/is-following/${targetUser.id}`);
+          setIsFollowing(followRes.data.is_following);
+        } catch {}
+      }
 
       const reviewLogs = allLogs.filter((l: LogEntry) => l.review && l.review.trim().length > 0);
       const results = await Promise.all(
@@ -125,6 +100,21 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
       : 'http://localhost:8000' + profileUser.avatar_url
     : null;
 
+  const handleFollowToggle = async () => {
+    if (!profileUser || followLoading) return;
+    setFollowLoading(true);
+    try {
+      if (isFollowing) {
+        await api.delete(`/users/${currentUser.id}/follow/${profileUser.id}`);
+        setIsFollowing(false);
+      } else {
+        await api.post(`/users/${currentUser.id}/follow/${profileUser.id}`);
+        setIsFollowing(true);
+      }
+    } catch {}
+    setFollowLoading(false);
+  };
+
   if (loading) {
     return (
       <div className="space-y-10">
@@ -153,12 +143,12 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
             backgroundImage: 'url(' + bannerUrl + ')',
             backgroundSize: 'cover',
             backgroundPosition: 'center',
-          } : {background:'linear-gradient(135deg, #14181C 0%, #1C2127 50%, #0A0C10 100%)'}}>
+          } : {background:'linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-card) 50%, var(--bg) 100%)'}}>
           <div className="absolute inset-0" style={{background:'linear-gradient(to top, var(--mdf-bg), transparent 60%)'}}/>
         </div>
         <div className="flex items-end gap-5 -mt-14 px-4 relative z-10">
           <div className="w-28 h-28 rounded-2xl border-4 overflow-hidden flex-shrink-0"
-            style={{borderColor:'var(--mdf-bg)', background: avatarUrl ? 'transparent' : 'linear-gradient(135deg, ' + accentColor + ', #a855f7)'}}>
+            style={{borderColor:'var(--mdf-bg)', background: avatarUrl ? 'transparent' : 'linear-gradient(135deg, ' + accentColor + ', var(--purple))'}}>
             {avatarUrl ? (
               <img src={avatarUrl} alt={profileUser.username} className="w-full h-full object-cover"/>
             ) : (
@@ -173,13 +163,30 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
                 <h1 className="font-display text-3xl md:text-4xl font-black tracking-tight">{profileUser.username}</h1>
                 <div className="text-white/50 text-sm">@{profileUser.username}</div>
               </div>
-              {isOwnProfile && (
+              {isOwnProfile ? (
                 <Link to="/settings" className="mdf-btn-ghost flex items-center gap-2 text-sm">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
                   </svg>
                   Editar
                 </Link>
+              ) : (
+                <button
+                  onClick={handleFollowToggle}
+                  disabled={followLoading}
+                  className="text-sm font-bold px-5 py-2 rounded-full transition-all"
+                  style={isFollowing ? {
+                    background: 'transparent',
+                    color: 'var(--accent)',
+                    border: '1px solid var(--accent)',
+                  } : {
+                    background: 'var(--accent)',
+                    color: '#000',
+                    border: '1px solid transparent',
+                  }}
+                >
+                  {followLoading ? '...' : isFollowing ? 'Seguindo' : 'Seguir'}
+                </button>
               )}
             </div>
           </div>
