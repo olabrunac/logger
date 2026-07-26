@@ -36,6 +36,7 @@ interface Post {
   replies_count: number;
   likes_count: number;
   is_liked: boolean;
+  liked_by: { username: string; avatar_url?: string }[];
   created_at: string;
   _type: 'post';
 }
@@ -163,6 +164,34 @@ const PostCard = ({ post, currentUser, onReply, onDelete, onLike }: {
           {post.likes_count > 0 ? post.likes_count : 'Curtir'}
         </button>
       </div>
+
+      {post.likes_count > 0 && post.liked_by && post.liked_by.length > 0 && (
+        <div className="px-4 py-2 flex items-center gap-1.5 border-t" style={{ borderColor: 'var(--border)' }}>
+          <div className="flex -space-x-1.5">
+            {post.liked_by.slice(0, 5).map((liker) => (
+              <Link key={liker.username} to={`/profile/${liker.username}`} className="relative block">
+                <div className="w-5 h-5 rounded-full overflow-hidden border" style={{ borderColor: 'var(--mdf-bg)' }}>
+                  {getAvatar(liker.avatar_url) ? (
+                    <img src={getAvatar(liker.avatar_url)!} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-[7px] font-bold" style={{ background: 'var(--accent)', color: '#000' }}>
+                      {liker.username.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </div>
+              </Link>
+            ))}
+          </div>
+          <span className="text-[10px] text-white/30">
+            {post.likes_count === 1
+              ? `${post.liked_by[0].username} curtiu`
+              : post.liked_by.length <= post.likes_count && post.liked_by.length <= 5
+                ? `${post.liked_by.map(l => l.username).join(', ')}${post.likes_count > post.liked_by.length ? ` e mais ${post.likes_count - post.liked_by.length}` : ''} curtiram`
+                : `${post.likes_count} curtidas`
+            }
+          </span>
+        </div>
+      )}
 
       {showReplies && (
         <div className="border-t" style={{ borderColor: 'var(--border)' }}>
@@ -416,10 +445,14 @@ const TimelinePage = ({ user }: TimelinePageProps) => {
     const post = posts.find(p => p.id === postId);
     if (!post) return;
     const wasLiked = post.is_liked;
+    const me = { username: user.username, avatar_url: user.avatar_url };
     setPosts(prev => prev.map(p => p.id === postId ? {
       ...p,
       is_liked: !wasLiked,
       likes_count: wasLiked ? p.likes_count - 1 : p.likes_count + 1,
+      liked_by: wasLiked
+        ? p.liked_by.filter(l => l.username !== user.username)
+        : [me, ...p.liked_by].slice(0, 5),
     } : p));
     try {
       if (wasLiked) {

@@ -155,6 +155,7 @@ def unlike_post(
 def _post_response(post, db, current_user_id: int = None):
     user = crud_user.get(db, id=post.user_id)
     images = [{"id": img.id, "url": img.url, "is_gif": img.is_gif, "position": img.position} for img in post.images]
+    liked_by = crud_post.get_likers(db, post.id, limit=5)
     return {
         "id": post.id,
         "user_id": post.user_id,
@@ -165,6 +166,7 @@ def _post_response(post, db, current_user_id: int = None):
         "replies_count": crud_post.get_replies_count(db, post.id),
         "likes_count": crud_post.get_likes_count(db, post.id),
         "is_liked": crud_post.has_liked(db, post.id, current_user_id) if current_user_id else False,
+        "liked_by": liked_by,
         "created_at": post.created_at.isoformat() if post.created_at else "",
     }
 

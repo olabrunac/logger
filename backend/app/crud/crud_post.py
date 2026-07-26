@@ -111,3 +111,20 @@ def get_likes_count(db: Session, post_id: int) -> int:
 
 def has_liked(db: Session, post_id: int, user_id: int) -> bool:
     return db.query(PostLike).filter(PostLike.post_id == post_id, PostLike.user_id == user_id).first() is not None
+
+
+def get_likers(db: Session, post_id: int, limit: int = 5) -> list:
+    from app.models.user import User
+    likes = (
+        db.query(PostLike)
+        .filter(PostLike.post_id == post_id)
+        .order_by(PostLike.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+    result = []
+    for like in likes:
+        u = db.query(User).filter(User.id == like.user_id).first()
+        if u:
+            result.append({"username": u.username, "avatar_url": u.avatar_url})
+    return result
