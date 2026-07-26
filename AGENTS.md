@@ -36,7 +36,7 @@
 1. **Início**: ~~Arrumar a página inicial (HomePage)~~ ✅
 2. **Páginas de mídia**: ~~Arrumar as páginas individuais de cada tipo de mídia (MediaTypeProfilePage)~~ ✅
 12. **Edição de layout por tipo de mídia**: No MediaTypeProfilePage, permitir ao usuário reordenar as seções (drag-and-drop), ocultar Top 5, e selecionar quais listas personalizadas exibir (salvar config per-media-type no campo `section_order` do User)
-3. **Perfil na sidebar**: Mudar o layout do perfil na barra lateral esquerda
+3. **Perfil na sidebar**: ~~Mudar o layout do perfil na barra lateral esquerda~~ ✅
 4. **Cadastro completo**: Implementar cadastro de usuário com email e senha (atualmente só username)
 5. **Interação entre contas**: Implementar sistema de seguir/curtir posts na timeline
 6. **Timeline**: Implementar feed/timeline com posts dos seguidos
@@ -44,7 +44,7 @@
 8. **Reviews acima de conquistas**: ~~Mover as reviews de dentro da aba de conquistas do log de jogo para antes dela~~ ✅
 9. **Medalhas/Conquistas do Usuário**: Sistema de badges que o usuário desbloqueia ao atingir marcos (ex: 10, 50, 100 mídias assistidas/jogadas/lidas, primeiro log, primeira review, streak de logs, completar todos os jogos de uma franquia, etc). Ideia é motivar o usuário a logar tudo o que consome.
 10. **Publicação**: Publicar o site, avaliar ferramentas de hosting do GitHub Students
-11. **Sidebar estilo Twitter mobile**: Reorganizar a barra lateral esquerda seguindo o layout do Twitter/X mobile (perfil no topo, nav items minimalistas, ícones apenas ou com labels compactos)
+11. **Sidebar estilo Twitter mobile**: ~~Reorganizar a barra lateral esquerda seguindo o layout do Twitter/X mobile (perfil no topo, nav items minimalistas, ícones apenas ou com labels compactos)~~ ✅
 
 ## 📁 Estrutura de Pastas Importantes
 - `backend/app/api/endpoints/media.py` - Endpoints de mídia, top lists, favoritos
