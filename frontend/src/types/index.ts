@@ -7,6 +7,8 @@ export interface User {
   avatar_url?: string;
   accent_color?: string;
   section_order?: string;
+  followers_count?: number;
+  following_count?: number;
 }
 
 
