@@ -1,1 +1,1 @@
-from . import login, media, users, posts
+from . import login, media, users, posts, badges

@@ -1,5 +1,6 @@
 from .user import User, UserCreate, UserUpdate, LoginRequest, ForgotPasswordRequest, ResetPasswordRequest, ChangeEmailRequest, ChangePasswordRequest
 from .post import PostCreate, PostReplyCreate, PostOut, PostReplyOut, PostImageOut
+from .badge import UserBadgeOut, BadgeProgressOut, BadgeResponse, NewBadgeOut
 from .media import (
     MediaItemCreate,
     MediaItemUpdate,

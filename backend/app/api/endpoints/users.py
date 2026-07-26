@@ -184,6 +184,11 @@ def follow_user(
         raise HTTPException(status_code=404, detail="Target user not found")
     from app.crud import crud_follow
     crud_follow.follow_user(db, follower_id=user_id, following_id=target_id)
+    try:
+        from app.crud.crud_user_badge import check_and_unlock
+        check_and_unlock(db, target_id)
+    except Exception:
+        pass
     return {"message": "Followed"}
 
 
@@ -248,13 +253,11 @@ def get_timeline(
 
     following_ids_raw = crud_follow.get_following(db, user_id=user_id)
     following_ids = [u.id for u in following_ids_raw]
-
-    if not following_ids:
-        return []
+    user_ids = list(set(following_ids + [user_id]))
 
     logs = (
         db.query(LogEntry)
-        .filter(LogEntry.user_id.in_(following_ids))
+        .filter(LogEntry.user_id.in_(user_ids))
         .order_by(LogEntry.log_date.desc())
         .limit(limit)
         .all()

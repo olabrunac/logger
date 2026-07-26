@@ -80,4 +80,12 @@ export const reorderCustomListItems = (userId: number, listId: number, itemIds: 
   return api.post(`/media/users/${userId}/custom-lists/${listId}/reorder`, itemIds);
 };
 
+export const getUserBadges = (userId: number) => {
+  return api.get(`/badges/user/${userId}`);
+};
+
+export const checkBadges = (userId: number) => {
+  return api.post(`/badges/check/${userId}`);
+};
+
 export default api;

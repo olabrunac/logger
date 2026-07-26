@@ -38,4 +38,11 @@ def init_db() -> None:
         db.commit()
         print(f"Admin user migrated with password")
 
+    # Seed dev badge for admin and bruna
+    from app.crud.crud_user_badge import unlock_badge
+    for username in ["admin", "bruna"]:
+        u = crud.user.get_by_username(db, username=username)
+        if u:
+            unlock_badge(db, u.id, "dev")
+
     db.close()

@@ -24,6 +24,11 @@ def create_post(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     post = crud_post.create_post(db, user_id=user_id, content=content)
+    try:
+        from app.crud.crud_user_badge import check_and_unlock
+        check_and_unlock(db, user_id)
+    except Exception:
+        pass
     return _post_response(post, db, current_user_id=user_id)
 
 
