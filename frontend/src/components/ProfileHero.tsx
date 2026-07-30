@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Globe, Calendar, Settings2 } from 'lucide-react';
 import type { User, LogEntry } from '../types';
+import { imageUrl } from '../utils';
 
 interface ProfileHeroProps {
   profileUser: User;
@@ -46,13 +47,8 @@ const ProfileHero = ({
   activeMediaType,
   onEditLayout,
 }: ProfileHeroProps) => {
-  const bannerUrl = profileUser.banner_url
-    ? (profileUser.banner_url.startsWith('http') ? profileUser.banner_url : `http://localhost:8000${profileUser.banner_url}`)
-    : null;
-
-  const avatarUrl = profileUser.avatar_url
-    ? (profileUser.avatar_url.startsWith('http') ? profileUser.avatar_url : `http://localhost:8000${profileUser.avatar_url}`)
-    : null;
+  const bannerUrl = imageUrl(profileUser.banner_url);
+  const avatarUrl = imageUrl(profileUser.avatar_url);
 
   let socialData: { platforms?: Record<string, string>; spotify?: string; custom?: Array<{ label: string; url: string }> } = {};
   try { socialData = JSON.parse(profileUser.social_links || '{}'); } catch {}

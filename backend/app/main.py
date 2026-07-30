@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -13,12 +14,9 @@ def create_tables():
     Base.metadata.create_all(bind=engine)
 
 def dedup_log_entries():
-    """Remove duplicate LogEntry records: same user+media, non-wishlist status.
-    Keeps the entry with the highest relog_count (or most recent if tied)."""
     from app.db.session import SessionLocal
     db = SessionLocal()
     try:
-        from app.models.media import MediaType
         non_wishlist = [LogStatus.WISHLIST, LogStatus.SOON]
         dup_groups = db.query(
             LogEntry.user_id,
@@ -55,25 +53,26 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
 
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:5174", "http://127.0.0.1:5173", "http://127.0.0.1:5174"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+os.makedirs("uploads", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
+app.include_router(api_router, prefix=settings.API_V1_STR)
+
+frontend_dist = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "frontend", "dist")
+if os.path.isdir(frontend_dist):
+    app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="frontend")
 
 @app.on_event("startup")
 def on_startup():
     create_tables()
     init_db()
     dedup_log_entries()
-
-app.include_router(api_router, prefix=settings.API_V1_STR)
-
-@app.get("/")
-def read_root():
-    return {"message": "Welcome to the Logger API"}
 

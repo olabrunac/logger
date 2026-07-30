@@ -8,6 +8,7 @@ import YgpCard from '../components/sections/YgpCard';
 import SectionHeader from '../components/sections/SectionHeader';
 import LayoutEditorModal from '../components/sections/LayoutEditorModal';
 import { TYPE_META, getStars } from '../constants/designSystem';
+import { imageUrl } from '../utils';
 
 interface ProfilePageProps {
   currentUser: User;
@@ -26,7 +27,7 @@ interface Post {
   created_at: string;
 }
 
-const IMAGE_URL = (url: string) => url.startsWith('http') ? url : `http://localhost:8000${url}`;
+const IMAGE_URL = (url: string) => imageUrl(url) || '';
 
 const ProfilePage = ({ currentUser }: ProfilePageProps) => {
   const { username } = useParams<{ username: string }>();

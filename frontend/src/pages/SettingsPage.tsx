@@ -1,7 +1,8 @@
 import { useState, useRef } from 'react';
-import { Link } from 'react-router-dom';
 import api, { uploadFile } from '../services/api';
+import ImportPage from './ImportPage';
 import type { User, SocialLink } from '../types';
+import { imageUrl } from '../utils';
 import {
   User as UserIcon,
   Globe,
@@ -483,12 +484,8 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
     }
   };
 
-  const bannerUrl = user.banner_url
-    ? user.banner_url.startsWith('http') ? user.banner_url : `http://localhost:8000${user.banner_url}`
-    : null;
-  const avatarUrl = user.avatar_url
-    ? user.avatar_url.startsWith('http') ? user.avatar_url : `http://localhost:8000${user.avatar_url}`
-    : null;
+  const bannerUrl = imageUrl(user.banner_url);
+  const avatarUrl = imageUrl(user.avatar_url);
 
   const tabs: { id: SettingsTab; label: string; icon: React.ReactNode }[] = [
     { id: 'general', label: 'Geral', icon: <UserIcon className="h-4 w-4" /> },
@@ -1129,45 +1126,7 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
   );
 
   const renderImportTab = () => (
-    <div className="space-y-4">
-      <div className="rounded-2xl border border-white/5 bg-[var(--mdf-surface)] p-5">
-        <div className="flex items-start justify-between gap-4 mb-4">
-          <div>
-            <h2 className="text-base font-semibold text-white">Importar dados</h2>
-            <p className="text-xs text-white/50 mt-0.5">Importe seus logs de outras plataformas.</p>
-          </div>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {[
-            { label: 'Letterboxd', desc: 'Filmes e séries', icon: <Mail className="h-4 w-4" /> },
-            { label: 'Steam', desc: 'Jogos e conquistas', icon: <Globe className="h-4 w-4" /> },
-            { label: 'Trakt', desc: 'Séries e filmes', icon: <SettingsIcon className="h-4 w-4" /> },
-            { label: 'TV Time', desc: 'Séries assistidas', icon: <Bell className="h-4 w-4" /> },
-          ].map((item) => (
-            <Link key={item.label} to="/import" className="flex items-start gap-3 rounded-xl border border-white/10 bg-[var(--mdf-bg)] p-3 transition-colors hover:border-white/20 hover:bg-white/[0.02]">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/5">{item.icon}</div>
-              <div>
-                <p className="text-sm font-medium text-white">{item.label}</p>
-                <p className="text-xs text-white/40">{item.desc}</p>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      <div className="rounded-2xl border border-white/5 bg-[var(--mdf-surface)] p-5">
-        <div className="flex items-start justify-between gap-4 mb-4">
-          <div>
-            <h2 className="text-base font-semibold text-white">Importação recente</h2>
-            <p className="text-xs text-white/50 mt-0.5">Últimas importações realizadas.</p>
-          </div>
-        </div>
-        <div className="flex flex-col items-center justify-center rounded-xl border border-white/10 bg-[var(--mdf-bg)] py-8">
-          <Download className="h-8 w-8 lg:h-10 lg:w-10 text-white/30" />
-          <p className="mt-3 text-sm text-white/50">Nenhuma importação realizada ainda</p>
-        </div>
-      </div>
-    </div>
+    <ImportPage user={user} />
   );
 
   const renderTabContent = () => {
