@@ -1,4 +1,4 @@
-import os
+from typing import Optional
 from pydantic_settings import BaseSettings
 from dotenv import load_dotenv
 
@@ -9,14 +9,14 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
 
     # Database
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./logger.db")
+    DATABASE_URL: str = "sqlite:///./logger.db"
 
     # API Keys
-    TMDB_API_KEY: str = os.getenv("TMDB_API_KEY")
-    IGDB_CLIENT_ID: str = os.getenv("IGDB_CLIENT_ID")
-    IGDB_CLIENT_SECRET: str = os.getenv("IGDB_CLIENT_SECRET")
-    GOOGLE_BOOKS_API_KEY: str = os.getenv("GOOGLE_BOOKS_API_KEY")
-    STEAM_API_KEY: str = os.getenv("STEAM_API_KEY", "")
+    TMDB_API_KEY: Optional[str] = None
+    IGDB_CLIENT_ID: Optional[str] = None
+    IGDB_CLIENT_SECRET: Optional[str] = None
+    GOOGLE_BOOKS_API_KEY: Optional[str] = None
+    STEAM_API_KEY: str = ""
 
     class Config:
         case_sensitive = True
