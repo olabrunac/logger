@@ -26,6 +26,7 @@ export const STATUS_COLORS: Record<string, string> = {
   wishlist: 'rgba(168,85,247,0.85)',
   soon: 'rgba(168,85,247,0.85)',
   platinated: 'rgba(250,204,21,0.85)',
+  library: 'rgba(99,102,241,0.85)',
 };
 
 export const STATUS_ICONS: Record<string, string> = {
@@ -34,6 +35,7 @@ export const STATUS_ICONS: Record<string, string> = {
   dropped: '💀',
   wishlist: '★',
   soon: '…',
+  library: '📚',
 };
 
 export const getStars = (rating?: number): string[] => {

@@ -1,24 +1,42 @@
-import { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
+import api from './services/api';
 import LoginPage from './pages/LoginPage';
 import NewLogPage from './pages/NewLogPage';
 import CalendarPage from './pages/CalendarPage';
 import ProfilePage from './pages/ProfilePage';
-import MediaTypeProfilePage from './pages/MediaTypeProfilePage';
 import LogDetailPage from './pages/LogDetailPage';
 import SettingsPage from './pages/SettingsPage';
 import ListsPage from './pages/ListsPage';
 import DiaryPage from './pages/DiaryPage';
 import ReviewsPage from './pages/ReviewsPage';
 import TimelinePage from './pages/TimelinePage';
+import NotificationsPage from './pages/NotificationsPage';
+import ImportPage from './pages/ImportPage';
 import LeftSidebar from './components/LeftSidebar';
 import RightSidebar from './components/RightSidebar';
 import FloatingLogButton from './components/FloatingLogButton';
 import type { User } from './types';
 
+function MediaTypeRedirect({ username }: { username: string }) {
+  const { mediaType } = useParams<{ mediaType: string }>();
+  return <Navigate to={`/profile/${username}?view=${mediaType}`} replace />;
+}
+
 function App() {
+  return (
+    <Router>
+      <AppInner />
+    </Router>
+  );
+}
+
+function AppInner() {
+  const location = useLocation();
   const [user, setUser] = useState<User | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [viewedUser, setViewedUser] = useState<User | null>(null);
+  const [unreadTrigger, setUnreadTrigger] = useState(0);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -26,6 +44,21 @@ function App() {
       setUser(JSON.parse(storedUser));
     }
   }, []);
+
+  const resolveViewedUser = useCallback(async () => {
+    const match = location.pathname.match(/^\/profile\/([^/]+)/);
+    if (!match) { setViewedUser(null); return; }
+    const username = decodeURIComponent(match[1]);
+    if (!user || username === user.username) { setViewedUser(null); return; }
+    try {
+      const res = await api.get('/login/by-username/' + encodeURIComponent(username));
+      setViewedUser(res.data);
+    } catch {
+      setViewedUser(null);
+    }
+  }, [location.pathname, user]);
+
+  useEffect(() => { resolveViewedUser(); }, [resolveViewedUser]);
 
   const handleLogin = (loggedInUser: User) => {
     localStorage.setItem('user', JSON.stringify(loggedInUser));
@@ -75,12 +108,11 @@ function App() {
     : { left: 203, right: 0 };
 
   return (
-    <Router>
-      <div style={accentStyle} className="min-h-screen flex">
-        <LeftSidebar user={user} onLogout={handleLogout} />
+    <div style={accentStyle} className="min-h-screen flex">
+        <LeftSidebar user={user} onLogout={handleLogout} refreshUnreadTrigger={unreadTrigger} />
         {user && (
           <RightSidebar
-            user={user}
+            user={viewedUser || user}
             isCollapsed={isSidebarCollapsed}
             onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           />
@@ -143,7 +175,25 @@ function App() {
               }
             />
             <Route
+              path="/notifications"
+              element={
+                user ? <NotificationsPage user={user} onNotificationsRead={() => setUnreadTrigger(t => t + 1)} /> : <Navigate to="/login" />
+              }
+            />
+            <Route
+              path="/import"
+              element={
+                user ? <ImportPage user={user} /> : <Navigate to="/login" />
+              }
+            />
+            <Route
               path="/profile"
+              element={
+                user ? <Navigate to={`/profile/${user.username}`} /> : <Navigate to="/login" />
+              }
+            />
+            <Route
+              path="/me"
               element={
                 user ? <Navigate to={`/profile/${user.username}`} /> : <Navigate to="/login" />
               }
@@ -151,7 +201,7 @@ function App() {
             <Route
               path="/profile/:username/:mediaType"
               element={
-                user ? <MediaTypeProfilePage currentUser={user} /> : <Navigate to="/login" />
+                user ? <MediaTypeRedirect username={user.username} /> : <Navigate to="/login" />
               }
             />
             <Route
@@ -169,7 +219,6 @@ function App() {
           </Routes>
         </main>
       </div>
-    </Router>
   );
 }
 

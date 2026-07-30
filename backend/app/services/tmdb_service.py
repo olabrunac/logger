@@ -30,7 +30,7 @@ def get_tv_seasons(tmdb_id: int):
         response = requests.get(url, params=params)
         response.raise_for_status()
         data = response.json()
-        return [{"season_number": s["season_number"], "name": s["name"], "episode_count": s["episode_count"], "poster_path": s.get("poster_path")} for s in data.get("seasons", []) if s["season_number"] > 0]
+        return [{"season_number": s["season_number"], "name": s["name"], "episode_count": s["episode_count"], "poster_path": s.get("poster_path")} for s in data.get("seasons", [])]
     except requests.exceptions.RequestException as e:
         print(f"Error fetching TMDb seasons: {e}")
         return []
@@ -69,7 +69,10 @@ def get_movie_details(tmdb_id: int):
                 trailer = f"https://www.youtube.com/watch?v={v['key']}"
                 break
         cast = ", ".join([c["name"] for c in data.get("credits", {}).get("cast", [])[:5]])
+        cover = data.get("poster_path")
         return {
+            "cover_image_url": f"https://image.tmdb.org/t/p/w500{cover}" if cover else None,
+            "synopsis": data.get("overview"),
             "genres": ", ".join(g["name"] for g in data.get("genres", [])),
             "runtime": data.get("runtime"),
             "vote_average": data.get("vote_average"),
@@ -98,12 +101,23 @@ def get_tv_details(tmdb_id: int):
         if data.get("episode_run_time"):
             runtime = data["episode_run_time"][0]
         cast = ", ".join([c["name"] for c in data.get("credits", {}).get("cast", [])[:5]])
+        cover = data.get("poster_path")
+        release_date = None
+        first_air = data.get("first_air_date")
+        if first_air:
+            try:
+                release_date = datetime.datetime.strptime(first_air, '%Y-%m-%d').date()
+            except ValueError:
+                pass
         return {
+            "cover_image_url": f"https://image.tmdb.org/t/p/w500{cover}" if cover else None,
+            "synopsis": data.get("overview"),
             "genres": ", ".join(g["name"] for g in data.get("genres", [])),
             "runtime": runtime,
             "vote_average": data.get("vote_average"),
             "director": creator,
             "cast": cast,
+            "release_date": release_date,
         }
     except requests.exceptions.RequestException as e:
         print(f"Error fetching TMDb TV details: {e}")

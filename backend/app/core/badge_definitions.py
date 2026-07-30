@@ -51,9 +51,10 @@ _reg(BadgeDef("500_followers", "Ícone", "500 seguidores", "Users", "social", 50
 _reg(BadgeDef("first_post", "Post", "Primeiro post na timeline", "MessageCircle", "social", 1, rarity="celestial"))
 
 _reg(BadgeDef("first_log", "Log", "Primeiro log criado", "Target", "general", 1, rarity="celestial"))
-_reg(BadgeDef("total_100", "Dedicado", "100 logs no total", "Award", "general", 100, rarity="diamante"))
-_reg(BadgeDef("total_500", "Obsecado", "500 logs no total", "Award", "general", 500, rarity="imortal"))
-_reg(BadgeDef("total_1000", "Lenda", "1.000 logs no total", "Award", "general", 1000, rarity="arcano"))
+
+for t in [10, 25, 50, 100, 250, 500, 1000, 2500, 5000]:
+    _reg(BadgeDef(f"logs_{t}", "Logs", f"{t} logs no total", "Award", "general", t, rarity={10: "bronze", 25: "prata", 50: "ouro", 100: "diamante", 250: "lendario", 500: "imortal", 1000: "arcano", 2500: "celestial", 5000: "cosmico"}[t]))
+
 _reg(BadgeDef("omnivoro", "Omnívoro", "Log de cada tipo de mídia", "Compass", "general", 1, rarity="celestial"))
 _reg(BadgeDef("fav_5", "Favorito", "5 favoritos", "Heart", "general", 5, rarity="prata"))
 _reg(BadgeDef("fav_25", "Favorito", "25 favoritos", "Heart", "general", 25, rarity="ouro"))

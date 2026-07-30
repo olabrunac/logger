@@ -14,8 +14,12 @@ class CRUDMediaItem(CRUDBase[MediaItem, MediaItemCreate, MediaItemUpdate]):
         query = db.query(self.model)
         if obj_in.media_type in [MediaType.MOVIE, MediaType.SERIES] and obj_in.tmdb_id:
             existing_item = query.filter(MediaItem.tmdb_id == obj_in.tmdb_id).first()
-        elif obj_in.media_type == MediaType.GAME and obj_in.igdb_id:
-            existing_item = query.filter(MediaItem.igdb_id == obj_in.igdb_id).first()
+        elif obj_in.media_type == MediaType.GAME and (obj_in.igdb_id or obj_in.steam_appid):
+            existing_item = None
+            if obj_in.igdb_id:
+                existing_item = query.filter(MediaItem.igdb_id == obj_in.igdb_id).first()
+            if not existing_item and obj_in.steam_appid:
+                existing_item = query.filter(MediaItem.steam_appid == obj_in.steam_appid).first()
         else:
             # For books or items without external IDs, we might rely on title/type matching
             existing_item = query.filter(MediaItem.title == obj_in.title, MediaItem.media_type == obj_in.media_type).first()

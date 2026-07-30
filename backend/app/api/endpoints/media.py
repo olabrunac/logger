@@ -307,6 +307,20 @@ def create_log_entry(*, db: Session = Depends(deps.get_db), payload: schemas.Log
         print(f"Enrichment error (non-fatal): {e}")
         db.rollback()
 
+    # Auto-calc hours_spent from runtime if not manually set
+    if log.hours_spent is None and log.media_item.runtime:
+        if log.media_item.media_type == MediaType.MOVIE:
+            log.hours_spent = round(log.media_item.runtime / 60, 1)
+        elif log.media_item.media_type == MediaType.SERIES:
+            watched = db.query(EpisodeWatched).filter(
+                EpisodeWatched.log_id == log.id,
+                EpisodeWatched.watched == True,
+            ).count()
+            if watched > 0:
+                log.hours_spent = round((log.media_item.runtime / 60) * watched, 1)
+        db.add(log)
+        db.commit()
+
     try:
         from app.crud.crud_user_badge import check_and_unlock
         check_and_unlock(db, user_id)
@@ -323,7 +337,7 @@ def read_logs(*, db: Session = Depends(deps.get_db), user_id: int, skip: int = 0
         stats = {"watched_episodes": None, "total_episodes": None, "unlocked_achievements": None, "total_achievements": None}
         if log.media_item.media_type == MediaType.SERIES:
             watched = db.query(EpisodeWatched).filter(EpisodeWatched.log_id == log.id, EpisodeWatched.watched == True).count()
-            total = db.query(EpisodeWatched).filter(EpisodeWatched.log_id == log.id).count()
+            total = log.media_item.total_episodes
             stats["watched_episodes"] = watched
             stats["total_episodes"] = total
         elif log.media_item.media_type == MediaType.GAME:
@@ -336,12 +350,45 @@ def read_logs(*, db: Session = Depends(deps.get_db), user_id: int, skip: int = 0
         results.append(schemas.LogEntryWithStats(**log_dict))
     return results
 
-@router.get("/logs/{log_id}", response_model=schemas.LogEntryInDB)
+@router.get("/logs/{log_id}", response_model=schemas.LogEntryWithStats)
 def read_log(*, db: Session = Depends(deps.get_db), log_id: int) -> Any:
     log = crud.log_entry.get(db, id=log_id)
     if not log:
         raise HTTPException(status_code=404, detail="Log not found")
-    return log
+    # Enrich media item if release_date is missing
+    try:
+        mi = log.media_item
+        if mi.media_type == MediaType.SERIES and mi.tmdb_id and not mi.release_date:
+            details = tmdb_service.get_tv_details(mi.tmdb_id)
+            if details:
+                for key, value in details.items():
+                    if value:
+                        setattr(mi, key, value)
+                db.add(mi)
+                db.commit()
+        elif mi.media_type == MediaType.MOVIE and mi.tmdb_id and not mi.release_date:
+            details = tmdb_service.get_movie_details(mi.tmdb_id)
+            if details:
+                for key, value in details.items():
+                    if value:
+                        setattr(mi, key, value)
+                db.add(mi)
+                db.commit()
+    except Exception:
+        db.rollback()
+    stats = {"watched_episodes": None, "total_episodes": None, "unlocked_achievements": None, "total_achievements": None}
+    if log.media_item.media_type == MediaType.SERIES:
+        watched = db.query(EpisodeWatched).filter(EpisodeWatched.log_id == log.id, EpisodeWatched.watched == True).count()
+        stats["watched_episodes"] = watched
+        stats["total_episodes"] = log.media_item.total_episodes
+    elif log.media_item.media_type == MediaType.GAME:
+        unlocked = db.query(Achievement).filter(Achievement.log_id == log.id, Achievement.unlocked == True).count()
+        total = db.query(Achievement).filter(Achievement.log_id == log.id).count()
+        stats["unlocked_achievements"] = unlocked
+        stats["total_achievements"] = total
+    log_dict = schemas.LogEntryInDB.model_validate(log).model_dump()
+    log_dict.update(stats)
+    return schemas.LogEntryWithStats(**log_dict)
 
 @router.get("/logs/{log_id}/reviews", response_model=List[schemas.LogReviewInDB])
 def read_log_reviews(*, db: Session = Depends(deps.get_db), log_id: int) -> Any:
@@ -523,6 +570,20 @@ def update_log_entry(*, db: Session = Depends(deps.get_db), log_id: int, updates
             db.add(log.media_item)
             db.commit()
 
+    # Auto-calc hours_spent from runtime if not manually set
+    if log.hours_spent is None and log.media_item.runtime:
+        if log.media_item.media_type == MediaType.MOVIE:
+            log.hours_spent = round(log.media_item.runtime / 60, 1)
+        elif log.media_item.media_type == MediaType.SERIES:
+            watched = db.query(EpisodeWatched).filter(
+                EpisodeWatched.log_id == log.id,
+                EpisodeWatched.watched == True,
+            ).count()
+            if watched > 0:
+                log.hours_spent = round((log.media_item.runtime / 60) * watched, 1)
+        db.add(log)
+        db.commit()
+
     try:
         from app.crud.crud_user_badge import check_and_unlock
         check_and_unlock(db, log.user_id)
@@ -548,6 +609,31 @@ def patch_log_entry(*, db: Session = Depends(deps.get_db), log_id: int, updates:
     except Exception:
         pass
     return log
+
+@router.post("/users/{user_id}/backfill-hours")
+def backfill_hours(*, db: Session = Depends(deps.get_db), user_id: int) -> Any:
+    logs = db.query(LogEntry).filter(
+        LogEntry.user_id == user_id,
+        LogEntry.hours_spent.is_(None),
+    ).all()
+    updated = 0
+    for log in logs:
+        if not log.media_item.runtime:
+            continue
+        if log.media_item.media_type == MediaType.MOVIE:
+            log.hours_spent = round(log.media_item.runtime / 60, 1)
+            updated += 1
+        elif log.media_item.media_type == MediaType.SERIES:
+            watched = db.query(EpisodeWatched).filter(
+                EpisodeWatched.log_id == log.id,
+                EpisodeWatched.watched == True,
+            ).count()
+            if log.media_item.runtime and watched > 0:
+                log.hours_spent = round((log.media_item.runtime / 60) * watched, 1)
+                updated += 1
+        db.add(log)
+    db.commit()
+    return {"updated": updated}
 
 @router.delete("/logs/{log_id}")
 def delete_log_entry(*, db: Session = Depends(deps.get_db), log_id: int) -> Any:
@@ -593,6 +679,18 @@ def get_log_episodes(*, db: Session = Depends(deps.get_db), log_id: int):
 
 @router.post("/logs/{log_id}/episodes", response_model=schemas.EpisodeWatchedInDB)
 def toggle_episode(*, db: Session = Depends(deps.get_db), log_id: int, ep_in: schemas.EpisodeWatchedCreate):
+    log = db.query(LogEntry).filter(LogEntry.id == log_id).first()
+    if not log:
+        raise HTTPException(status_code=404, detail="Log not found")
+
+    if ep_in.watched and ep_in.air_date:
+        try:
+            air = datetime.datetime.strptime(ep_in.air_date[:10], "%Y-%m-%d")
+            if air > datetime.datetime.now():
+                raise HTTPException(status_code=400, detail="Cannot mark future episode as watched")
+        except ValueError:
+            pass
+
     existing = db.query(EpisodeWatched).filter(
         EpisodeWatched.log_id == log_id,
         EpisodeWatched.season_number == ep_in.season_number,
@@ -602,14 +700,58 @@ def toggle_episode(*, db: Session = Depends(deps.get_db), log_id: int, ep_in: sc
         existing.watched = ep_in.watched
         existing.episode_name = ep_in.episode_name or existing.episode_name
         existing.log_date = ep_in.log_date or existing.log_date
+        if ep_in.air_date:
+            existing.air_date = ep_in.air_date
         db.commit()
         db.refresh(existing)
+        _update_series_status(db, log)
         return existing
     ep = EpisodeWatched(log_id=log_id, **ep_in.dict())
     db.add(ep)
     db.commit()
     db.refresh(ep)
+    _update_series_status(db, log)
     return ep
+
+
+def _update_series_status(db: Session, log: LogEntry):
+    if log.media_item.media_type != MediaType.SERIES:
+        return
+    total_eps = log.media_item.total_episodes or 0
+    watched_eps = db.query(EpisodeWatched).filter(
+        EpisodeWatched.log_id == log.id,
+        EpisodeWatched.watched == True,
+    ).count()
+    if total_eps > 0 and watched_eps >= total_eps:
+        log.status = LogStatus.COMPLETED
+    elif watched_eps > 0:
+        log.status = LogStatus.IN_PROGRESS
+    # Auto-calc hours from runtime x watched episodes
+    if log.media_item.runtime and watched_eps > 0:
+        log.hours_spent = round((log.media_item.runtime / 60) * watched_eps, 1)
+    db.add(log)
+    db.commit()
+
+
+@router.put("/episodes/{episode_id}/review", response_model=schemas.EpisodeWatchedInDB)
+def update_episode_review(
+    *, db: Session = Depends(deps.get_db), episode_id: int, review_in: schemas.EpisodeReviewUpdate,
+    user_id: int = Query(...),
+):
+    ep = db.query(EpisodeWatched).filter(EpisodeWatched.id == episode_id).first()
+    if not ep:
+        raise HTTPException(status_code=404, detail="Episode not found")
+    log = db.query(LogEntry).filter(LogEntry.id == ep.log_id).first()
+    if not log or log.user_id != user_id:
+        raise HTTPException(status_code=403, detail="Not your log")
+    if review_in.review_text is not None:
+        ep.review_text = review_in.review_text
+    if review_in.rating is not None:
+        ep.rating = review_in.rating
+    db.commit()
+    db.refresh(ep)
+    return ep
+
 
 # --- Achievements ---
 

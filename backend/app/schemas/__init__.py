@@ -1,6 +1,7 @@
 from .user import User, UserCreate, UserUpdate, LoginRequest, ForgotPasswordRequest, ResetPasswordRequest, ChangeEmailRequest, ChangePasswordRequest
 from .post import PostCreate, PostReplyCreate, PostOut, PostReplyOut, PostImageOut
 from .badge import UserBadgeOut, BadgeProgressOut, BadgeResponse, NewBadgeOut
+from .notification import NotificationOut
 from .media import (
     MediaItemCreate,
     MediaItemUpdate,
@@ -12,6 +13,7 @@ from .media import (
     LogPayload,
     EpisodeWatchedCreate,
     EpisodeWatchedInDB,
+    EpisodeReviewUpdate,
     AchievementCreate,
     AchievementInDB,
     LogReviewInDB,

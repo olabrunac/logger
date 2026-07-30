@@ -4,12 +4,25 @@ export interface User {
   id: number;
   username: string;
   email?: string;
+  created_at?: string;
   banner_url?: string;
   avatar_url?: string;
   accent_color?: string;
   section_order?: string;
+  feed_tabs_order?: string;
+  social_links?: string;
+  country?: string;
+  state?: string;
+  display_name?: string;
+  bio?: string;
+  trophy_showcase?: string;
   followers_count?: number;
   following_count?: number;
+}
+
+export interface SocialLink {
+  label: string;
+  url: string;
 }
 
 
@@ -19,7 +32,8 @@ export type LogStatus =
   | "dropped"
   | "wishlist"
   | "soon"
-  | "platinated";
+  | "platinated"
+  | "library";
 
 export const LogStatusValues: LogStatus[] = [
   "in_progress",
@@ -27,7 +41,8 @@ export const LogStatusValues: LogStatus[] = [
   "dropped",
   "wishlist",
   "soon",
-  "platinated"
+  "platinated",
+  "library"
 ];
 
 
@@ -124,4 +139,34 @@ export interface BadgeProgress {
 export interface BadgeResponse {
   unlocked: UserBadge[];
   next_milestones: BadgeProgress[];
+}
+
+export interface UserAchievement {
+  id: number;
+  log_id: number;
+  external_id: string;
+  name: string;
+  description?: string;
+  image_url?: string;
+  game_title: string;
+  game_cover?: string;
+}
+
+export interface AppNotification {
+  id: number;
+  user_id: number;
+  type: string;
+  from_user_id?: number;
+  from_username?: string;
+  from_avatar_url?: string;
+  post_id?: number;
+  post_content?: string;
+  reply_content?: string;
+  badge_key?: string;
+  badge_title?: string;
+  badge_icon?: string;
+  badge_rarity?: string;
+  badge_description?: string;
+  read: boolean;
+  created_at: string;
 }

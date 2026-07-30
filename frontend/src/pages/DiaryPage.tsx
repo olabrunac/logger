@@ -50,7 +50,7 @@ const DiaryPage = ({ user }: DiaryPageProps) => {
   const groups = groupByDate(sorted);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-[1844px] mx-auto">
       <div className="flex items-center justify-between gap-4">
         <h1 className="font-display text-3xl font-black tracking-tight">Diário</h1>
         <div className="flex items-center gap-1 flex-wrap">

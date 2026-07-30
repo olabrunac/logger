@@ -1,4 +1,5 @@
-import { useEffect, useState, type ComponentType } from 'react';
+import { useEffect, useState, useRef, useCallback, type ComponentType } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   Wrench, Film, Tv, Gamepad2, BookOpen, Trophy, Star, Flame,
   Users, UserPlus, MessageCircle, Target, Award, Heart, Compass, Clock,
@@ -23,6 +24,10 @@ const RARITY_LABELS: Record<string, string> = {
 const RARITY_HEX: Record<string, string> = {
   bronze: "#CD7F32", prata: "#C0C0C0", ouro: "#F5C518", diamante: "#3B82F6",
   lendario: "#A85FEB", imortal: "#EF4444", arcano: "#22C55E", celestial: "#06B6D4", cosmico: "#EC4899",
+};
+
+const RARITY_ORDER: Record<string, number> = {
+  bronze: 0, prata: 1, ouro: 2, diamante: 3, lendario: 4, imortal: 5, arcano: 6, celestial: 7, cosmico: 8,
 };
 
 const hexToRgb = (hex: string) => {
@@ -57,26 +62,57 @@ const BadgeItem = ({ icon, title, rarity, description, isUnlocked, badgeCount, p
     ? progressTarget > 999 ? `${(progressTarget / 1000).toFixed(progressTarget % 1000 === 0 ? 0 : 1)}k` : String(progressTarget)
     : null;
 
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+
+  const show = useCallback(() => {
+    const el = triggerRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const tipW = tooltipRef.current?.offsetWidth ?? 180;
+    const tipH = tooltipRef.current?.offsetHeight ?? 80;
+    let x = r.left + r.width / 2 - tipW / 2;
+    let y = r.top - tipH - 8;
+    if (x < 4) x = 4;
+    if (x + tipW > window.innerWidth - 4) x = window.innerWidth - 4 - tipW;
+    if (y < 4) y = r.bottom + 8;
+    setPos({ x, y });
+  }, []);
+
+  const hide = useCallback(() => setPos(null), []);
+
   return (
-    <div
-      className={`group relative flex w-full flex-col items-center gap-1 rounded-xl p-1.5 transition-colors`}
-    >
-      <div className="absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg border px-3 py-2 text-left opacity-0 shadow-lg transition-opacity duration-150 pointer-events-none group-hover:opacity-100"
-        style={{ background: '#1C2127', borderColor: 'rgba(255,255,255,0.08)' }}>
-        <div className="flex items-center gap-2 mb-1">
-          <BadgeIcon name={icon} className="h-4 w-4" style={{ color: hex }} />
-          <span className="text-xs font-bold text-white">{title}</span>
+    <div className="relative flex w-full flex-col items-center gap-1 rounded-xl p-1.5 transition-colors">
+      {pos && (
+        <div
+          ref={tooltipRef}
+          className="fixed z-[9999] whitespace-nowrap rounded-lg border px-3 py-2 text-left shadow-lg"
+          style={{ background: '#1C2127', borderColor: 'rgba(255,255,255,0.08)', left: pos.x, top: pos.y }}
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <BadgeIcon name={icon} className="h-4 w-4" style={{ color: hex }} />
+            <span className="text-xs font-bold text-white">{title}</span>
+          </div>
+          <div className="text-[11px] text-white/60">{description}</div>
+          {!isUnlocked && progressCurrent != null && progressTarget != null && (
+            <div className="mt-1 text-[10px] text-white/40">{progressCurrent}/{progressTarget > 999 ? `${(progressTarget / 1000).toFixed(progressTarget % 1000 === 0 ? 0 : 1)}k` : progressTarget}</div>
+          )}
+          {isUnlocked && progressCurrent != null && progressTarget != null && (
+            <div className="mt-1 text-[10px] text-white/40">{progressCurrent}/{progressTarget > 999 ? `${(progressTarget / 1000).toFixed(progressTarget % 1000 === 0 ? 0 : 1)}k` : progressTarget} para o próximo nível</div>
+          )}
+          <div className="mt-1 flex items-center gap-1.5">
+            <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: hex }} />
+            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: hex }}>{rarityLabel}</span>
+          </div>
         </div>
-        <div className="text-[11px] text-white/60">{description}</div>
-        {!isUnlocked && progressCurrent != null && progressTarget != null && (
-          <div className="mt-1 text-[10px] text-white/40">{progressCurrent}/{progressTarget > 999 ? `${(progressTarget / 1000).toFixed(progressTarget % 1000 === 0 ? 0 : 1)}k` : progressTarget}</div>
-        )}
-        <div className="mt-1 flex items-center gap-1.5">
-          <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: hex }} />
-          <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: hex }}>{rarityLabel}</span>
-        </div>
-      </div>
-      <div className="relative">
+      )}
+      <div
+        ref={triggerRef}
+        className="relative cursor-default"
+        onMouseEnter={show}
+        onMouseLeave={hide}
+      >
         <div
           className="flex h-11 w-11 items-center justify-center rounded-full transition-transform group-hover:scale-105"
           style={{ background: isUnlocked ? `rgba(${rgb}, 0.133)` : 'transparent', boxShadow: `${hex} 0px 0px 0px 2px` }}
@@ -111,11 +147,12 @@ const BadgeItem = ({ icon, title, rarity, description, isUnlocked, badgeCount, p
 };
 
 const BadgesSection = ({ userId }: BadgesSectionProps) => {
+  const location = useLocation();
   const [data, setData] = useState<BadgeResponse | null>(null);
 
   useEffect(() => {
     getUserBadges(userId).then((r: { data: BadgeResponse }) => setData(r.data)).catch(() => {});
-  }, [userId]);
+  }, [userId, location.pathname]);
 
   if (!data) return null;
   if (data.unlocked.length === 0 && data.next_milestones.length === 0) return null;
@@ -133,6 +170,8 @@ const BadgesSection = ({ userId }: BadgesSectionProps) => {
       description: badge.description,
       isUnlocked: true,
       sortPriority: 0,
+      progressCurrent: (badge as any).next_current as number | undefined,
+      progressTarget: (badge as any).next_target as number | undefined,
     });
   }
 
@@ -152,7 +191,10 @@ const BadgesSection = ({ userId }: BadgesSectionProps) => {
     }
   }
 
-  items.sort((a, b) => a.sortPriority - b.sortPriority);
+  items.sort((a, b) => {
+    if (a.sortPriority !== b.sortPriority) return a.sortPriority - b.sortPriority;
+    return (RARITY_ORDER[b.rarity] ?? 0) - (RARITY_ORDER[a.rarity] ?? 0);
+  });
 
   return (
     <div className="grid grid-cols-5 gap-1.5">

@@ -3,6 +3,7 @@ import { Trash2, ChevronUp, ChevronDown } from 'lucide-react';
 import api, { getUserFavorites } from '../../services/api';
 import type { User, TopListItem, MediaItem } from '../../types';
 import { TYPE_META } from '../../constants/designSystem';
+import SectionHeader from './SectionHeader';
 
 const TYPE_CONFIG = TYPE_META;
 
@@ -127,7 +128,7 @@ const TopListsSection = ({ profileUser, currentUser }: TopListsSectionProps) => 
 
   return (
     <section className="space-y-6">
-      <h2 className="font-display text-2xl font-bold">Top 5 por Mídia</h2>
+      <SectionHeader title="Top 5 por Mídia" />
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {types.map(type => {
           const config = TYPE_CONFIG[type];

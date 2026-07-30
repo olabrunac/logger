@@ -49,6 +49,12 @@ def reply_to_post(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     reply = crud_post.add_reply(db, post_id=post_id, user_id=user_id, content=content)
+    if post.user_id != user_id:
+        try:
+            from app.crud.crud_notification import create_notification
+            create_notification(db, user_id=post.user_id, type="reply", from_user_id=user_id, post_id=post_id)
+        except Exception:
+            pass
     return _reply_response(reply)
 
 
@@ -140,6 +146,12 @@ def like_post(
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
     crud_post.like_post(db, post_id=post_id, user_id=user_id)
+    if post.user_id != user_id:
+        try:
+            from app.crud.crud_notification import create_notification
+            create_notification(db, user_id=post.user_id, type="like", from_user_id=user_id, post_id=post_id)
+        except Exception:
+            pass
     return {"liked": True, "likes_count": crud_post.get_likes_count(db, post_id)}
 
 

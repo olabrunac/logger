@@ -33,6 +33,12 @@ def parse_steam_game_data(steam_data: dict) -> dict:
     if price_data:
         price = price_data.get("final_formatted", "")
 
+    pc_req = steam_data.get("pc_requirements", {})
+    if isinstance(pc_req, dict):
+        pc_requirements = pc_req.get("minimum", "")
+    else:
+        pc_requirements = ""
+
     return {
         "steam_appid": steam_data.get("steam_appid"),
         "header_image": steam_data.get("header_image", ""),
@@ -41,6 +47,6 @@ def parse_steam_game_data(steam_data: dict) -> dict:
         "steam_categories": ", ".join(categories),
         "steam_price": price,
         "screenshots": screenshots,
-        "pc_requirements": steam_data.get("pc_requirements", {}).get("minimum", ""),
+        "pc_requirements": pc_requirements,
         "short_description": steam_data.get("short_description", ""),
     }

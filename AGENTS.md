@@ -1,64 +1,46 @@
-# Diretrizes para o Agente Logger
+# Logger — Diretrizes para Agente
 
 ## 🚀 Fluxo Operacional
-- **Aviso sobre PowerShell (5.1)**: **NUNCA** use `&&`. Use `; if ($?) { cmd2 }`.
-- **Ambiente**: Segredos de backend (`.env` em `backend/`) são obrigatórios para enriquecimento de APIs (TMDB, IGDB, Steam, Google Books). Nunca faça commit deles.
-- **Workflow**: Crie uma issue no GitHub, depois uma branch e, por fim, um PR para cada funcionalidade ou correção distinta.
+- **PowerShell 5.1**: **NUNCA** use `&&`. Use `; if ($?) { cmd2 }`.
+- **Segredos**: `.env` em `backend/` (TMDB, Steam, Google Books). Nunca faça commit.
+- **Workflow**: Issue → Branch → PR para cada funcionalidade/correção.
 
 ## 🛠️ Build & Verificação
-- **Frontend (`frontend/`)**:
-  - Lint: `npm run lint`
-  - Build/Typecheck: `npm run build`
-  - Ordem: `lint` -> `build`
-- **Backend (`backend/`)**:
-  - Verificação de sintaxe: `.\venv\Scripts\python.exe -m py_compile app/main.py`
+- **Frontend**: `npm run lint` → `npm run build` (tsc + vite)
+- **Backend**: `.\venv\Scripts\python.exe -m py_compile app/main.py`
 
-## 🏗️ Arquitetura & Estilo
-- **Monorepo**: Backend (FastAPI) e Frontend (React/Vite).
-- **Design System**:
-  - Variáveis CSS para cores: `--mdf-bg: #0A0C10`, `--mdf-surface: #14181C`.
-  - Cor de Destaque: Injetada via `user.accent_color` na variável CSS `--accent`.
-- **Enriquecimento de Mídia**: Itens de mídia são enriquecidos automaticamente por APIs externas na criação/atualização.
-- **TypeScript**: `verbatimModuleSyntax` e `erasableSyntaxOnly` ativos. Evite `enum`; use tipos de união + arrays de valores. Sempre use `import type`.
+## 🏗️ Arquitetura
+- **Monorepo**: `backend/` (FastAPI + SQLAlchemy + SQLite) e `frontend/` (React/Vite + TypeScript).
+- **Autenticação**: Email + senha (bcrypt via `bcrypt` lib). Dev bypass: username `bruna` → login com senha vazia. Admin: `admin@logger.dev` / `admin`.
+- **Status**: 7 valores — `completed`, `in_progress`, `dropped`, `wishlist`, `soon`, `platinated`, `library` (def. em `models/media.py`).
+- **Favorito**: Booleano independente do status.
+- **Layout**:
+  - Sidebar esquerda: 203px fixa, não colapsa. Sidebar direita: colapsável 324px/56px.
+  - Conteúdo central: `marginLeft: 203px; marginRight: 324px` — não redimensiona.
+  - Páginas de feed (Timeline, Notificações, Diário, Reviews, Calendário): `max-w-[1844px] mx-auto`.
+- **Design System** (`constants/designSystem.ts`):
+  - `TYPE_META`, `STATUS_COLORS`, `STATUS_ICONS`, `getStars`
+  - Cores: `--mdf-bg: #0A0C10`, `--mdf-surface: #14181C`, `--mdf-green`/`--accent` via `user.accent_color`.
+- **TypeScript**: `verbatimModuleSyntax` + `erasableSyntaxOnly`. Use `import type`. Evite `enum` (prefira união + arrays).
+- **Timeline**: Logs agrupados por (usuário + tipo de mídia + data). Endpoint em `users.py`.
+- **Timeline messages**: Mapeamento `statusLabels` por tipo de mídia em `TimelinePage.tsx` (ex: "assistiu", "jogou", "leu", "está assistindo").
+- **Badges**: Evolutivas por grupo (1 badge por categoria, tiers substituem anteriores). Descrição no tooltip mostra progresso p/ próximo nível. Ordenadas por raridade decrescente (cósmico primeiro).
+- **Importadores**: Letterboxd (ZIP/CSV), Steam (API), Trakt (JSON/CSV), TV Time (ZIP GDPR). Badge check roda ao final de cada import.
+- **Review snapshots**: PUT `/logs/{log_id}` cria `LogReview` só quando review/rating/platform mudam.
 
-## ⚙️ Restrições Principais
-- **Autenticação**: Sem senha, apenas `username`.
-- **Status**: 4 por tipo de mídia (completed, in_progress, dropped, wishlist).
-- **Favorito**: Toggle booleano independente do status.
-- **Poster Tiles**: Layout padronizado com badge ❤️ e estatísticas.
-- **Barra lateral esquerda**: Travada em 203px, não colapsa. Right sidebar colapsa para 56px.
-- **Conteúdo central**: Margens fixas (left: 203px, right: 324px) - não redimensiona ao colapsar sidebar.
-- **MediaTypeProfilePage seções**: Ordem fixa: Top 5 → Recentes → Em Progresso → Lista de Desejos → Finalizados → Abandonados → Reviews → Todos → Listas Personalizadas.
-- **MediaTypeProfilePage stats**: Contador de cards soma completed + in_progress + dropped (não wishlist).
-- **Review snapshots**: Endpoint PUT cria LogReview apenas quando review/rating/platform mudam (evita duplicidade ao editar status).
+## ⚙️ Convenções
+- **Estrelas**: 5 estrelas com meio ponto. Usar `getStars(rating)` → `['full'|'half'|'empty']`.
+- **"Ver mais"**: Sempre visível, mesmo com ≤12 itens. No header da seção (`justify-between`), seta `ChevronRight` gira 90° expandido.
+- **Poster tiles**: `grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-2`.
+- **Platform options**: Multi-select (até 2), específico por tipo de mídia (`frontend/src/constants/designSystem.ts`).
+- **Contador de stats**: `completed + in_progress + dropped` (exclui wishlist).
+- **Wishlist**: Fetch separado via `/media/wishlist` (merge manual com logs nas páginas de perfil).
 
 ## 📋 Pendências (TODO)
-1. **Início**: ~~Arrumar a página inicial (HomePage)~~ ✅
-2. **Páginas de mídia**: ~~Arrumar as páginas individuais de cada tipo de mídia (MediaTypeProfilePage)~~ ✅
-12. **Edição de layout por tipo de mídia**: No MediaTypeProfilePage, permitir ao usuário reordenar as seções (drag-and-drop), ocultar Top 5, e selecionar quais listas personalizadas exibir (salvar config per-media-type no campo `section_order` do User)
-13. **Avatar redondo + links no perfil**: Mudar o formato do avatar no profile/username para redondo. Permitir que o usuario coloque ate 2 links no perfil (ex: rede social, site pessoal)
-14. **Aba de Notificações**: Criar uma aba de notificações para mostrar: quem curtiu seus posts, quem respondeu seus posts, quem te seguiu, e notificações de medalhas recebidas
-3. **Perfil na sidebar**: ~~Mudar o layout do perfil na barra lateral esquerda~~ ✅
-4. **Cadastro completo**: ~~Implementar cadastro de usuário com email e senha (atualmente só username)~~ ✅
-5. **Interação entre contas**: ~~Implementar sistema de seguir/curtir posts na timeline~~ ✅
-6. **Timeline**: ~~Implementar feed/timeline com posts dos seguidos~~ ✅
-7. **Importação de logs**: Implementar importação de logs de outras plataformas (ex: Letterboxd, IGDB, etc)
-8. **Reviews acima de conquistas**: ~~Mover as reviews de dentro da aba de conquistas do log de jogo para antes dela~~ ✅
-9. **Medalhas/Conquistas do Usuário**: Sistema de badges que o usuário desbloqueia ao atingir marcos (ex: 10, 50, 100 mídias assistidas/jogadas/lidas, primeiro log, primeira review, streak de logs, completar todos os jogos de uma franquia, etc). Ideia é motivar o usuário a logar tudo o que consome.
-10. **Publicação**: Publicar o site, avaliar ferramentas de hosting do GitHub Students
-11. **Sidebar estilo Twitter mobile**: ~~Reorganizar a barra lateral esquerda seguindo o layout do Twitter/X mobile (perfil no topo, nav items minimalistas, ícones apenas ou com labels compactos)~~ ✅
-
-## 📁 Estrutura de Pastas Importantes
-- `backend/app/api/endpoints/media.py` - Endpoints de mídia, top lists, favoritos
-- `backend/app/crud/crud_media.py` - CRUD de mídia, logs, favoritos
-- `backend/app/crud/crud_top_list.py` - CRUD de top 5 lists
-- `frontend/src/components/sections/TopListsSection.tsx` - Componente Top 5
-- `frontend/src/components/RightSidebar.tsx` - Sidebar direita (analytics, activity graph)
-- `frontend/src/components/LeftSidebar.tsx` - Sidebar esquerda (navegação fixa)
-- `frontend/src/pages/ProfilePage.tsx` - Perfil do usuário
-- `frontend/src/pages/MediaTypeProfilePage.tsx` - Perfil filtrado por tipo de mídia
-- `frontend/src/pages/ReviewsPage.tsx` - Página de reviews (histórico de reviews por log)
-- `frontend/src/pages/DiaryPage.tsx` - Diário de reviews
-- `frontend/src/pages/LogDetailPage.tsx` - Detalhe do log (reviews, conquistas, temporadas)
-- `frontend/src/pages/TimelinePage.tsx` - Timeline (placeholder, em desenvolvimento)
-- `backend/app/crud/crud_custom_list.py` - CRUD de listas personalizadas
+1. **Edição de layout por tipo de mídia (#12)**: No MediaTypeProfilePage, permitir ao usuário reordenar as seções (drag-and-drop), ocultar Top 5, e selecionar quais listas personalizadas exibir
+2. **Layout de perfil estilo YGP (#15)**: Copiar o layout de perfil do yourgamerprofile.com (seções, disposição dos elementos)
+3. **Publicação (#10)**: Publicar o site, avaliar ferramentas de hosting do GitHub Students
+4. **Testar importação TV Time (#17)**: Testar a importação de dados do TV Time (ZIP do GDPR) com dados reais
+5. **Testar importação Steam (#18)**: Testar a importação de dados da Steam com ID de usuário real
+6. **Filtrar mídias sem match na API (#20)**: Ao importar, pular mídias cujo título não encontre correspondência na API (TMDB/Steam/Google Books), evitando itens sem capa, descrição ou metadados
+7. **Auto-somar runtime nas estatísticas (#21)**: Importar `runtime` de filmes e `episode_run_time` de episódios da TMDB, somar automaticamente nas horas totais do usuário (em vez de depender de `hours_spent` manual)

@@ -1,14 +1,27 @@
 import { NavLink, Link, useLocation } from 'react-router-dom';
-import { Home, Calendar, List, BookOpen, Settings, MessageSquare, Clock, LogOut, LogIn } from 'lucide-react';
+import { Home, Calendar, List, BookOpen, Settings, MessageSquare, Clock, LogOut, LogIn, Bell } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { getUnreadCount } from '../services/api';
 import type { User as UserType } from '../types';
 
 interface LeftSidebarProps {
   user: UserType | null;
   onLogout: () => void;
+  refreshUnreadTrigger?: number;
 }
 
-const LeftSidebar = ({ user, onLogout }: LeftSidebarProps) => {
+const LeftSidebar = ({ user, onLogout, refreshUnreadTrigger }: LeftSidebarProps) => {
   const location = useLocation();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    getUnreadCount(user.id).then(r => setUnreadCount(r.data.count)).catch(() => {});
+    const interval = setInterval(() => {
+      getUnreadCount(user.id).then(r => setUnreadCount(r.data.count)).catch(() => {});
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [user, location.pathname, refreshUnreadTrigger]);
 
   if (!user) {
     return (
@@ -46,6 +59,7 @@ const LeftSidebar = ({ user, onLogout }: LeftSidebarProps) => {
   const navItems = [
     { path: profileBase, label: 'Inicio', icon: Home, exact: true },
     { path: '/timeline', label: 'Timeline', icon: Clock, exact: true },
+    { path: '/notifications', label: 'Notificacoes', icon: Bell, exact: true, badge: unreadCount },
     { path: `${profileBase}/calendar`, label: 'Calendario', icon: Calendar, exact: true },
     { path: `${profileBase}/lists`, label: 'Listas', icon: List, exact: true },
     { path: `${profileBase}/diary`, label: 'Diario', icon: BookOpen, exact: true },
@@ -112,7 +126,7 @@ const LeftSidebar = ({ user, onLogout }: LeftSidebarProps) => {
 
       {/* Nav */}
       <nav className="flex-1 py-3 px-3 space-y-0.5 overflow-y-auto">
-        {navItems.map(({ path, label, icon: Icon, exact }) => {
+        {navItems.map(({ path, label, icon: Icon, exact, badge }) => {
           const isActive = exact ? location.pathname === path : location.pathname.startsWith(path);
           return (
             <NavLink
@@ -131,7 +145,12 @@ const LeftSidebar = ({ user, onLogout }: LeftSidebarProps) => {
                 />
               )}
               <Icon size={18} style={{ color: isActive ? 'var(--accent)' : undefined }} />
-              <span>{label}</span>
+              <span className="flex-1">{label}</span>
+              {badge != null && badge > 0 && (
+                <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full px-1 text-[10px] font-bold text-white" style={{ background: '#ef4444' }}>
+                  {badge > 99 ? '99+' : badge}
+                </span>
+              )}
             </NavLink>
           );
         })}

@@ -10,6 +10,7 @@ class MediaItemBase(BaseModel):
     tmdb_id: Optional[int] = None
     igdb_id: Optional[int] = None
     google_books_id: Optional[str] = None
+    steam_appid: Optional[int] = None
     cover_image_url: Optional[str] = None
     release_date: Optional[date] = None
     synopsis: Optional[str] = None
@@ -114,6 +115,9 @@ class EpisodeWatchedBase(BaseModel):
     episode_name: Optional[str] = None
     watched: bool = True
     log_date: Optional[str] = None
+    air_date: Optional[str] = None
+    review_text: Optional[str] = None
+    rating: Optional[float] = None
 
 class EpisodeWatchedCreate(EpisodeWatchedBase):
     pass
@@ -123,6 +127,10 @@ class EpisodeWatchedInDB(EpisodeWatchedBase):
     log_id: int
     class Config:
         from_attributes = True
+
+class EpisodeReviewUpdate(BaseModel):
+    review_text: Optional[str] = None
+    rating: Optional[float] = None
 
 # --- Achievement Schemas ---
 class AchievementBase(BaseModel):

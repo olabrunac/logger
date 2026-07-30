@@ -164,32 +164,44 @@ def check_and_unlock(db: Session, user_id: int) -> List[dict]:
     fav_count = _count_favorites(db, user_id)
     total_hours = _count_total_hours(db, user_id)
 
+    def _upgrade_group(keyed_thresholds: list[tuple[str, int]], current_value: int):
+        best_key = None
+        for key, t in keyed_thresholds:
+            if current_value >= t:
+                best_key = key
+        if best_key is None:
+            return
+        old_keys = [k for k, _ in keyed_thresholds if k != best_key and k in unlocked_keys]
+        for ok in old_keys:
+            db.query(UserBadge).filter(UserBadge.user_id == user_id, UserBadge.badge_key == ok).delete()
+            unlocked_keys.discard(ok)
+        if best_key not in unlocked_keys and best_key in BADGE_DEFS:
+            badge = unlock_badge(db, user_id, best_key)
+            defn = BADGE_DEFS[best_key]
+            new_badges.append({
+                "key": best_key,
+                "title": defn.title,
+                "description": defn.description,
+                "icon": defn.icon,
+                "rarity": defn.rarity,
+                "unlocked_at": badge.unlocked_at.isoformat() if badge.unlocked_at else "",
+            })
+
+    _upgrade_group([(f"movie_{t}", t) for t in [10, 25, 50, 100, 250, 500, 1000, 2500, 5000]], counts["movie"])
+    _upgrade_group([(f"series_{t}", t) for t in [10, 25, 50, 100, 250, 500, 1000, 2500, 5000]], counts["series"])
+    _upgrade_group([(f"game_{t}", t) for t in [10, 25, 50, 100, 250, 500, 1000, 2500, 5000]], counts["game"])
+    _upgrade_group([(f"book_{t}", t) for t in [10, 25, 50, 100, 250, 500, 1000, 2500, 5000]], counts["book"])
+    _upgrade_group([(f"platina_{t}", t) for t in [1, 5, 10, 25, 50, 100, 250, 500, 1000]], platina_count)
+    _upgrade_group([(f"review_{t}", t) for t in [1, 10, 50, 100, 250, 500, 1000]], review_count)
+    _upgrade_group([(f"streak_{t}", t) for t in [7, 30, 90, 180, 365, 730, 1095]], streak)
+    _upgrade_group([(f"logs_{t}", t) for t in [10, 25, 50, 100, 250, 500, 1000, 2500, 5000]], total)
+    _upgrade_group([(f"fav_{t}", t) for t in [5, 25, 100, 250]], fav_count)
+    _upgrade_group([("first_follower", 1), ("10_followers", 10), ("50_followers", 50), ("100_followers", 100), ("250_followers", 250), ("500_followers", 500)], follower_count)
+
     checks = []
-    for media_type in ["movie", "series", "game", "book"]:
-        for t in [10, 25, 50, 100, 250, 500, 1000, 2500, 5000]:
-            checks.append((f"{media_type}_{t}", counts[media_type] >= t))
-    for t in [1, 5, 10, 25, 50, 100, 250, 500, 1000]:
-        checks.append((f"platina_{t}", platina_count >= t))
-    for t in [1, 10, 50, 100, 250, 500, 1000]:
-        checks.append((f"review_{t}", review_count >= t))
-    for t in [7, 30, 90, 180, 365, 730, 1095]:
-        checks.append((f"streak_{t}", streak >= t))
-    checks.append(("first_follower", follower_count >= 1))
-    checks.append(("10_followers", follower_count >= 10))
-    checks.append(("50_followers", follower_count >= 50))
-    checks.append(("100_followers", follower_count >= 100))
-    checks.append(("250_followers", follower_count >= 250))
-    checks.append(("500_followers", follower_count >= 500))
     checks.append(("first_post", has_post))
     checks.append(("first_log", total >= 1))
-    checks.append(("total_100", total >= 100))
-    checks.append(("total_500", total >= 500))
-    checks.append(("total_1000", total >= 1000))
     checks.append(("omnivoro", all_types))
-    checks.append(("fav_5", fav_count >= 5))
-    checks.append(("fav_25", fav_count >= 25))
-    checks.append(("fav_100", fav_count >= 100))
-    checks.append(("fav_250", fav_count >= 250))
     checks.append(("hours_332", total_hours >= 332))
     checks.append(("hours_666", total_hours >= 666))
 
@@ -205,6 +217,14 @@ def check_and_unlock(db: Session, user_id: int) -> List[dict]:
                 "rarity": defn.rarity,
                 "unlocked_at": badge.unlocked_at.isoformat() if badge.unlocked_at else "",
             })
+
+    if new_badges:
+        try:
+            from app.crud.crud_notification import create_notification
+            for b in new_badges:
+                create_notification(db, user_id=user_id, type="badge", badge_key=b["key"])
+        except Exception:
+            pass
 
     fav_remove_keys = []
     fav_thresholds = [("fav_5", 5), ("fav_25", 25), ("fav_100", 100), ("fav_250", 250)]
@@ -222,20 +242,6 @@ def get_user_badges_with_progress(db: Session, user_id: int) -> dict:
     unlocked = get_user_badges(db, user_id)
     unlocked_keys = {b.badge_key for b in unlocked}
 
-    unlocked_list = []
-    for b in unlocked:
-        defn = BADGE_DEFS.get(b.badge_key)
-        if defn:
-            unlocked_list.append({
-                "key": b.badge_key,
-                "title": defn.title,
-                "description": defn.description,
-                "icon": defn.icon,
-                "category": defn.category,
-                "rarity": defn.rarity,
-                "unlocked_at": b.unlocked_at.isoformat() if b.unlocked_at else "",
-            })
-
     counts = {
         "movie": _count_completed_by_type(db, user_id, "movie"),
         "series": _count_completed_by_type(db, user_id, "series"),
@@ -250,52 +256,69 @@ def get_user_badges_with_progress(db: Session, user_id: int) -> dict:
     fav_count = _count_favorites(db, user_id)
     total_hours = _count_total_hours(db, user_id)
 
-    next_milestones = []
-    media_thresholds = [10, 25, 50, 100, 250, 500, 1000, 2500, 5000]
-    for media_type in ["movie", "series", "game", "book"]:
-        current = counts[media_type]
-        for t in media_thresholds:
-            key = f"{media_type}_{t}"
-            if key not in unlocked_keys and key in BADGE_DEFS:
-                defn = BADGE_DEFS[key]
-                next_milestones.append({
-                    "key": key, "title": defn.title, "description": defn.description, "icon": defn.icon,
-                    "category": defn.category,
-                    "rarity": defn.rarity,
-                    "current": current, "target": t,
-                })
-                break
-
-    for prefix, current in [("platina", platina_count), ("review", review_count), ("streak", streak), ("fav", fav_count)]:
-        thresholds = [1, 5, 10, 25, 50, 100, 250, 500, 1000] if prefix == "platina" else [1, 10, 50, 100, 250, 500, 1000] if prefix == "review" else [7, 30, 90, 180, 365, 730, 1095] if prefix == "streak" else [5, 25, 100, 250]
-        for t in thresholds:
-            key = f"{prefix}_{t}"
-            if key not in unlocked_keys and key in BADGE_DEFS:
-                defn = BADGE_DEFS[key]
-                next_milestones.append({
-                    "key": key, "title": defn.title, "description": defn.description, "icon": defn.icon,
-                    "category": defn.category,
-                    "rarity": defn.rarity,
-                    "current": current, "target": t,
-                })
-                break
-
-    follower_thresholds = [
-        ("first_follower", 1), ("10_followers", 10), ("50_followers", 50), ("100_followers", 100),
-        ("250_followers", 250), ("500_followers", 500)
-    ]
-    for key, t in follower_thresholds:
-        if key not in unlocked_keys and key in BADGE_DEFS:
-            defn = BADGE_DEFS[key]
-            next_milestones.append({
-                "key": key, "title": defn.title, "description": defn.description, "icon": defn.icon,
+    # Build unlocked badge list with a lookup map
+    unlocked_list = []
+    unlocked_by_key = {}
+    for b in unlocked:
+        defn = BADGE_DEFS.get(b.badge_key)
+        if defn:
+            d = {
+                "key": b.badge_key,
+                "title": defn.title,
+                "description": defn.description,
+                "icon": defn.icon,
                 "category": defn.category,
                 "rarity": defn.rarity,
-                "current": follower_count, "target": t,
-            })
-            break
+                "unlocked_at": b.unlocked_at.isoformat() if b.unlocked_at else "",
+            }
+            unlocked_list.append(d)
+            unlocked_by_key[b.badge_key] = d
 
-    for key in ["first_post", "first_log", "omnivoro", "total_100", "total_500", "total_1000", "hours_332", "hours_666"]:
+    next_milestones = []
+
+    def _handle_group(keyed_thresholds: list[tuple[str, int]], current: int):
+        highest_key = None
+        highest_tier = 0
+        next_key = None
+        next_tier = 0
+        for key, t in keyed_thresholds:
+            if key in unlocked_keys and t > highest_tier:
+                highest_tier = t
+                highest_key = key
+        for key, t in keyed_thresholds:
+            if key not in unlocked_keys and key in BADGE_DEFS and t > highest_tier and t > current:
+                if next_key is None or t < next_tier:
+                    next_tier = t
+                    next_key = key
+        if highest_key and next_key:
+            ub = unlocked_by_key.get(highest_key)
+            if ub:
+                defn = BADGE_DEFS[next_key]
+                ub["next_current"] = current
+                ub["next_target"] = next_tier
+                ub["next_title"] = defn.title
+                ub["next_rarity"] = defn.rarity
+        elif next_key and not highest_key:
+            defn = BADGE_DEFS[next_key]
+            next_milestones.append({
+                "key": next_key, "title": defn.title, "description": defn.description, "icon": defn.icon,
+                "category": defn.category,
+                "rarity": defn.rarity,
+                "current": current, "target": next_tier,
+            })
+
+    _handle_group([(f"movie_{t}", t) for t in [10, 25, 50, 100, 250, 500, 1000, 2500, 5000]], counts["movie"])
+    _handle_group([(f"series_{t}", t) for t in [10, 25, 50, 100, 250, 500, 1000, 2500, 5000]], counts["series"])
+    _handle_group([(f"game_{t}", t) for t in [10, 25, 50, 100, 250, 500, 1000, 2500, 5000]], counts["game"])
+    _handle_group([(f"book_{t}", t) for t in [10, 25, 50, 100, 250, 500, 1000, 2500, 5000]], counts["book"])
+    _handle_group([(f"platina_{t}", t) for t in [1, 5, 10, 25, 50, 100, 250, 500, 1000]], platina_count)
+    _handle_group([(f"review_{t}", t) for t in [1, 10, 50, 100, 250, 500, 1000]], review_count)
+    _handle_group([(f"streak_{t}", t) for t in [7, 30, 90, 180, 365, 730, 1095]], streak)
+    _handle_group([(f"logs_{t}", t) for t in [10, 25, 50, 100, 250, 500, 1000, 2500, 5000]], total)
+    _handle_group([(f"fav_{t}", t) for t in [5, 25, 100, 250]], fav_count)
+    _handle_group([("first_follower", 1), ("10_followers", 10), ("50_followers", 50), ("100_followers", 100), ("250_followers", 250), ("500_followers", 500)], follower_count)
+
+    for key in ["first_post", "first_log", "omnivoro", "hours_332", "hours_666"]:
         if key not in unlocked_keys and key in BADGE_DEFS:
             defn = BADGE_DEFS[key]
             if key == "omnivoro":
