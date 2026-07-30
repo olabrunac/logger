@@ -1,13 +1,13 @@
 ﻿import { useEffect, useState, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import api, { getUserCustomLists } from '../services/api';
+import api, { getUserCustomLists, getUserFavorites } from '../services/api';
 import type { LogEntry, LogReview, User, CustomList, TopListItem, MediaItem } from '../types';
 import ProfileHero from '../components/ProfileHero';
 import YgpCard from '../components/sections/YgpCard';
 import SectionHeader from '../components/sections/SectionHeader';
 import LayoutEditorModal from '../components/sections/LayoutEditorModal';
 import { TYPE_META, getStars } from '../constants/designSystem';
-import { BarChart2, Heart, Clock, Star, Target, CheckCircle, BookOpen, X, Layers, Menu } from 'lucide-react';
+import { Heart, Clock, Star, Target, CheckCircle, BookOpen, X, Layers, Menu, ChevronUp, ChevronDown, Trash2 } from 'lucide-react';
 
 interface MediaTypeProfilePageProps {
   currentUser: User;
@@ -135,6 +135,70 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
   const accentColor = profileUser?.accent_color || meta.color;
   const [editingLayout, setEditingLayout] = useState(false);
 
+  const [editingTop5, setEditingTop5] = useState(false);
+  const [top5Favorites, setTop5Favorites] = useState<MediaItem[]>([]);
+  const [top5Draft, setTop5Draft] = useState<TopListItem[]>([]);
+  const [loadingTop5Fav, setLoadingTop5Fav] = useState(false);
+
+  const loadTop5Favorites = async () => {
+    setLoadingTop5Fav(true);
+    try {
+      const res = await getUserFavorites(profileUser!.id, mediaType);
+      setTop5Favorites(res.data || []);
+    } catch { /* ignore */ }
+    setLoadingTop5Fav(false);
+  };
+
+  const startEditTop5 = () => {
+    setEditingTop5(true);
+    setTop5Draft(currentTopItems.map((i, idx) => ({ ...i, position: idx + 1 })));
+    loadTop5Favorites();
+  };
+
+  const cancelEditTop5 = () => {
+    setEditingTop5(false);
+    setTop5Draft([]);
+  };
+
+  const saveTop5 = async () => {
+    try {
+      const currentIds = currentTopItems.map(i => i.id).filter(Boolean);
+      for (const id of currentIds) {
+        await api.delete(`/media/users/${profileUser!.id}/top-list/${id}`);
+      }
+      for (const item of top5Draft) {
+        await api.post(`/media/users/${profileUser!.id}/top-list`, { media_item_id: (item as any).media_item_id || item.media_item?.id, position: item.position });
+      }
+      const res = await api.get(`/media/users/${profileUser!.id}/top-list`);
+      setTopListItems(res.data || []);
+      setEditingTop5(false);
+      setTop5Draft([]);
+    } catch (err) {
+      console.error('Failed to save top list', err);
+      alert('Erro ao salvar Top 5');
+    }
+  };
+
+  const addTop5Item = (mediaId: number) => {
+    if (top5Draft.length >= 5) return alert('Máximo de 5 itens');
+    if (top5Draft.some(i => (i as any).media_item_id === mediaId || i.media_item?.id === mediaId)) return alert('Item já está no Top 5');
+    const media = top5Favorites.find(m => m.id === mediaId);
+    setTop5Draft(prev => [...prev, { media_item_id: mediaId, position: prev.length + 1, media_item: media } as unknown as TopListItem]);
+  };
+
+  const removeTop5Item = (index: number) => {
+    setTop5Draft(prev => prev.filter((_, i) => i !== index).map((item, i) => ({ ...item, position: i + 1 })));
+  };
+
+  const moveTop5Item = (fromIndex: number, toIndex: number) => {
+    setTop5Draft(prev => {
+      const items = [...prev];
+      const [moved] = items.splice(fromIndex, 1);
+      items.splice(toIndex, 0, moved);
+      return items.map((item, i) => ({ ...item, position: i + 1 }));
+    });
+  };
+
   const sectionConfig = useMemo(() => {
     try {
       const raw = profileUser?.section_order;
@@ -154,7 +218,6 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
   const CATEGORY_NAME: Record<string, string> = { movie: 'movies', series: 'series', book: 'books', game: 'games' };
 
   const MEDIA_SECTION_DEFS = [
-    { id: 'stats_grid', label: 'Estatísticas' },
     { id: 'top_5', label: 'Top 5' },
     { id: 'recent', label: 'Recentes' },
     { id: 'in_progress', label: 'Em Progresso' },
@@ -182,7 +245,6 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
   interface EffectiveSection { id: string; visible: boolean; label: string; icon: React.ReactNode; }
   const effectiveSections = useMemo(() => {
     const defaultSections: EffectiveSection[] = [
-      { id: 'stats_grid', visible: true, label: 'Estatísticas', icon: <BarChart2 className="h-3.5 w-3.5" /> },
       { id: 'top_5', visible: true, label: 'Top 5', icon: <Heart className="h-3.5 w-3.5" /> },
       { id: 'recent', visible: true, label: 'Recentes', icon: <Clock className="h-3.5 w-3.5" /> },
       { id: 'in_progress', visible: true, label: 'Em Progresso', icon: <Target className="h-3.5 w-3.5" /> },
@@ -236,62 +298,68 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
     );
   }
 
-  const renderStatsGrid = () => (
-    <section>
-      <SectionHeader title="Estatísticas" />
-      <div className="grid grid-cols-5 gap-3">
-      <Link to={'/profile/' + displayUsername} className="mdf-card mdf-card-hover p-5 flex items-center gap-4">
-        <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl" style={{ background: 'rgba(255,255,255,0.05)' }}>
-          👤
-        </div>
-        <div>
-          <div className="text-3xl font-display font-black leading-none text-white/50">Todos</div>
-          <div className="text-xs uppercase tracking-[0.2em] text-white/50 mt-1">Geral</div>
-        </div>
-      </Link>
-      {Object.entries(PAGE_META).map(([key, m]) => {
-        const count = logs.filter(l => l.media_item.media_type === key && (l.status === 'completed' || l.status === 'in_progress' || l.status === 'dropped')).length;
-        const hours = logs.filter(l => l.media_item.media_type === key && (l.status === 'completed' || l.status === 'in_progress' || l.status === 'dropped')).reduce((acc, l) => acc + (l.hours_spent || 0), 0);
-        const isActive = mediaType === key;
-        return (
-          <Link key={key} to={'/profile/' + displayUsername + '?view=' + MEDIA_TYPE_URL_MAP[key]}
-            className={`mdf-card p-5 flex items-center gap-4 transition-all ${isActive ? 'ring-1' : 'mdf-card-hover'}`}
-            style={isActive ? { borderColor: m.color + '44' } : {}}>
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl" style={{ background: m.color + '22' }}>
-              {m.emoji}
-            </div>
-            <div>
-              <div className="text-3xl font-display font-black leading-none">{count}</div>
-              <div className="text-xs uppercase tracking-[0.2em] text-white/50 mt-1">{m.label}</div>
-              {hours > 0 && <div className="text-[10px] text-white/40 mt-1 font-mono">{Math.round(hours)}h</div>}
-            </div>
-          </Link>
-        );
-      })}
-    </div>
-    </section>
-  );
-
   const renderTop5 = () => {
-    if (currentTopItems.length === 0) {
+    const displayItems = editingTop5 ? top5Draft : currentTopItems;
+    if (displayItems.length === 0 && !editingTop5) {
       return (
         <section>
           <SectionHeader title="Top 5" />
-          <div className="mdf-card p-6 text-center text-white/30 text-sm">Nenhum item no Top 5.</div>
+          <div className="mdf-card p-6 text-center text-white/30 text-sm">
+            Nenhum item no Top 5.
+            {isOwnProfile && (
+              <button onClick={startEditTop5} className="block mx-auto mt-3 px-4 py-2 text-xs font-bold rounded transition-colors bg-white/10 text-white/80 hover:bg-white/20">
+                Adicionar itens
+              </button>
+            )}
+          </div>
         </section>
       );
     }
     return (
       <section>
-        <SectionHeader title="Top 5" />
+        <SectionHeader title="Top 5">
+          {isOwnProfile && !editingTop5 && (
+            <button onClick={startEditTop5} className="px-3 py-1 text-xs font-bold rounded bg-white/10 text-white/80 hover:bg-white/20 transition-colors">
+              Editar
+            </button>
+          )}
+          {editingTop5 && (
+            <div className="flex gap-2">
+              <button onClick={saveTop5} className="px-3 py-1 text-xs font-bold rounded text-black transition-colors" style={{ background: 'var(--accent)' }}>
+                Salvar
+              </button>
+              <button onClick={cancelEditTop5} className="px-3 py-1 text-xs font-bold rounded bg-white/10 text-white/80 hover:bg-white/20 transition-colors">
+                Cancelar
+              </button>
+            </div>
+          )}
+        </SectionHeader>
+
         <div className="hidden gap-2 lg:flex lg:items-end lg:justify-center">
-          {currentTopItems.map((item, index) => {
-            const media = item.media_item as MediaItem | undefined;
+          {displayItems.map((item, index) => {
+            const media = item.media_item || top5Favorites.find(m => m.id === (item as any).media_item_id) as MediaItem | undefined;
             const isGoat = index === 0;
             return (
-              <div key={item.id} className="min-w-0" style={{ width: `calc((100% - ${(currentTopItems.length - 1) * 8}px) / ${currentTopItems.length})` }}>
-                <div className={`relative ${isGoat ? '' : ''}`}>
-                  {isGoat && (
+              <div key={item.id || index} className="min-w-0 relative" style={{ width: `calc((100% - 32px) / 5)`, maxWidth: `calc((100% - 32px) / 5)` }}>
+                {editingTop5 && (
+                  <div className="flex justify-center gap-1 mb-1">
+                    {index > 0 && (
+                      <button onClick={() => moveTop5Item(index, index - 1)} className="p-0.5 bg-black/60 rounded text-white/60 hover:text-white">
+                        <ChevronUp size={12} />
+                      </button>
+                    )}
+                    {index < displayItems.length - 1 && (
+                      <button onClick={() => moveTop5Item(index, index + 1)} className="p-0.5 bg-black/60 rounded text-white/60 hover:text-white">
+                        <ChevronDown size={12} />
+                      </button>
+                    )}
+                    <button onClick={() => removeTop5Item(index)} className="p-0.5 bg-black/60 rounded text-white/60 hover:text-red-400">
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                )}
+                <div className={`relative ${isGoat && !editingTop5 ? '' : ''}`}>
+                  {isGoat && !editingTop5 && (
                     <div className="flex justify-center -mb-3 relative z-10">
                       <svg width="22" height="22" viewBox="0 0 24 24" fill="#F59E0B" stroke="#F59E0B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7z"/>
@@ -299,12 +367,12 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
                       </svg>
                     </div>
                   )}
-                  <div className={`group relative flex flex-col overflow-hidden rounded-lg transition-opacity hover:opacity-90 ${isGoat ? 'outline outline-2' : ''}`}
+                  <div className={`group relative flex flex-col overflow-hidden rounded-lg transition-opacity hover:opacity-90 ${isGoat && !editingTop5 ? 'outline outline-2' : ''}`}
                     style={{
                       background: 'var(--bg-elevated)',
                       border: '1px solid var(--border)',
                       aspectRatio: '3/4',
-                      outlineColor: isGoat ? '#F59E0B' : 'transparent',
+                      outlineColor: isGoat && !editingTop5 ? '#F59E0B' : 'transparent',
                       outlineOffset: 0,
                     }}>
                     {media?.cover_image_url ? (
@@ -331,10 +399,15 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
           })}
         </div>
         <div className="flex gap-2 lg:hidden">
-          {currentTopItems.map((item, index) => {
-            const media = item.media_item as MediaItem | undefined;
+          {displayItems.map((item, index) => {
+            const media = item.media_item || top5Favorites.find(m => m.id === (item as any).media_item_id) as MediaItem | undefined;
             return (
-              <div key={item.id} className="flex flex-col items-center gap-1 w-20">
+              <div key={item.id || index} className="flex flex-col items-center gap-1 w-20">
+                {editingTop5 && (
+                  <button onClick={() => removeTop5Item(index)} className="self-end p-0.5 bg-black/60 rounded text-white/60 hover:text-red-400">
+                    <Trash2 size={12} />
+                  </button>
+                )}
                 <div className="group relative flex flex-col overflow-hidden rounded-lg transition-opacity hover:opacity-90 w-full" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', aspectRatio: '3/4' }}>
                   {media?.cover_image_url ? (
                     <img src={media.cover_image_url} alt={media.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
@@ -356,6 +429,44 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
             );
           })}
         </div>
+
+        {editingTop5 && (
+          <div className="mt-4 p-4 rounded-xl" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
+            <div className="text-sm font-semibold text-white/70 mb-3">Adicionar dos favoritos</div>
+            {loadingTop5Fav ? (
+              <div className="text-center text-white/50 py-4">Carregando favoritos...</div>
+            ) : top5Favorites.length === 0 ? (
+              <div className="text-center text-white/50 py-4">Nenhum favorito de {meta.label.toLowerCase()} ainda. Marque itens como favoritos nos logs para aparecerem aqui.</div>
+            ) : (
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {top5Favorites.map(m => {
+                  const alreadyAdded = top5Draft.some(i => (i as any).media_item_id === m.id || i.media_item?.id === m.id);
+                  return (
+                    <button key={m.id}
+                      onClick={() => !alreadyAdded && addTop5Item(m.id!)}
+                      disabled={alreadyAdded}
+                      className={`flex-shrink-0 w-24 rounded-lg overflow-hidden transition-all group ${alreadyAdded ? 'opacity-40 cursor-default' : 'hover:scale-105'}`}
+                      style={{ border: '1px solid var(--border)' }}>
+                      {m.cover_image_url ? (
+                        <img src={m.cover_image_url} alt={m.title} className="w-full h-28 object-cover" loading="lazy" />
+                      ) : (
+                        <div className="w-full h-28 flex items-center justify-center text-white/20 text-xs" style={{background: meta.color + '11'}}>{meta.emoji}</div>
+                      )}
+                      <div className="p-1">
+                        <div className="text-[10px] font-medium truncate text-white/70">{m.title}</div>
+                        {alreadyAdded ? (
+                          <div className="text-[8px] text-white/30">Na lista</div>
+                        ) : (
+                          <div className="text-[8px] opacity-0 group-hover:opacity-100 transition-opacity" style={{color: 'var(--accent)'}}>+ Adicionar</div>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </section>
     );
   };
@@ -564,7 +675,6 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
   };
 
   const sectionRenderers: Record<string, () => React.ReactNode> = {
-    stats_grid: renderStatsGrid,
     top_5: renderTop5,
     recent: renderRecent,
     in_progress: () => renderStatusSection('in_progress'),
