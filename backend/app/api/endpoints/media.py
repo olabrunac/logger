@@ -796,15 +796,21 @@ def get_user_top_list(*, db: Session = Depends(deps.get_db), user_id: int):
 @router.post("/users/{user_id}/top-list", response_model=schemas.TopListItemInDB)
 def create_top_list_item(*, db: Session = Depends(deps.get_db), user_id: int, item_in: schemas.TopListItemCreate):
     """Add item to user's top 5 list"""
-    # Check if position is already taken for this user
-    existing = db.query(TopListItem).filter(
+    # Get media item type for per-type position check
+    media_item = db.query(MediaItem).filter(MediaItem.id == item_in.media_item_id).first()
+    if not media_item:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Media item not found")
+
+    # Check if position is already taken for this user + media type
+    existing = db.query(TopListItem).join(MediaItem, TopListItem.media_item_id == MediaItem.id).filter(
         TopListItem.user_id == user_id,
-        TopListItem.position == item_in.position
+        TopListItem.position == item_in.position,
+        MediaItem.media_type == media_item.media_type
     ).first()
     if existing:
-        # Move existing item out of the way (or reject - let's reject for simplicity)
         from fastapi import HTTPException
-        raise HTTPException(status_code=400, detail=f"Position {item_in.position} is already taken")
+        raise HTTPException(status_code=400, detail=f"Position {item_in.position} is already taken for this media type")
     
     # Check if media item already in user's top list
     existing_media = db.query(TopListItem).filter(
@@ -830,11 +836,13 @@ def update_top_list_item(*, db: Session = Depends(deps.get_db), user_id: int, it
         raise HTTPException(status_code=404, detail="Item not found")
     
     if item_in.position is not None:
-        # Check if new position is taken
-        existing = db.query(TopListItem).filter(
+        # Check if new position is taken for this media type
+        media_item = db.query(MediaItem).filter(MediaItem.id == item.media_item_id).first()
+        existing = db.query(TopListItem).join(MediaItem, TopListItem.media_item_id == MediaItem.id).filter(
             TopListItem.user_id == user_id,
             TopListItem.position == item_in.position,
-            TopListItem.id != item_id
+            TopListItem.id != item_id,
+            MediaItem.media_type == media_item.media_type
         ).first()
         if existing:
             from fastapi import HTTPException

@@ -72,12 +72,19 @@ const ProfileHero = ({
   const favoriteCount = logs.filter(l => l.is_favorite).length;
   const totalHours = logs.reduce((sum, l) => sum + (l.hours_spent || 0), 0);
 
+  const tabCounts: Record<string, number> = {};
+  const activeMediaTypes = logs.filter(l => l.status === 'completed' || l.status === 'in_progress' || l.status === 'dropped');
+  activeMediaTypes.forEach(l => {
+    const key = l.media_item.media_type;
+    tabCounts[key] = (tabCounts[key] || 0) + 1;
+  });
+
 const tabs = [
   { id: 'perfil', label: 'Perfil', href: `/profile/${profileUser.username}` },
-  { id: 'jogos', label: 'Jogos', href: `/profile/${profileUser.username}?view=games` },
-  { id: 'filmes', label: 'Filmes', href: `/profile/${profileUser.username}?view=movies` },
-  { id: 'series', label: 'Séries', href: `/profile/${profileUser.username}?view=tvshows` },
-  { id: 'livros', label: 'Livros', href: `/profile/${profileUser.username}?view=books` },
+  { id: 'jogos', label: `Jogos${tabCounts.game != null ? ` (${tabCounts.game})` : ''}`, href: `/profile/${profileUser.username}?view=games` },
+  { id: 'filmes', label: `Filmes${tabCounts.movie != null ? ` (${tabCounts.movie})` : ''}`, href: `/profile/${profileUser.username}?view=movies` },
+  { id: 'series', label: `Séries${tabCounts.series != null ? ` (${tabCounts.series})` : ''}`, href: `/profile/${profileUser.username}?view=tvshows` },
+  { id: 'livros', label: `Livros${tabCounts.book != null ? ` (${tabCounts.book})` : ''}`, href: `/profile/${profileUser.username}?view=books` },
   { id: 'reviews', label: 'Reviews', href: `/profile/${profileUser.username}?view=reviews` },
   { id: 'listas', label: 'Listas', href: `/profile/${profileUser.username}?view=lists` },
   { id: 'atividades', label: 'Atividades', href: `/profile/${profileUser.username}?view=diary` },

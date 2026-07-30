@@ -42,8 +42,10 @@ const RightSidebar = ({ user, isCollapsed, onToggleCollapse }: RightSidebarProps
   const location = useLocation();
 
   const pathSegments = location.pathname.split('/');
-  const routeMediaTypeSlug = pathSegments[3]; // e.g. /profile/username/movies -> 'movies'
-  const activeMediaType = MEDIA_TYPE_MAP[routeMediaTypeSlug];
+  const routeMediaTypeSlug = pathSegments[3];
+  const searchParams = new URLSearchParams(location.search);
+  const viewParam = searchParams.get('view');
+  const activeMediaType = MEDIA_TYPE_MAP[routeMediaTypeSlug] || MEDIA_TYPE_MAP[viewParam || ''];
 
   useEffect(() => {
     if (user?.id) {

@@ -6,9 +6,10 @@ interface SectionHeaderProps {
   linkTo?: string;
   linkLabel?: string;
   count?: number;
+  children?: React.ReactNode;
 }
 
-const SectionHeader = ({ title, linkTo, linkLabel, count }: SectionHeaderProps) => (
+const SectionHeader = ({ title, linkTo, linkLabel, count, children }: SectionHeaderProps) => (
   <div className="flex items-center justify-between mb-3">
     <h2 className="flex items-center gap-2.5 text-sm font-bold text-white lg:text-base">
       <span className="block h-4 w-1 rounded-sm lg:h-5" style={{ background: 'var(--accent)' }} />
@@ -17,12 +18,15 @@ const SectionHeader = ({ title, linkTo, linkLabel, count }: SectionHeaderProps) 
         <span className="text-xs tabular-nums opacity-50" style={{ color: 'var(--accent)' }}>({count})</span>
       )}
     </h2>
-    {linkTo && (
-      <Link to={linkTo} className="flex items-center gap-0.5 text-xs font-medium transition-colors hover:opacity-80" style={{ color: 'var(--accent)' }}>
-        {linkLabel || 'Ver mais'}
-        <ChevronRight size={14} />
-      </Link>
-    )}
+    <div className="flex items-center gap-2">
+      {children}
+      {linkTo && (
+        <Link to={linkTo} className="flex items-center gap-0.5 text-xs font-medium transition-colors hover:opacity-80" style={{ color: 'var(--accent)' }}>
+          {linkLabel || 'Ver mais'}
+          <ChevronRight size={14} />
+        </Link>
+      )}
+    </div>
   </div>
 );
 

@@ -138,7 +138,6 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
 
   const effectiveSections = useMemo(() => {
     const defaultSections: Array<{ id: string; visible: boolean; label: string }> = [
-      { id: 'stats_grid', visible: true, label: 'Estatísticas' },
       { id: 'favorite_games', visible: true, label: 'Favoritos' },
       { id: 'recent_games', visible: true, label: 'Atividade recente' },
       { id: 'reviews', visible: true, label: 'Reviews' },
@@ -199,39 +198,6 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
     );
   }
 
-  const renderStatsGrid = () => (
-    <section>
-      <SectionHeader title="Estatísticas" />
-      <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
-      <Link to={'/profile/' + profileUser.username} className="mdf-card mdf-card-hover p-5 flex items-center gap-4">
-        <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl" style={{ background: 'rgba(255,255,255,0.08)' }}>
-          👤
-        </div>
-        <div>
-          <div className="text-3xl font-display font-black leading-none">{logs.length}</div>
-          <div className="text-xs uppercase tracking-[0.2em] text-white/50 mt-1">Todos</div>
-        </div>
-      </Link>
-      {Object.entries(TYPE_META).map(([key, meta]) => {
-        const count = logs.filter(l => l.media_item.media_type === key).length;
-        const hours = logs.filter(l => l.media_item.media_type === key).reduce((acc, l) => acc + (l.hours_spent || 0), 0);
-        return (
-          <Link key={key} to={'/profile/' + profileUser.username + '/' + meta.slug} className="mdf-card mdf-card-hover p-5 flex items-center gap-4">
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl" style={{ background: meta.color + '22' }}>
-              {meta.emoji}
-            </div>
-            <div>
-              <div className="text-3xl font-display font-black leading-none">{count}</div>
-              <div className="text-xs uppercase tracking-[0.2em] text-white/50 mt-1">{meta.label}</div>
-              {hours > 0 && <div className="text-[10px] text-white/40 mt-1 font-mono">{Math.round(hours)}h</div>}
-            </div>
-          </Link>
-        );
-      })}
-    </div>
-    </section>
-  );
-
   const renderRecentGames = () => (
     <section>
       <SectionHeader title="Atividade recente" linkTo={`/profile/${profileUser.username}/diary`} />
@@ -274,7 +240,7 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
             const meta = TYPE_META[type];
             const isGoat = idx === 0;
             return (
-              <div key={type} className="min-w-0" style={{ width: `calc((100% - ${(items.length - 1) * 8}px) / ${items.length})` }}>
+              <div key={type} className="min-w-0" style={{ width: `calc((100% - 24px) / 4)`, maxWidth: `calc((100% - 24px) / 4)` }}>
                 <div className={`relative ${isGoat ? '-mt-6' : ''}`}>
                   {isGoat && (
                     <div className="flex justify-center -mb-3 relative z-10">
@@ -494,7 +460,6 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
   };
 
   const PROFILE_SECTIONS = [
-    { id: 'stats_grid', label: 'Estatísticas' },
     { id: 'favorite_games', label: 'Favoritos' },
     { id: 'recent_games', label: 'Atividade Recente' },
     { id: 'reviews', label: 'Reviews' },
@@ -513,7 +478,6 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
   };
 
   const sectionRenderers: Record<string, () => React.ReactNode> = {
-    stats_grid: renderStatsGrid,
     favorite_games: renderFavoriteGames,
     recent_games: renderRecentGames,
     reviews: renderReviews,
