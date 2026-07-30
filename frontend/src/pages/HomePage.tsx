@@ -4,6 +4,7 @@ import api from '../services/api';
 import type { User, LogEntry } from '../types';
 import { TYPE_META, STATUS_COLORS, STATUS_ICONS, getStars } from '../constants/designSystem';
 import { ChevronRight } from 'lucide-react';
+import { imageUrl } from '../utils';
 
 interface HomePageProps {
   user: User;
@@ -41,13 +42,8 @@ const HomePage = ({ user }: HomePageProps) => {
     { label: 'Livros', value: bookCount, emoji: '📚', color: '#4ade80', slug: 'books' },
   ];
 
-  const bannerUrl = user.banner_url
-    ? user.banner_url.startsWith('http') ? user.banner_url : `http://localhost:8000${user.banner_url}`
-    : null;
-
-  const avatarUrl = user.avatar_url
-    ? user.avatar_url.startsWith('http') ? user.avatar_url : `http://localhost:8000${user.avatar_url}`
-    : null;
+  const bannerUrl = imageUrl(user.banner_url);
+  const avatarUrl = imageUrl(user.avatar_url);
 
   return (
     <div className="space-y-10">

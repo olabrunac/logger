@@ -4,6 +4,7 @@ import api, { uploadFile } from '../services/api';
 import type { User } from '../types';
 import { getStars, TYPE_META, STATUS_COLORS, STATUS_ICONS } from '../constants/designSystem';
 import { Send, Image as ImageIcon, X, MessageCircle, Trash2, Clock, Heart, ThumbsUp } from 'lucide-react';
+import { imageUrl } from '../utils';
 
 interface TimelinePageProps {
   user: User;
@@ -59,7 +60,7 @@ interface TimelineEntry {
 
 type FeedItem = Post | TimelineEntry;
 
-const IMAGE_URL = (url: string) => url.startsWith('http') ? url : `http://localhost:8000${url}`;
+const IMAGE_URL = (url: string) => imageUrl(url) || '';
 
   const statusLabels: Record<string, Record<string, string>> = {
     movie: {
@@ -294,11 +295,9 @@ const PostCard = ({ post, currentUser, onReply, onDelete, onLike }: {
 const LogCard = ({ entry }: { entry: TimelineEntry }) => {
   if (!entry.user || !entry.media_item) return null;
   const meta = TYPE_META[entry.media_item.media_type as keyof typeof TYPE_META] || TYPE_META.game;
-  const avatarUrl = entry.user.avatar_url
-    ? (entry.user.avatar_url.startsWith('http') ? entry.user.avatar_url : `http://localhost:8000${entry.user.avatar_url}`)
-    : null;
+  const avatarUrl = imageUrl(entry.user.avatar_url);
   const coverUrl = entry.media_item.cover_image_url
-    ? (entry.media_item.cover_image_url.startsWith('http') ? entry.media_item.cover_image_url : `http://localhost:8000${entry.media_item.cover_image_url}`)
+    ? imageUrl(entry.media_item.cover_image_url)
     : null;
   const statusLabel = entry.status
     ? (statusLabels[entry.media_item.media_type]?.[entry.status] ?? entry.status)
@@ -386,9 +385,7 @@ const LogCard = ({ entry }: { entry: TimelineEntry }) => {
 const LogGroupCard = ({ entry }: { entry: TimelineEntry }) => {
   if (!entry.user || !entry.media_item || !entry.group_items) return null;
   const meta = TYPE_META[entry.media_item.media_type as keyof typeof TYPE_META] || TYPE_META.game;
-  const avatarUrl = entry.user.avatar_url
-    ? (entry.user.avatar_url.startsWith('http') ? entry.user.avatar_url : `http://localhost:8000${entry.user.avatar_url}`)
-    : null;
+  const avatarUrl = imageUrl(entry.user.avatar_url);
   const statusLabel = entry.status
     ? (statusLabels[entry.media_item.media_type]?.[entry.status] ?? entry.status)
     : 'registrou';
@@ -422,7 +419,7 @@ const LogGroupCard = ({ entry }: { entry: TimelineEntry }) => {
                 <Link key={item.id} to={`/log/${item.id}`} className="group/log-item flex items-center gap-2 bg-white/[0.03] hover:bg-white/[0.06] rounded-lg px-3 py-2 transition-colors border" style={{ borderColor: 'var(--border)' }}>
                   {item.cover_image_url ? (
                     <div className="w-8 h-11 rounded overflow-hidden flex-shrink-0">
-                      <img src={item.cover_image_url.startsWith('http') ? item.cover_image_url : `http://localhost:8000${item.cover_image_url}`} alt="" className="w-full h-full object-cover" />
+                      <img src={imageUrl(item.cover_image_url) || ''} alt="" className="w-full h-full object-cover" />
                     </div>
                   ) : (
                     <div className="w-8 h-11 rounded flex items-center justify-center flex-shrink-0 text-xs" style={{ background: meta.color + '22' }}>

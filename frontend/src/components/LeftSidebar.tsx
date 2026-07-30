@@ -3,6 +3,7 @@ import { Home, Calendar, List, BookOpen, Settings, MessageSquare, Clock, LogOut,
 import { useEffect, useState } from 'react';
 import { getUnreadCount } from '../services/api';
 import type { User as UserType } from '../types';
+import { imageUrl } from '../utils';
 
 interface LeftSidebarProps {
   user: UserType | null;
@@ -52,9 +53,7 @@ const LeftSidebar = ({ user, onLogout, refreshUnreadTrigger }: LeftSidebarProps)
   }
 
   const profileBase = `/profile/${user.username}`;
-  const avatarUrl = user.avatar_url
-    ? user.avatar_url.startsWith('http') ? user.avatar_url : `http://localhost:8000${user.avatar_url}`
-    : null;
+  const avatarUrl = imageUrl(user.avatar_url);
 
   const navItems = [
     { path: profileBase, label: 'Inicio', icon: Home, exact: true },

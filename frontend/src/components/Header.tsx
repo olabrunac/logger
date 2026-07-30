@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import type { User } from '../types';
+import { imageUrl } from '../utils';
 
 interface HeaderProps {
   user: User | null;
@@ -14,9 +15,7 @@ const Header = ({ user, onLogout, onOpenLog }: HeaderProps) => {
 
   if (!user) return null;
 
-  const avatarUrl = user.avatar_url
-    ? user.avatar_url.startsWith('http') ? user.avatar_url : `http://localhost:8000${user.avatar_url}`
-    : null;
+  const avatarUrl = imageUrl(user.avatar_url);
 
   const items = [
     { to: '/', label: 'Inicio' },
