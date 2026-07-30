@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import type { LogEntry, LogReview } from '../types';
-import { ChevronDown, Trash2, CheckCircle2, Circle, Trophy, Pencil, Bookmark } from 'lucide-react';
+import { ChevronDown, Trash2, CheckCircle2, Circle, Trophy, Pencil, Bookmark, Edit3, Star } from 'lucide-react';
 import LogForm from '../components/LogForm';
 import { TYPE_META } from '../constants/designSystem';
 
@@ -14,6 +14,7 @@ const STATUS_LABELS: Record<string, string> = {
   wishlist: 'Lista de desejos',
   soon: 'Em breve',
   platinated: 'Platinado',
+  library: 'Biblioteca',
 };
 
 interface WatchedEpisode {
@@ -23,6 +24,8 @@ interface WatchedEpisode {
   episode_name?: string;
   watched: boolean;
   log_date?: string;
+  review_text?: string;
+  rating?: number;
 }
 
 interface TmdbEpisode {
@@ -71,6 +74,9 @@ const LogDetailPage = () => {
   const [wishlistLogId, setWishlistLogId] = useState<number | null>(null);
   const [bookmarking, setBookmarking] = useState(false);
   const [reviewHistory, setReviewHistory] = useState<LogReview[]>([]);
+  const [editingEpReview, setEditingEpReview] = useState<string | null>(null);
+  const [epReviewText, setEpReviewText] = useState('');
+  const [epReviewRating, setEpReviewRating] = useState(0);
 
   const fetchLog = useCallback(async () => {
     if (!id) return;
@@ -80,7 +86,19 @@ const LogDetailPage = () => {
       setLog(data);
 
       if (data.media_item.media_type === 'series' && data.media_item.tmdb_id) {
-        api.get(`/media/series/${data.media_item.tmdb_id}/seasons`).then(r => setSeasons(r.data || [])).catch(() => {});
+        const tmdbId = data.media_item.tmdb_id;
+        api.get(`/media/series/${tmdbId}/seasons`).then(async r => {
+          const sList = r.data || [];
+          setSeasons(sList);
+          const allEpisodes: Record<number, TmdbEpisode[]> = {};
+          await Promise.all(sList.map(async (s: TmdbSeason) => {
+            try {
+              const epRes = await api.get(`/media/series/${tmdbId}/season/${s.season_number}/episodes`);
+              allEpisodes[s.season_number] = epRes.data || [];
+            } catch { allEpisodes[s.season_number] = []; }
+          }));
+          setEpisodes(allEpisodes);
+        }).catch(() => {});
         api.get(`/media/logs/${id}/episodes`).then(r => {
           const map: Record<string, WatchedEpisode> = {};
           (r.data || []).forEach((ep: WatchedEpisode) => { map[ep.season_number + '-' + ep.episode_number] = ep; });
@@ -109,7 +127,10 @@ const LogDetailPage = () => {
       // Check if this media already has a wishlist entry
       api.get('/media/wishlist', { params: { user_id: data.user_id, media_type: data.media_item.media_type } })
         .then(r => {
-          const match = (r.data || []).find((w: any) => w.media_item_id === data.media_item_id);
+          const match = (r.data || []).find((w: any) => {
+            const wid = w.media_item_id ?? w.media_item?.id;
+            return Number(wid) === Number(data.media_item_id);
+          });
           setBookmarked(!!match);
           setWishlistLogId(match?.id ?? null);
         }).catch(() => {});
@@ -196,6 +217,7 @@ const LogDetailPage = () => {
 
   const toggleEpisode = async (ep: TmdbEpisode) => {
     if (!id) return;
+    if (ep.air_date && new Date(ep.air_date) > new Date()) return;
     const key = ep.season_number + '-' + ep.episode_number;
     const current = watchedMap[key];
     const newWatched = current ? !current.watched : true;
@@ -203,6 +225,7 @@ const LogDetailPage = () => {
       const { data } = await api.post('/media/logs/' + id + '/episodes', {
         season_number: ep.season_number, episode_number: ep.episode_number,
         episode_name: ep.name, watched: newWatched, log_date: new Date().toISOString().split('T')[0],
+        air_date: ep.air_date,
       });
       setWatchedMap({ ...watchedMap, [key]: data });
       if (log) {
@@ -216,11 +239,36 @@ const LogDetailPage = () => {
     }
   };
 
+  const saveEpReview = async (epKey: string) => {
+    const ep = watchedMap[epKey];
+    if (!ep?.id) return;
+    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+    try {
+      const { data } = await api.put(`/media/episodes/${ep.id}/review`, {
+        review_text: epReviewText || null,
+        rating: epReviewRating || null,
+      }, { params: { user_id: currentUser.id } });
+      setWatchedMap({ ...watchedMap, [epKey]: { ...ep, ...data } });
+      setEditingEpReview(null);
+    } catch (err) {
+      console.error('Failed to save episode review:', err);
+    }
+  };
+
+  const startEditEpReview = (epKey: string) => {
+    const ep = watchedMap[epKey];
+    setEpReviewText(ep?.review_text || '');
+    setEpReviewRating(ep?.rating || 0);
+    setEditingEpReview(epKey);
+  };
+
   const toggleAllEpisodes = async (seasonEps: TmdbEpisode[], markWatched: boolean) => {
     if (!id) return;
     const newMap = { ...watchedMap };
     let watchedChange = 0;
+    const today = new Date();
     for (const ep of seasonEps) {
+      if (markWatched && ep.air_date && new Date(ep.air_date) > today) continue;
       const key = ep.season_number + '-' + ep.episode_number;
       const isCurrentlyWatched = !!newMap[key]?.watched;
       if (isCurrentlyWatched !== markWatched) {
@@ -230,6 +278,7 @@ const LogDetailPage = () => {
         const { data } = await api.post('/media/logs/' + id + '/episodes', {
           season_number: ep.season_number, episode_number: ep.episode_number,
           episode_name: ep.name, watched: markWatched, log_date: new Date().toISOString().split('T')[0],
+          air_date: ep.air_date,
         });
         newMap[key] = data;
       } catch (err) {
@@ -319,7 +368,7 @@ const LogDetailPage = () => {
             <span className="px-3 py-1 rounded-full text-xs font-bold" style={{ background: meta.color + '22', color: meta.color }}>{meta.label}</span>
             <span className="px-3 py-1 rounded-full text-xs font-bold" style={{
               background: log.status === 'completed' ? 'var(--accent-bg)' : log.status === 'in_progress' ? 'rgba(59,130,246,0.2)' :
-                log.status === 'dropped' ? 'rgba(239,68,68,0.2)' : log.status === 'platinated' ? 'rgba(250,204,21,0.2)' : 'rgba(168,85,247,0.2)',
+                log.status === 'dropped' ? 'rgba(239,68,68,0.2)' : log.status === 'platinated' ? 'rgba(250,204,21,0.2)' : log.status === 'library' ? 'rgba(99,102,241,0.2)' : 'rgba(168,85,247,0.2)',
             }}>{STATUS_LABELS[log.status] || log.status}</span>
             {log.is_relog && <span className="px-3 py-1 rounded-full text-xs font-bold" style={{ background: 'rgba(99,102,241,0.2)', color: '#818cf8' }}>Rejogado</span>}
           </div>
@@ -351,7 +400,8 @@ const LogDetailPage = () => {
             </button>
           </div>
 
-          {md.release_date && <div className="text-sm text-white/60 mb-3">{new Date(md.release_date).getFullYear()}</div>}
+          {md.release_date && <div className="text-sm text-white/60 mb-1">Lancado: {md.release_date}</div>}
+          {md.media_type !== 'series' && log.log_date && <div className="text-sm text-white/40 mb-3">Assistido: {log.log_date.split('T')[0]}</div>}
           {md.synopsis && <p className="text-sm text-white/60 leading-relaxed mb-4 line-clamp-4">{md.synopsis}</p>}
 
           <div className="flex items-center gap-6 text-sm text-white/50">
@@ -359,7 +409,6 @@ const LogDetailPage = () => {
             {log.platform && <div><span className="text-white/30">Plataforma:</span> <span className="text-white/70">{log.platform}</span></div>}
             {log.media_item.media_type === 'book' && log.pages_read != null && log.pages_read > 0 && <div><span className="text-white/30">Páginas:</span> <span className="text-white/70">{log.pages_read}</span></div>}
             {log.hours_spent != null && log.hours_spent > 0 && <div><span className="text-white/30">Horas:</span> <span className="text-white/70">{log.hours_spent}h</span></div>}
-            {log.log_date && <div><span className="text-white/30">Data:</span> <span className="text-white/70">{log.log_date.split('T')[0]}</span></div>}
           </div>
         </div>
       </div>
@@ -528,14 +577,16 @@ const LogDetailPage = () => {
         <div>
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-display text-xl font-bold">Temporadas</h3>
-            {totalEps > 0 && <div className="text-xs text-white/40 font-mono">{watchedCount}/{totalEps} episodios</div>}
+            {totalEps > 0 && <div className="text-xs text-white/40 font-mono">{Math.min(watchedCount, totalEps)}/{totalEps} episodios</div>}
           </div>
           <div className="space-y-2">
             {seasons.map(s => {
+              const eps = episodes[s.season_number] || [];
+              const today = new Date();
+              const released = eps.filter(e => !e.air_date || new Date(e.air_date) <= today).length;
               const sWatched = Object.values(watchedMap).filter(e => e.season_number === s.season_number && e.watched).length;
               const total = s.episode_count || 0;
               const pct = total > 0 ? (sWatched / total) * 100 : 0;
-              const eps = episodes[s.season_number] || [];
               return (
                 <div key={s.season_number} className="mdf-card overflow-hidden">
                   <button onClick={() => loadSeason(s.season_number)}
@@ -548,7 +599,9 @@ const LogDetailPage = () => {
                       <div className="h-1 rounded-full bg-white/10 overflow-hidden">
                         <div className="h-full rounded-full bg-[var(--mdf-green)] transition-all" style={{ width: pct + '%' }} />
                       </div>
-                      <div className="text-[10px] text-white/40 text-right mt-1 font-mono">{sWatched}/{total}</div>
+                      <div className="text-[10px] text-white/40 text-right mt-1 font-mono">
+                        {sWatched}/{released}
+                      </div>
                     </div>
                     <button
                       type="button"
@@ -560,11 +613,11 @@ const LogDetailPage = () => {
                           setEpisodes(prev => ({ ...prev, [s.season_number]: data }));
                           seasonEps = data || [];
                         }
-                        toggleAllEpisodes(seasonEps, sWatched < total);
+                        toggleAllEpisodes(seasonEps, sWatched < released);
                       }}
                       className="flex-shrink-0"
                     >
-                      {sWatched === total
+                      {sWatched === released && released > 0
                         ? <CheckCircle2 size={20} style={{ color: 'var(--mdf-green)' }} />
                         : <Circle size={20} className="text-white/30 hover:text-white/50 transition-colors" />}
                     </button>
@@ -573,19 +626,67 @@ const LogDetailPage = () => {
                   {openSeason === s.season_number && eps.length > 0 && (
                     <div className="border-t border-white/5 divide-y divide-white/5">
                       {eps.map(ep => {
-                        const watched = watchedMap[ep.season_number + '-' + ep.episode_number]?.watched || false;
+                        const key = ep.season_number + '-' + ep.episode_number;
+                        const watched = watchedMap[key]?.watched || false;
+                        const isFuture = !!ep.air_date && new Date(ep.air_date) > today;
+                        const isEditing = editingEpReview === key;
+                        const epData = watchedMap[key];
                         return (
-                          <div key={ep.episode_number} className="flex items-center gap-3 px-4 py-3">
-                            <button onClick={() => toggleEpisode(ep)} className="flex-shrink-0">
-                              {watched ? <CheckCircle2 size={20} style={{ color: 'var(--mdf-green)' }} /> : <Circle size={20} className="text-white/30" />}
-                            </button>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-sm">
-                                <span className="text-white/40 font-mono mr-2 text-xs">S{String(ep.season_number).padStart(2, '0')}E{String(ep.episode_number).padStart(2, '0')}</span>
-                                <span className="font-semibold">{ep.name}</span>
+                          <div key={ep.episode_number}>
+                            <div className={`flex items-center gap-3 px-4 py-3 ${isFuture ? 'opacity-40' : ''}`}>
+                              <button onClick={() => toggleEpisode(ep)} disabled={isFuture} className="flex-shrink-0">
+                                {watched ? <CheckCircle2 size={20} style={{ color: 'var(--mdf-green)' }} /> :
+                                 isFuture ? <Circle size={20} className="text-white/20" /> :
+                                 <Circle size={20} className="text-white/30 hover:text-white/50 transition-colors" />}
+                              </button>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm">
+                                  <span className="text-white/40 font-mono mr-2 text-xs">S{String(ep.season_number).padStart(2, '0')}E{String(ep.episode_number).padStart(2, '0')}</span>
+                                  <span className="font-semibold">{ep.name}</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-xs">
+                                  {ep.air_date && <span className="text-white/40">Lancado: {ep.air_date}</span>}
+                                  {watched && epData?.log_date && <span className="text-white/30">Assistido: {epData.log_date}</span>}
+                                  {isFuture && <span className="text-yellow-500/60">Nao lancado</span>}
+                                </div>
                               </div>
-                              {ep.air_date && <div className="text-xs text-white/40">{ep.air_date}</div>}
+                              {watched && !isFuture && (
+                                <button onClick={() => startEditEpReview(key)}
+                                  className="flex-shrink-0 text-white/30 hover:text-white/60 transition-colors">
+                                  {epData?.review_text || epData?.rating ? <Edit3 size={14} style={{ color: 'var(--mdf-yellow)' }} /> : <Edit3 size={14} />}
+                                </button>
+                              )}
                             </div>
+                            {isEditing && (
+                              <div className="px-4 pb-3 pt-0 space-y-2">
+                                <div className="flex items-center gap-1 text-sm">
+                                  {[1, 2, 3, 4, 5].map(i => (
+                                    <button key={i} type="button" onClick={() => setEpReviewRating(i)}
+                                      className="transition-colors" style={{ color: i <= epReviewRating ? 'var(--mdf-yellow)' : 'var(--border)' }}>
+                                      <Star size={14} fill={i <= epReviewRating ? 'var(--mdf-yellow)' : 'none'} />
+                                    </button>
+                                  ))}
+                                  {epReviewRating > 0 && <span className="text-xs text-white/40 ml-1">{epReviewRating}/5</span>}
+                                </div>
+                                <textarea
+                                  value={epReviewText}
+                                  onChange={e => setEpReviewText(e.target.value)}
+                                  placeholder="Review do episodio..."
+                                  className="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-sm text-white/80 outline-none resize-none"
+                                  rows={2}
+                                />
+                                <div className="flex gap-2">
+                                  <button onClick={() => saveEpReview(key)}
+                                    className="text-xs px-3 py-1.5 rounded-lg font-bold" style={{ background: 'var(--accent)', color: '#000' }}>
+                                    Salvar
+                                  </button>
+                                  <button onClick={() => setEditingEpReview(null)}
+                                    className="text-xs px-3 py-1.5 rounded-lg text-white/50 hover:text-white/70">
+                                    Cancelar
+                                  </button>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         );
                       })}

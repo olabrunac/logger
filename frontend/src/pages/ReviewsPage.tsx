@@ -91,7 +91,7 @@ const ReviewsPage = ({ currentUser }: ReviewsPageProps) => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-[1844px] mx-auto">
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-black tracking-tight">Reviews</h1>

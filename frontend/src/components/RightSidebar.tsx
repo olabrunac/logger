@@ -47,7 +47,7 @@ const RightSidebar = ({ user, isCollapsed, onToggleCollapse }: RightSidebarProps
 
   useEffect(() => {
     if (user?.id) {
-      api.get('/media/logs', { params: { user_id: user.id } })
+      api.get('/media/logs', { params: { user_id: user.id, limit: 9999 } })
         .then((res) => setLogs(res.data || []))
         .catch((err) => console.error('Failed to fetch logs for right sidebar', err));
     } else {

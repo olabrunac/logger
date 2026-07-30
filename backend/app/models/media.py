@@ -17,6 +17,7 @@ class LogStatus(str, enum.Enum):
     WISHLIST = "wishlist"
     SOON = "soon"
     PLATINATED = "platinated"
+    LIBRARY = "library"
 
 class MediaItem(Base):
     id = Column(Integer, primary_key=True, index=True)
@@ -47,6 +48,7 @@ class MediaItem(Base):
     director = Column(String, nullable=True)
     trailer_url = Column(String, nullable=True)
     cast = Column(String, nullable=True)
+    total_episodes = Column(Integer, nullable=True)
     # Google Books enrichment
     page_count = Column(Integer, nullable=True)
     publisher = Column(String, nullable=True)
@@ -83,6 +85,9 @@ class EpisodeWatched(Base):
     episode_name = Column(String, nullable=True)
     watched = Column(Boolean, default=True)
     log_date = Column(String, nullable=True)
+    air_date = Column(String, nullable=True)
+    review_text = Column(Text, nullable=True)
+    rating = Column(Float, nullable=True)
     log = relationship("LogEntry", back_populates="episodes")
 
 class Achievement(Base):

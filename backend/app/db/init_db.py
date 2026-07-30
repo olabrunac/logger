@@ -23,6 +23,30 @@ def init_db() -> None:
         db.execute(text("ALTER TABLE user ADD COLUMN password_reset_expires DATETIME"))
     except Exception:
         pass
+    try:
+        db.execute(text("ALTER TABLE user ADD COLUMN social_links TEXT"))
+    except Exception:
+        pass
+    try:
+        db.execute(text("ALTER TABLE mediaitem ADD COLUMN total_episodes INTEGER"))
+    except Exception:
+        pass
+    try:
+        db.execute(text("ALTER TABLE episodewatched ADD COLUMN review_text TEXT"))
+    except Exception:
+        pass
+    try:
+        db.execute(text("ALTER TABLE episodewatched ADD COLUMN rating FLOAT"))
+    except Exception:
+        pass
+    try:
+        db.execute(text("ALTER TABLE episodewatched ADD COLUMN air_date VARCHAR"))
+    except Exception:
+        pass
+    try:
+        db.execute(text("ALTER TABLE user ADD COLUMN trophy_showcase TEXT DEFAULT '[]'"))
+    except Exception:
+        pass
     db.commit()
 
     # Seed admin user

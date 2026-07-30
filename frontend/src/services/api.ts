@@ -92,4 +92,69 @@ export const getLogsReviewsBatch = (logIds: number[]) => {
   return api.post('/media/logs/reviews-batch', logIds);
 };
 
+// Notifications API
+export const getNotifications = (userId: number, limit = 50, offset = 0) => {
+  return api.get(`/notifications/${userId}`, { params: { limit, offset } });
+};
+
+export const getUnreadCount = (userId: number) => {
+  return api.get(`/notifications/${userId}/unread-count`);
+};
+
+export const markNotificationRead = (notificationId: number, userId: number) => {
+  return api.put(`/notifications/${notificationId}/read`, null, { params: { user_id: userId } });
+};
+
+export const markAllNotificationsRead = (userId: number) => {
+  return api.put(`/notifications/read-all/${userId}`);
+};
+
+// Import API
+export const letterboxdPreview = (formData: FormData) => {
+  return uploadApi.post('/import/letterboxd/preview', formData);
+};
+
+export const letterboxdImport = (userId: number, items: object[]) => {
+  const formData = new FormData();
+  formData.append('user_id', String(userId));
+  formData.append('items_json', JSON.stringify(items));
+  return uploadApi.post('/import/letterboxd/import', formData);
+};
+
+export const steamPreview = (steamId: string) => {
+  return api.post('/import/steam/preview', { steam_id: steamId });
+};
+
+export const steamImport = (userId: number, steamId: string, items: object[]) => {
+  const formData = new FormData();
+  formData.append('user_id', String(userId));
+  formData.append('steam_id', steamId);
+  formData.append('items_json', JSON.stringify(items));
+  return uploadApi.post('/import/steam/import', formData);
+};
+
+export const traktPreview = (formData: FormData) => {
+  return uploadApi.post('/import/trakt/preview', formData);
+};
+
+export const traktImport = (userId: number, items: object[]) => {
+  const formData = new FormData();
+  formData.append('user_id', String(userId));
+  formData.append('items_json', JSON.stringify(items));
+  return uploadApi.post('/import/trakt/import', formData);
+};
+
+// TV Time Import API
+export const tvtimePreview = (formData: FormData) => {
+  return uploadApi.post('/import/tvtime/preview', formData);
+};
+
+export const tvtimeImport = (userId: number, items: object[], zipFile: File) => {
+  const formData = new FormData();
+  formData.append('user_id', String(userId));
+  formData.append('items_json', JSON.stringify(items));
+  formData.append('raw_zip', zipFile);
+  return uploadApi.post('/import/tvtime/import', formData);
+};
+
 export default api;

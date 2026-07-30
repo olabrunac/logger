@@ -2,7 +2,7 @@ import os
 import uuid
 import json
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app import crud, schemas
 from app.api import deps
 
@@ -185,6 +185,11 @@ def follow_user(
     from app.crud import crud_follow
     crud_follow.follow_user(db, follower_id=user_id, following_id=target_id)
     try:
+        from app.crud.crud_notification import create_notification
+        create_notification(db, user_id=target_id, type="follow", from_user_id=user_id)
+    except Exception:
+        pass
+    try:
         from app.crud.crud_user_badge import check_and_unlock
         check_and_unlock(db, target_id)
     except Exception:
@@ -241,6 +246,104 @@ def get_following(
 
 # --- Timeline ---
 
+@router.post("/{user_id}/wipe")
+def wipe_user_data(
+    *,
+    db: Session = Depends(deps.get_db),
+    user_id: int,
+):
+    user = crud.user.get(db, id=user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    from app.models.media import LogEntry, EpisodeWatched, Achievement, LogReview, TopListItem, CustomList, CustomListItem
+    from app.models.post import Post, PostImage, PostReply, PostLike
+    from app.models.notification import Notification
+    from app.models.user_badge import UserBadge
+    from app.models.user_follow import UserFollow
+
+    log_ids = [l.id for l in db.query(LogEntry).filter(LogEntry.user_id == user_id).all()]
+    if log_ids:
+        db.query(EpisodeWatched).filter(EpisodeWatched.log_id.in_(log_ids)).delete(synchronize_session=False)
+        db.query(Achievement).filter(Achievement.log_id.in_(log_ids)).delete(synchronize_session=False)
+        db.query(LogReview).filter(LogReview.log_id.in_(log_ids)).delete(synchronize_session=False)
+        db.query(LogEntry).filter(LogEntry.id.in_(log_ids)).delete(synchronize_session=False)
+
+    db.query(TopListItem).filter(TopListItem.user_id == user_id).delete(synchronize_session=False)
+
+    custom_ids = [c.id for c in db.query(CustomList).filter(CustomList.user_id == user_id).all()]
+    if custom_ids:
+        db.query(CustomListItem).filter(CustomListItem.custom_list_id.in_(custom_ids)).delete(synchronize_session=False)
+        db.query(CustomList).filter(CustomList.id.in_(custom_ids)).delete(synchronize_session=False)
+
+    post_ids = [p.id for p in db.query(Post).filter(Post.user_id == user_id).all()]
+    if post_ids:
+        db.query(PostLike).filter(PostLike.post_id.in_(post_ids)).delete(synchronize_session=False)
+        db.query(PostReply).filter(PostReply.post_id.in_(post_ids)).delete(synchronize_session=False)
+        db.query(PostImage).filter(PostImage.post_id.in_(post_ids)).delete(synchronize_session=False)
+        db.query(Post).filter(Post.id.in_(post_ids)).delete(synchronize_session=False)
+
+    reply_ids = [r.id for r in db.query(PostReply).filter(PostReply.user_id == user_id).all()]
+    if reply_ids:
+        db.query(PostReply).filter(PostReply.id.in_(reply_ids)).delete(synchronize_session=False)
+
+    like_ids = [l.id for l in db.query(PostLike).filter(PostLike.user_id == user_id).all()]
+    if like_ids:
+        db.query(PostLike).filter(PostLike.id.in_(like_ids)).delete(synchronize_session=False)
+
+    notif_ids = [n.id for n in db.query(Notification).filter(
+        (Notification.user_id == user_id) | (Notification.from_user_id == user_id)
+    ).all()]
+    if notif_ids:
+        db.query(Notification).filter(Notification.id.in_(notif_ids)).delete(synchronize_session=False)
+
+    follow_ids = [f.id for f in db.query(UserFollow).filter(
+        (UserFollow.follower_id == user_id) | (UserFollow.following_id == user_id)
+    ).all()]
+    if follow_ids:
+        db.query(UserFollow).filter(UserFollow.id.in_(follow_ids)).delete(synchronize_session=False)
+
+    badge_ids = [b.id for b in db.query(UserBadge).filter(
+        UserBadge.user_id == user_id, UserBadge.badge_key != "dev"
+    ).all()]
+    if badge_ids:
+        db.query(UserBadge).filter(UserBadge.id.in_(badge_ids)).delete(synchronize_session=False)
+
+    db.commit()
+    return {"message": "Dados limpos com sucesso. Avatar, banner, cor e badge dev mantidos."}
+
+@router.get("/{user_id}/achievements")
+def get_user_achievements(
+    *,
+    db: Session = Depends(deps.get_db),
+    user_id: int,
+):
+    from app.models.media import Achievement, LogEntry, MediaItem
+
+    logs = (
+        db.query(LogEntry)
+        .filter(LogEntry.user_id == user_id)
+        .options(joinedload(LogEntry.achievements), joinedload(LogEntry.media_item))
+        .all()
+    )
+    result = []
+    for log in logs:
+        if not log.achievements:
+            continue
+        for ach in log.achievements:
+            if ach.unlocked:
+                result.append({
+                    "id": ach.id,
+                    "log_id": log.id,
+                    "external_id": ach.external_id,
+                    "name": ach.name,
+                    "description": ach.description,
+                    "image_url": ach.image_url,
+                    "game_title": log.media_item.title if log.media_item else "Unknown",
+                    "game_cover": log.media_item.cover_image_url if log.media_item else None,
+                })
+    return result
+
 @router.get("/{user_id}/timeline")
 def get_timeline(
     *,
@@ -259,33 +362,96 @@ def get_timeline(
         db.query(LogEntry)
         .filter(LogEntry.user_id.in_(user_ids))
         .order_by(LogEntry.log_date.desc())
-        .limit(limit)
+        .limit(limit * 2)
         .all()
     )
 
-    result = []
+    # Group by (user_id, media_type, log_date without time)
+    groups: dict = {}
     for log in logs:
-        user_obj = crud.user.get(db, id=log.user_id)
-        result.append({
+        if not log.log_date:
+            continue
+        date_key = log.log_date.date().isoformat()
+        mt = log.media_item.media_type if log.media_item else "unknown"
+        key = (log.user_id, mt, date_key)
+
+        if key not in groups:
+            user_obj = crud.user.get(db, id=log.user_id)
+            groups[key] = {
+                "user": {
+                    "id": user_obj.id,
+                    "username": user_obj.username,
+                    "avatar_url": user_obj.avatar_url,
+                } if user_obj else None,
+                "media_type": mt,
+                "log_date": date_key,
+                "items": [],
+            }
+
+        groups[key]["items"].append({
             "id": log.id,
-            "user": {
-                "id": user_obj.id,
-                "username": user_obj.username,
-                "avatar_url": user_obj.avatar_url,
-            } if user_obj else None,
-            "media_item": {
-                "id": log.media_item.id,
-                "title": log.media_item.title,
-                "media_type": log.media_item.media_type,
-                "cover_image_url": log.media_item.cover_image_url,
-            } if log.media_item else None,
+            "title": log.media_item.title if log.media_item else "Unknown",
+            "cover_image_url": log.media_item.cover_image_url if log.media_item else None,
             "status": log.status.value if log.status else None,
             "rating": log.rating,
             "review": log.review,
             "platform": log.platform,
-            "log_date": log.log_date.isoformat() if log.log_date else None,
             "is_favorite": log.is_favorite,
             "hours_spent": log.hours_spent,
         })
 
-    return result
+    result = []
+    for g in groups.values():
+        items = sorted(g["items"], key=lambda x: x["id"], reverse=True)
+        if len(items) == 1:
+            item = items[0]
+            result.append({
+                "id": item["id"],
+                "user": g["user"],
+                "media_item": {
+                    "id": item["id"],
+                    "title": item["title"],
+                    "media_type": g["media_type"],
+                    "cover_image_url": item["cover_image_url"],
+                },
+                "status": item["status"],
+                "rating": item["rating"],
+                "review": item["review"],
+                "platform": item["platform"],
+                "log_date": g["log_date"],
+                "is_favorite": item["is_favorite"],
+                "hours_spent": item["hours_spent"],
+            })
+        else:
+            # Determine the most common status in the group
+            from collections import Counter
+            status_counts = Counter(x["status"] for x in items if x["status"])
+            group_status = status_counts.most_common(1)[0][0] if status_counts else None
+
+            result.append({
+                "id": items[0]["id"],
+                "user": g["user"],
+                "media_item": {
+                    "id": items[0]["id"],
+                    "title": items[0]["title"],
+                    "media_type": g["media_type"],
+                    "cover_image_url": items[0]["cover_image_url"],
+                },
+                "status": group_status,
+                "rating": None,
+                "platform": None,
+                "review": None,
+                "log_date": g["log_date"],
+                "is_favorite": False,
+                "hours_spent": None,
+                "group_count": len(items),
+                "group_items": [{
+                    "id": x["id"],
+                    "title": x["title"],
+                    "cover_image_url": x["cover_image_url"],
+                    "status": x["status"],
+                } for x in items],
+            })
+
+    result.sort(key=lambda x: x["log_date"], reverse=True)
+    return result[:limit]

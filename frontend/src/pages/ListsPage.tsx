@@ -23,6 +23,7 @@ const STATUS_GROUPS: { key: string; label: string }[] = [
   { key: 'in_progress', label: 'Em progresso' },
   { key: 'completed', label: 'Completos' },
   { key: 'platinated', label: 'Platinados' },
+  { key: 'library', label: 'Biblioteca' },
   { key: 'dropped', label: 'Abandonados' },
 ];
 
@@ -169,6 +170,7 @@ const ListsPage = ({ user }: ListsPageProps) => {
   const [showListForm, setShowListForm] = useState(false);
   const [editingList, setEditingList] = useState<{ id: number; name: string; description: string } | null>(null);
   const [addMediaListId, setAddMediaListId] = useState<number | null>(null);
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
 
   const fetchLogs = useCallback(async () => {
     try {
@@ -244,12 +246,16 @@ const ListsPage = ({ user }: ListsPageProps) => {
     setExpandedLists(prev => ({ ...prev, [listId]: !prev[listId] }));
   };
 
+  const toggleSection = (key: string) => {
+    setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
   const filteredLogs = tab === 'all' ? logs : logs.filter(l => l.media_item.media_type === tab);
 
   const grouped = STATUS_GROUPS.map(g => ({
     ...g,
     items: filteredLogs.filter(l => l.status === g.key),
-  })).filter(g => g.items.length > 0);
+  }));
 
   const filteredWishlist = tab === 'all' ? wishlist : wishlist.filter(l => l.media_item.media_type === tab);
 
@@ -274,18 +280,33 @@ const ListsPage = ({ user }: ListsPageProps) => {
         })}
       </div>
 
-      {filteredLogs.length === 0 && filteredWishlist.length === 0 && customLists.length === 0 && (
+      {filteredWishlist.length === 0 && customLists.length === 0 && logs.length === 0 && (
         <div className="mdf-card p-10 text-center text-white/50">Nada aqui ainda.</div>
       )}
 
-      {grouped.map(g => (
+      {grouped.map(g => {
+        const expanded = expandedSections[`group-${g.key}`] === true;
+        const visibleItems = expanded ? g.items : g.items.slice(0, 12);
+        return (
         <section key={g.key}>
           <div className="flex items-baseline justify-between mb-3">
             <h2 className="font-display text-xl font-bold">{g.label}</h2>
-            <div className="text-xs text-white/40 uppercase tracking-[0.2em]">{g.items.length}</div>
+            <div className="flex items-center gap-3">
+              <div className="text-xs text-white/40 uppercase tracking-[0.2em]">{g.items.length}</div>
+              <button onClick={() => toggleSection(`group-${g.key}`)}
+                className="flex items-center gap-1 p-0 text-xs font-semibold uppercase tracking-wider bg-transparent border-none cursor-pointer"
+                style={{ color: 'var(--accent)' }}>
+                {expanded ? 'Ver menos' : 'Ver mais'}
+                <ChevronRight size={14} className={`transition-transform ${expanded ? 'rotate-90' : ''}`} />
+              </button>
+            </div>
           </div>
-          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-2">
-            {g.items.map(l => {
+          {g.items.length === 0 ? (
+            <div className="mdf-card p-6 text-center text-white/30 text-sm">Nenhum item nesta categoria.</div>
+          ) : (
+            <>
+              <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-2">
+                {visibleItems.map(l => {
               const typeEmoji = TYPE_META[l.media_item.media_type]?.emoji || '📄';
               return (
                 <Link key={l.id} to={`/log/${l.id}`} className="poster-tile block group" style={{borderBottom: '3px solid ' + (TYPE_META[l.media_item.media_type]?.color || '#666')}}>
@@ -344,7 +365,7 @@ const ListsPage = ({ user }: ListsPageProps) => {
                     </div>
                   ) : l.media_item.media_type === 'series' && l.watched_episodes != null && l.total_episodes != null && l.total_episodes > 0 ? (
                     <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
-                      {l.watched_episodes}/{l.total_episodes}
+                      {Math.min(l.watched_episodes, l.total_episodes)}/{l.total_episodes}
                     </div>
                   ) : l.media_item.media_type === 'game' && l.hours_spent != null && l.hours_spent > 0 ? (
                     <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
@@ -358,61 +379,82 @@ const ListsPage = ({ user }: ListsPageProps) => {
                 </Link>
               );
             })}
-          </div>
+              </div>
+            </>
+          )}
         </section>
-      ))}
+        );
+      })}
 
-      {filteredWishlist.length > 0 && (
+      {(() => {
+        const wishlistExpanded = expandedSections['wishlist'] === true;
+        const visibleWishlist = wishlistExpanded ? filteredWishlist : filteredWishlist.slice(0, 12);
+        return (
         <section>
           <div className="flex items-baseline justify-between mb-3">
-            <h2 className="font-display text-xl font-bold">Pretendo</h2>
-            <div className="text-xs text-white/40 uppercase tracking-[0.2em]">{filteredWishlist.length}</div>
+            <h2 className="font-display text-xl font-bold">Lista de Desejos</h2>
+            <div className="flex items-center gap-3">
+              <div className="text-xs text-white/40 uppercase tracking-[0.2em]">{filteredWishlist.length}</div>
+              <button onClick={() => toggleSection('wishlist')}
+                className="flex items-center gap-1 p-0 text-xs font-semibold uppercase tracking-wider bg-transparent border-none cursor-pointer"
+                style={{ color: 'var(--accent)' }}>
+                {wishlistExpanded ? 'Ver menos' : 'Ver mais'}
+                <ChevronRight size={14} className={`transition-transform ${wishlistExpanded ? 'rotate-90' : ''}`} />
+              </button>
+            </div>
           </div>
-          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-2">
-            {filteredWishlist.map(l => {
-              const typeEmoji = TYPE_META[l.media_item.media_type]?.emoji || '📄';
-              return (
-                <div key={l.id} className="poster-tile block group relative" style={{borderBottom: '3px solid ' + (TYPE_META[l.media_item.media_type]?.color || '#666')}}>
-                  {l.media_item.cover_image_url ? (
-                    <img src={l.media_item.cover_image_url} alt={l.media_item.title} className="w-full h-full object-cover" loading="lazy" />
-                  ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center gap-3 p-3 text-center">
-                      <span className="text-3xl">{typeEmoji}</span>
-                      <div className="text-xs text-white/70 font-medium line-clamp-3">{l.media_item.title}</div>
+          {filteredWishlist.length === 0 ? (
+            <div className="mdf-card p-6 text-center text-white/30 text-sm">Nenhum item na lista de desejos.</div>
+          ) : (
+            <>
+              <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-2">
+                {visibleWishlist.map(l => {
+                  const typeEmoji = TYPE_META[l.media_item.media_type]?.emoji || '📄';
+                  return (
+                    <div key={l.id} className="poster-tile block group relative" style={{borderBottom: '3px solid ' + (TYPE_META[l.media_item.media_type]?.color || '#666')}}>
+                      {l.media_item.cover_image_url ? (
+                        <img src={l.media_item.cover_image_url} alt={l.media_item.title} className="w-full h-full object-cover" loading="lazy" />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center gap-3 p-3 text-center">
+                          <span className="text-3xl">{typeEmoji}</span>
+                          <div className="text-xs text-white/70 font-medium line-clamp-3">{l.media_item.title}</div>
+                        </div>
+                      )}
+                      <div className="absolute inset-0 pointer-events-none"
+                           style={{background:'linear-gradient(to top, rgba(0,0,0,0.9), rgba(0,0,0,0.3) 50%, transparent)'}}>
+                        <div className="absolute bottom-0 left-0 right-0 p-3">
+                          <div className="text-white text-xs font-semibold truncate">{l.media_item.title}</div>
+                        </div>
+                      </div>
+                      <div className="absolute top-2 left-2">
+                        <span className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style={{background: 'rgba(168,85,247,0.85)'}}>
+                          ★
+                        </span>
+                      </div>
+                      {l.platform && (
+                        <div className="absolute top-2 right-2 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
+                          {l.platform}
+                        </div>
+                      )}
+                      <div className="absolute bottom-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                        <Link to={`/new-log?edit=${l.id}`} onClick={(e) => e.stopPropagation()}
+                          className="w-6 h-6 rounded flex items-center justify-center bg-black/70 text-white/70 hover:text-white backdrop-blur-sm transition-colors">
+                          <Pencil size={12} />
+                        </Link>
+                        <button onClick={(e) => { e.stopPropagation(); deleteWishlistItem(l.id); }}
+                          className="w-6 h-6 rounded flex items-center justify-center bg-black/70 text-white/70 hover:text-red-400 backdrop-blur-sm transition-colors">
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
                     </div>
-                  )}
-                  <div className="absolute inset-0 pointer-events-none"
-                       style={{background:'linear-gradient(to top, rgba(0,0,0,0.9), rgba(0,0,0,0.3) 50%, transparent)'}}>
-                    <div className="absolute bottom-0 left-0 right-0 p-3">
-                      <div className="text-white text-xs font-semibold truncate">{l.media_item.title}</div>
-                    </div>
-                  </div>
-                  <div className="absolute top-2 left-2">
-                    <span className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style={{background: 'rgba(168,85,247,0.85)'}}>
-                      ★
-                    </span>
-                  </div>
-                  {l.platform && (
-                    <div className="absolute top-2 right-2 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
-                      {l.platform}
-                    </div>
-                  )}
-                  <div className="absolute bottom-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                    <Link to={`/new-log?edit=${l.id}`} onClick={(e) => e.stopPropagation()}
-                      className="w-6 h-6 rounded flex items-center justify-center bg-black/70 text-white/70 hover:text-white backdrop-blur-sm transition-colors">
-                      <Pencil size={12} />
-                    </Link>
-                    <button onClick={(e) => { e.stopPropagation(); deleteWishlistItem(l.id); }}
-                      className="w-6 h-6 rounded flex items-center justify-center bg-black/70 text-white/70 hover:text-red-400 backdrop-blur-sm transition-colors">
-                      <Trash2 size={12} />
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </section>
-      )}
+        );
+      })()}
 
       {/* Custom Lists */}
       <section>
@@ -444,7 +486,15 @@ const ListsPage = ({ user }: ListsPageProps) => {
                     <div className="font-semibold text-white text-sm">{cl.name}</div>
                     {cl.description && <div className="text-xs text-white/40 truncate">{cl.description}</div>}
                   </div>
-                  <div className="text-xs text-white/40">{filteredItems.length} itens</div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-xs text-white/40">{filteredItems.length} itens</div>
+                    <button onClick={(e) => { e.stopPropagation(); toggleSection(`list-${cl.id}`); }}
+                      className="flex items-center gap-1 p-0 text-xs font-semibold uppercase tracking-wider bg-transparent border-none cursor-pointer"
+                      style={{ color: 'var(--accent)' }}>
+                      {expandedSections[`list-${cl.id}`] === true ? 'Ver menos' : 'Ver mais'}
+                      <ChevronRight size={14} className={`transition-transform ${expandedSections[`list-${cl.id}`] === true ? 'rotate-90' : ''}`} />
+                    </button>
+                  </div>
                   <button onClick={(e) => { e.stopPropagation(); setAddMediaListId(cl.id); }}
                     className="p-1.5 rounded-md hover:bg-white/10 text-white/40 hover:text-white transition-colors">
                     <Plus size={16} />
@@ -464,8 +514,9 @@ const ListsPage = ({ user }: ListsPageProps) => {
                     {filteredItems.length === 0 ? (
                       <div className="text-center text-white/30 text-xs py-4">Nenhum item ainda</div>
                     ) : (
-                      <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-2">
-                        {filteredItems.map(item => {
+                      <>
+                        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-2">
+                          {(expandedSections[`list-${cl.id}`] === true ? filteredItems : filteredItems.slice(0, 12)).map(item => {
                           if (!item.media_item) return null;
                           const mi = item.media_item;
                           const typeEmoji = TYPE_META[mi.media_type]?.emoji || '📄';
@@ -492,7 +543,8 @@ const ListsPage = ({ user }: ListsPageProps) => {
                             </div>
                           );
                         })}
-                      </div>
+                        </div>
+                      </>
                     )}
                   </div>
                 )}

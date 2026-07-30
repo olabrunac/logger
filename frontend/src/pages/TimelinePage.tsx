@@ -52,6 +52,8 @@ interface TimelineEntry {
   log_date: string | null;
   is_favorite: boolean | null;
   hours_spent: number | null;
+  group_count?: number;
+  group_items?: Array<{ id: number; title: string; cover_image_url?: string; status?: string }>;
   _type: 'log';
 }
 
@@ -59,12 +61,40 @@ type FeedItem = Post | TimelineEntry;
 
 const IMAGE_URL = (url: string) => url.startsWith('http') ? url : `http://localhost:8000${url}`;
 
-const statusLabels: Record<string, string> = {
-  completed: 'finalizou',
-  in_progress: 'esta jogando',
-  dropped: 'abandonou',
-  wishlist: 'quer jogar',
-};
+  const statusLabels: Record<string, Record<string, string>> = {
+    movie: {
+      completed: 'assistiu',
+      in_progress: 'está assistindo',
+      dropped: 'deixou de assistir',
+      wishlist: 'quer assistir',
+      platinated: 'finalizou',
+      library: 'tem na biblioteca',
+    },
+    series: {
+      completed: 'assistiu',
+      in_progress: 'está assistindo',
+      dropped: 'deixou de assistir',
+      wishlist: 'quer assistir',
+      platinated: 'finalizou',
+      library: 'tem na biblioteca',
+    },
+    game: {
+      completed: 'jogou',
+      in_progress: 'está jogando',
+      dropped: 'abandonou',
+      wishlist: 'quer jogar',
+      platinated: 'platinou',
+      library: 'tem na biblioteca',
+    },
+    book: {
+      completed: 'leu',
+      in_progress: 'está lendo',
+      dropped: 'deixou de ler',
+      wishlist: 'quer ler',
+      platinated: 'finalizou',
+      library: 'tem na biblioteca',
+    },
+  };
 
 const PostCard = ({ post, currentUser, onReply, onDelete, onLike }: {
   post: Post;
@@ -270,7 +300,9 @@ const LogCard = ({ entry }: { entry: TimelineEntry }) => {
   const coverUrl = entry.media_item.cover_image_url
     ? (entry.media_item.cover_image_url.startsWith('http') ? entry.media_item.cover_image_url : `http://localhost:8000${entry.media_item.cover_image_url}`)
     : null;
-  const statusLabel = entry.status ? statusLabels[entry.status] || entry.status : null;
+  const statusLabel = entry.status
+    ? (statusLabels[entry.media_item.media_type]?.[entry.status] ?? entry.status)
+    : null;
 
   return (
     <Link to={`/log/${entry.id}`} className="mdf-card mdf-card-hover rounded-xl p-4 flex gap-4 transition-colors block group">
@@ -308,7 +340,7 @@ const LogCard = ({ entry }: { entry: TimelineEntry }) => {
             <div className="flex items-center gap-2 mt-1">
               {entry.status && (
                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white" style={{ background: STATUS_COLORS[entry.status] || 'rgba(100,100,100,0.85)' }}>
-                  {STATUS_ICONS[entry.status]} {entry.status === 'completed' ? 'Finalizado' : entry.status === 'in_progress' ? 'Em progresso' : entry.status === 'dropped' ? 'Abandonado' : entry.status}
+                  {STATUS_ICONS[entry.status]} {entry.status === 'completed' ? 'Finalizado' : entry.status === 'in_progress' ? 'Em progresso' : entry.status === 'dropped' ? 'Abandonado' : entry.status === 'library' ? 'Biblioteca' : entry.status}
                 </span>
               )}
               {entry.platform && (
@@ -347,6 +379,75 @@ const LogCard = ({ entry }: { entry: TimelineEntry }) => {
         </div>
       </div>
     </Link>
+  );
+};
+
+
+const LogGroupCard = ({ entry }: { entry: TimelineEntry }) => {
+  if (!entry.user || !entry.media_item || !entry.group_items) return null;
+  const meta = TYPE_META[entry.media_item.media_type as keyof typeof TYPE_META] || TYPE_META.game;
+  const avatarUrl = entry.user.avatar_url
+    ? (entry.user.avatar_url.startsWith('http') ? entry.user.avatar_url : `http://localhost:8000${entry.user.avatar_url}`)
+    : null;
+  const statusLabel = entry.status
+    ? (statusLabels[entry.media_item.media_type]?.[entry.status] ?? entry.status)
+    : 'registrou';
+
+  return (
+    <div className="mdf-card rounded-xl p-4 transition-colors">
+      <div className="flex gap-4">
+        <div className="flex-shrink-0">
+          <div className="w-10 h-10 rounded-full overflow-hidden border-2" style={{ borderColor: 'var(--accent)' }}>
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={entry.user.username} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-xs font-bold" style={{ background: 'var(--accent)', color: '#000' }}>
+                {entry.user.username.charAt(0).toUpperCase()}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 text-sm mb-3">
+            <span className="font-bold text-white">{entry.user.username}</span>
+            <span className="text-white/40">{statusLabel} {entry.group_count} {meta.singular.toLowerCase()}s</span>
+            <span className="text-white/40">{meta.emoji}</span>
+          </div>
+
+          <div className="flex gap-2 flex-wrap">
+            {entry.group_items.map((item) => {
+              const itemStatusLabel = item.status ? statusLabels[entry.media_item!.media_type]?.[item.status] : null;
+              return (
+                <Link key={item.id} to={`/log/${item.id}`} className="group/log-item flex items-center gap-2 bg-white/[0.03] hover:bg-white/[0.06] rounded-lg px-3 py-2 transition-colors border" style={{ borderColor: 'var(--border)' }}>
+                  {item.cover_image_url ? (
+                    <div className="w-8 h-11 rounded overflow-hidden flex-shrink-0">
+                      <img src={item.cover_image_url.startsWith('http') ? item.cover_image_url : `http://localhost:8000${item.cover_image_url}`} alt="" className="w-full h-full object-cover" />
+                    </div>
+                  ) : (
+                    <div className="w-8 h-11 rounded flex items-center justify-center flex-shrink-0 text-xs" style={{ background: meta.color + '22' }}>
+                      {meta.emoji}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <div className="text-xs font-semibold text-white/70 truncate max-w-[160px]">{item.title}</div>
+                    {itemStatusLabel && (
+                      <div className="text-[10px] text-white/40">{itemStatusLabel}</div>
+                    )}
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+
+          <div className="flex items-center gap-3 mt-3 text-[10px] text-white/30">
+            {entry.log_date && (
+              <span>{new Date(entry.log_date).toLocaleDateString('pt-BR')}</span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -475,7 +576,7 @@ const TimelinePage = ({ user }: TimelinePageProps) => {
   ].sort((a, b) => (b as FeedItem & { _sortDate: number })._sortDate - (a as FeedItem & { _sortDate: number })._sortDate);
 
   return (
-    <div className="space-y-6 max-w-2xl mx-auto">
+    <div className="space-y-6 max-w-[1844px] mx-auto">
       <div>
         <h1 className="font-display text-3xl font-black tracking-tight">Timeline</h1>
         <div className="text-white/50 text-sm mt-1">Atividades dos usuarios que voce segue</div>
@@ -560,6 +661,8 @@ const TimelinePage = ({ user }: TimelinePageProps) => {
           {merged.map((item) =>
             item._type === 'post' ? (
               <PostCard key={`post-${item.id}`} post={item as Post} currentUser={user} onReply={handleReply} onDelete={handleDelete} onLike={handleLike} />
+            ) : (item as TimelineEntry).group_count ? (
+              <LogGroupCard key={`group-${(item as TimelineEntry).id}`} entry={item as TimelineEntry} />
             ) : (
               <LogCard key={`log-${item.id}`} entry={item as TimelineEntry} />
             )

@@ -17,6 +17,12 @@ class UserUpdate(BaseModel):
     avatar_url: Optional[str] = None
     accent_color: Optional[str] = None
     section_order: Optional[str] = None
+    social_links: Optional[str] = None
+    country: Optional[str] = None
+    state: Optional[str] = None
+    display_name: Optional[str] = None
+    bio: Optional[str] = None
+    trophy_showcase: Optional[str] = None
 
 # Login request
 class LoginRequest(BaseModel):
@@ -50,6 +56,12 @@ class User(UserBase):
     avatar_url: Optional[str] = None
     accent_color: str = "#ff6b35"
     section_order: Optional[str] = None
+    social_links: Optional[str] = None
+    country: Optional[str] = None
+    state: Optional[str] = None
+    display_name: Optional[str] = None
+    bio: Optional[str] = None
+    trophy_showcase: str = '[]'
     followers_count: int = 0
     following_count: int = 0
 

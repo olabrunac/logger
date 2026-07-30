@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../services/api';
 import type { User, LogEntry } from '../types';
 import { TYPE_META, STATUS_COLORS, STATUS_ICONS, getStars } from '../constants/designSystem';
+import { ChevronRight } from 'lucide-react';
 
 interface HomePageProps {
   user: User;
@@ -104,7 +105,7 @@ const HomePage = ({ user }: HomePageProps) => {
       <section>
         <div className="flex items-baseline justify-between mb-3">
           <h2 className="font-display text-2xl font-bold">Atividade recente</h2>
-          <Link to={`/profile/${user.username}`} className="text-xs text-white/40 uppercase tracking-[0.2em] hover:text-white/60 transition-colors">Ver todos</Link>
+          <Link to={`/profile/${user.username}`} className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider transition-colors" style={{ color: 'var(--accent)' }}>Ver mais <ChevronRight size={14} /></Link>
         </div>
 
         {loading ? (
@@ -172,7 +173,7 @@ const HomePage = ({ user }: HomePageProps) => {
                   </div>
                 ) : log.media_item.media_type === 'series' && log.watched_episodes != null && log.total_episodes != null && log.total_episodes > 0 ? (
                   <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
-                    {log.watched_episodes}/{log.total_episodes}
+                    {Math.min(log.watched_episodes, log.total_episodes)}/{log.total_episodes}
                   </div>
                 ) : log.media_item.media_type === 'game' && log.hours_spent != null && log.hours_spent > 0 ? (
                   <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
