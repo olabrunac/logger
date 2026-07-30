@@ -13,6 +13,7 @@ import ReviewsPage from './pages/ReviewsPage';
 import TimelinePage from './pages/TimelinePage';
 import NotificationsPage from './pages/NotificationsPage';
 import ImportPage from './pages/ImportPage';
+import ErrorBoundary from './components/ErrorBoundary';
 import LeftSidebar from './components/LeftSidebar';
 import RightSidebar from './components/RightSidebar';
 import FloatingLogButton from './components/FloatingLogButton';
@@ -119,6 +120,7 @@ function AppInner() {
         )}
         <main className="flex-1 min-w-0 overflow-y-auto p-8 transition-all" style={{ marginLeft: fixedSidebarWidths.left, marginRight: fixedSidebarWidths.right }}>
           {user && <FloatingLogButton user={user} />}
+          <ErrorBoundary>
           <Routes>
             <Route
               path="/login"
@@ -217,6 +219,7 @@ function AppInner() {
               }
             />
           </Routes>
+          </ErrorBoundary>
         </main>
       </div>
   );
