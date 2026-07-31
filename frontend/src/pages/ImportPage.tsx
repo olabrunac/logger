@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { useBlocker } from 'react-router-dom';
 import type { User } from '../types';
 import {
   letterboxdPreview,
@@ -40,6 +41,22 @@ interface ImportResult {
   skipped_items: Array<{ title: string; reason: string }>;
 }
 
+const usePrompt = (message: string | null) => {
+  const blocker = useBlocker(
+    useCallback(() => !!message, [message]),
+  );
+
+  useEffect(() => {
+    if (blocker.state === 'blocked' && message) {
+      if (window.confirm(message)) {
+        blocker.proceed();
+      } else {
+        blocker.reset();
+      }
+    }
+  }, [blocker, message]);
+};
+
 const ImportPage = ({ user }: ImportPageProps) => {
   const [tab, setTab] = useState<Tab>('letterboxd');
   const [phase, setPhase] = useState<Phase>('upload');
@@ -70,6 +87,19 @@ const ImportPage = ({ user }: ImportPageProps) => {
   const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const importing = phase === 'importing';
+  usePrompt(importing ? 'Uma importação está em andamento. Sair da página interrompe o acompanhamento do progresso. Deseja continuar?' : null);
+
+  useEffect(() => {
+    if (!importing) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [importing]);
 
   // Reload saved Steam ID when switching to Steam tab
   useEffect(() => {

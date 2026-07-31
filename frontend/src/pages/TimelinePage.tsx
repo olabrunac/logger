@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import api, { uploadFile } from '../services/api';
 import type { User } from '../types';
+import type { MediaItem } from '../types/media';
 import { getStars, TYPE_META, STATUS_COLORS, STATUS_ICONS } from '../constants/designSystem';
 import { Send, Image as ImageIcon, X, MessageCircle, Trash2, Clock, Heart, ThumbsUp } from 'lucide-react';
 import { imageUrl, getLogUrl } from '../utils';
@@ -45,7 +46,7 @@ interface Post {
 interface TimelineEntry {
   id: number;
   user: { id: number; username: string; avatar_url?: string } | null;
-  media_item: { id: number; title: string; media_type: string; cover_image_url?: string } | null;
+  media_item: MediaItem | null;
   status: string | null;
   rating: number | null;
   review: string | null;
