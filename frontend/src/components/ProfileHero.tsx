@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Globe, Calendar, Settings2 } from 'lucide-react';
+import { Globe, Settings2 } from 'lucide-react';
 import type { User, LogEntry } from '../types';
 import { imageUrl } from '../utils';
 
@@ -25,13 +25,6 @@ const PLATFORM_CONFIG: Record<string, { label: string; icon: string }> = {
   twitch: { label: 'Twitch', icon: '🔴' },
   kick: { label: 'Kick', icon: '👟' },
   spotify: { label: 'Spotify', icon: '🎵' },
-};
-
-const formatDate = (dateStr?: string) => {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-  return `${months[d.getMonth()]} ${d.getFullYear()}`;
 };
 
 const ProfileHero = ({
@@ -125,19 +118,38 @@ const tabs = [
           <div className="flex-1 text-center md:text-left">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
               <div>
-                <h1 className="font-display text-2xl md:text-4xl font-black tracking-tight text-white">
-                  {displayName}
-                </h1>
-                <div className="flex items-center justify-center md:justify-start gap-2 mt-0.5">
-                  <span className="text-sm text-white/50">@{profileUser.username}</span>
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider"
-                    style={{ background: `${accentColor}22`, color: accentColor }}>
-                    Membro
-                  </span>
+                <div className="flex items-center justify-center md:justify-start gap-2.5 flex-wrap">
+                  <h1 className="font-display text-2xl md:text-4xl font-black tracking-tight text-white">
+                    {displayName}
+                  </h1>
+                  <span className="text-sm md:text-base text-white/50">@{profileUser.username}</span>
                 </div>
               </div>
 
               <div className="flex items-center justify-center md:justify-end gap-2">
+                <div className="flex items-center gap-1 mr-1">
+                  {activePlatforms.map(([key, url]) => (
+                    <a key={key} href={url} target="_blank" rel="noopener noreferrer"
+                      className="w-8 h-8 flex items-center justify-center rounded-full transition-colors hover:bg-white/10"
+                      style={{ color: 'var(--text-muted)' }} title={PLATFORM_CONFIG[key]?.label || key}>
+                      <span className="text-sm">{PLATFORM_CONFIG[key]?.icon || '🔗'}</span>
+                    </a>
+                  ))}
+                  {spotifyUrl && (
+                    <a href={spotifyUrl} target="_blank" rel="noopener noreferrer"
+                      className="w-8 h-8 flex items-center justify-center rounded-full transition-colors hover:bg-white/10"
+                      style={{ color: 'var(--text-muted)' }} title="Spotify">
+                      <span className="text-sm">🎵</span>
+                    </a>
+                  )}
+                  {customLinks.map((link, i) => (
+                    <a key={i} href={link.url} target="_blank" rel="noopener noreferrer"
+                      className="w-8 h-8 flex items-center justify-center rounded-full transition-colors hover:bg-white/10"
+                      style={{ color: 'var(--text-muted)' }} title={link.label}>
+                      <Globe size={14} />
+                    </a>
+                  ))}
+                </div>
                 {isOwnProfile ? (
                   <Link to="/settings" className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition-all"
                     style={{ background: `${accentColor}22`, color: accentColor, border: `1px solid ${accentColor}44` }}>
@@ -170,33 +182,6 @@ const tabs = [
             {bio && (
               <p className="text-sm text-white/60 mt-3 max-w-2xl leading-relaxed">{bio}</p>
             )}
-
-            <div className="flex items-center justify-center md:justify-start gap-3 mt-3 flex-wrap">
-              {activePlatforms.map(([key, url]) => (
-                <a key={key} href={url} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 text-xs font-medium transition-colors hover:text-white px-2 py-1 rounded-md"
-                  style={{ color: 'var(--text-muted)' }} title={PLATFORM_CONFIG[key]?.label || key}>
-                  <span className="text-sm">{PLATFORM_CONFIG[key]?.icon || '🔗'}</span>
-                  <span className="hidden sm:inline">{PLATFORM_CONFIG[key]?.label || key}</span>
-                </a>
-              ))}
-              {spotifyUrl && (
-                <a href={spotifyUrl} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 text-xs font-medium transition-colors hover:text-white px-2 py-1 rounded-md"
-                  style={{ color: 'var(--text-muted)' }} title="Spotify">
-                  <span className="text-sm">🎵</span>
-                  <span className="hidden sm:inline">Spotify</span>
-                </a>
-              )}
-              {customLinks.map((link, i) => (
-                <a key={i} href={link.url} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 text-xs font-medium transition-colors hover:text-white px-2 py-1 rounded-md"
-                  style={{ color: 'var(--text-muted)' }}>
-                  <Globe size={14} />
-                  <span className="hidden sm:inline">{link.label}</span>
-                </a>
-              ))}
-            </div>
 
             <div className="flex items-center justify-center md:justify-start gap-3 mt-4 text-center md:text-left">
               <Link to={`/profile/${profileUser.username}`}
@@ -232,11 +217,6 @@ const tabs = [
                 <span className="font-display text-lg md:text-xl font-black text-white">{Math.round(totalHours)}h</span>
                 <span className="text-[10px] uppercase tracking-[0.2em] text-white/40">Horas</span>
               </div>
-            </div>
-
-            <div className="flex items-center justify-center md:justify-start gap-1.5 mt-3 text-xs text-white/30">
-              <Calendar size={12} />
-              <span>Membro desde {formatDate(profileUser.created_at)}</span>
             </div>
           </div>
         </div>
