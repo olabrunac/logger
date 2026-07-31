@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { getLogUrl } from '../utils';
 import api from '../services/api';
 import type { LogEntry, LogReview } from '../types';
 import { ChevronDown, Trash2, CheckCircle2, Circle, Trophy, Pencil, Bookmark, Edit3, Star } from 'lucide-react';
@@ -54,7 +55,7 @@ interface AchievementItem {
 }
 
 const LogDetailPage = () => {
-  const { id } = useParams<{ id: string }>();
+  const { mediaType, apiId } = useParams<{ mediaType: string; apiId: string }>();
   const navigate = useNavigate();
   const [log, setLog] = useState<LogEntry | null>(null);
   const [loading, setLoading] = useState(true);
@@ -79,9 +80,10 @@ const LogDetailPage = () => {
   const [epReviewRating, setEpReviewRating] = useState(0);
 
   const fetchLog = useCallback(async () => {
-    if (!id) return;
+    if (!mediaType || !apiId) return;
     try {
-      const response = await api.get(`/media/logs/${id}`);
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const response = await api.get('/media/logs/by-item', { params: { user_id: user.id, media_type: mediaType, api_id: apiId } });
       const data = response.data;
       setLog(data);
 
@@ -99,17 +101,17 @@ const LogDetailPage = () => {
           }));
           setEpisodes(allEpisodes);
         }).catch(() => {});
-        api.get(`/media/logs/${id}/episodes`).then(r => {
+        api.get(`/media/logs/${data.id}/episodes`).then(r => {
           const map: Record<string, WatchedEpisode> = {};
           (r.data || []).forEach((ep: WatchedEpisode) => { map[ep.season_number + '-' + ep.episode_number] = ep; });
           setWatchedMap(map);
         }).catch(() => {});
       }
       if (data.media_item.media_type === 'game' && data.media_item.igdb_id) {
-        setAchLoading(true);
+          setAchLoading(true);
         api.get(`/media/games/${data.media_item.igdb_id}/achievements`).then(r => {
           const remote = r.data || [];
-          api.get(`/media/logs/${id}/achievements`).then(r2 => {
+          api.get(`/media/logs/${data.id}/achievements`).then(r2 => {
             const saved = r2.data || [];
             const savedMap = new Map<string, AchievementItem>(saved.map((a: AchievementItem) => [a.external_id, a]));
             setAchievements(remote.map((a: Record<string, unknown>) => ({
@@ -136,17 +138,17 @@ const LogDetailPage = () => {
         }).catch(() => {});
 
       // Fetch review history
-      api.get(`/media/logs/${id}/reviews`)
+      api.get(`/media/logs/${data.id}/reviews`)
         .then(r => setReviewHistory(r.data || []))
         .catch(() => {});
     } catch { navigate('/'); } finally { setLoading(false); }
-  }, [id, navigate]);
+  }, [mediaType, apiId, navigate]);
 
   useEffect(() => { fetchLog(); }, [fetchLog]);
 
   const patch = async (updates: Record<string, unknown>) => {
-    if (!id) return;
-    const { data } = await api.patch('/media/logs/' + id, updates);
+    if (!log) return;
+    const { data } = await api.patch('/media/logs/' + log.id, updates);
     setLog(data);
   };
 
@@ -185,15 +187,15 @@ const LogDetailPage = () => {
   };
 
   const handleEditSubmit = async (logDetails: any) => {
-    if (!id) return;
+    if (!log) return;
     try {
-      const { data } = await api.put(`/media/logs/${id}`, logDetails);
+      const { data } = await api.put(`/media/logs/${log.id}`, logDetails);
       setLog(data);
       setShowEditModal(false);
       // Refresh review history
-      api.get(`/media/logs/${id}/reviews`).then(r => setReviewHistory(r.data || [])).catch(() => {});
-      if (String(data.id) !== id) {
-        navigate(`/log/${data.id}`, { replace: true });
+      api.get(`/media/logs/${log.id}/reviews`).then(r => setReviewHistory(r.data || [])).catch(() => {});
+      if (String(data.id) !== String(log.id)) {
+        navigate(getLogUrl(data.media_item), { replace: true });
       }
     } catch (error) {
       console.error('Failed to update log', error);
@@ -201,9 +203,9 @@ const LogDetailPage = () => {
   };
 
   const handleDelete = async () => {
-    if (!id) return;
+    if (!log) return;
     setDeleting(true);
-    try { await api.delete('/media/logs/' + id); navigate('/'); }
+    try { await api.delete('/media/logs/' + log.id); navigate('/'); }
     catch { setDeleting(false); setShowDeleteConfirm(false); }
   };
 
@@ -216,13 +218,13 @@ const LogDetailPage = () => {
   };
 
   const toggleEpisode = async (ep: TmdbEpisode) => {
-    if (!id) return;
+    if (!log) return;
     if (ep.air_date && new Date(ep.air_date) > new Date()) return;
     const key = ep.season_number + '-' + ep.episode_number;
     const current = watchedMap[key];
     const newWatched = current ? !current.watched : true;
     try {
-      const { data } = await api.post('/media/logs/' + id + '/episodes', {
+      const { data } = await api.post('/media/logs/' + log.id + '/episodes', {
         season_number: ep.season_number, episode_number: ep.episode_number,
         episode_name: ep.name, watched: newWatched, log_date: new Date().toISOString().split('T')[0],
         air_date: ep.air_date,
@@ -263,7 +265,7 @@ const LogDetailPage = () => {
   };
 
   const toggleAllEpisodes = async (seasonEps: TmdbEpisode[], markWatched: boolean) => {
-    if (!id) return;
+    if (!log) return;
     const newMap = { ...watchedMap };
     let watchedChange = 0;
     const today = new Date();
@@ -275,7 +277,7 @@ const LogDetailPage = () => {
          watchedChange += markWatched ? 1 : -1;
       }
       try {
-        const { data } = await api.post('/media/logs/' + id + '/episodes', {
+        const { data } = await api.post('/media/logs/' + log.id + '/episodes', {
           season_number: ep.season_number, episode_number: ep.episode_number,
           episode_name: ep.name, watched: markWatched, log_date: new Date().toISOString().split('T')[0],
           air_date: ep.air_date,
@@ -292,9 +294,9 @@ const LogDetailPage = () => {
   };
 
   const toggleAch = async (a: AchievementItem) => {
-    if (!id) return;
+    if (!log) return;
     const newUnlocked = !a.unlocked;
-    const { data } = await api.post('/media/logs/' + id + '/achievements', {
+    const { data } = await api.post('/media/logs/' + log.id + '/achievements', {
       external_id: a.external_id, name: a.name, description: a.description || '',
       image_url: a.image_url || '', unlocked: newUnlocked,
     });
@@ -302,10 +304,10 @@ const LogDetailPage = () => {
   };
 
   const toggleAllAch = async (markUnlocked: boolean) => {
-    if (!id) return;
+    if (!log) return;
     for (const a of achievements) {
       if (a.unlocked !== markUnlocked) {
-        await api.post('/media/logs/' + id + '/achievements', {
+        await api.post('/media/logs/' + log.id + '/achievements', {
           external_id: a.external_id, name: a.name, description: a.description || '',
           image_url: a.image_url || '', unlocked: markUnlocked,
         });

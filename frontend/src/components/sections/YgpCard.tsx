@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { LogEntry } from '../../types';
 import { TYPE_META, STATUS_COLORS, STATUS_ICONS } from '../../constants/designSystem';
+import { getLogUrl } from '../../utils';
 
 interface YgpCardProps {
   log: LogEntry;
@@ -14,7 +15,7 @@ const YgpCard = ({ log, accentColor, showStatus = true }: YgpCardProps) => {
 
   return (
     <Link
-      to={'/log/' + log.id}
+      to={getLogUrl(log.media_item)}
       className="group relative flex flex-col overflow-hidden rounded-lg transition-opacity hover:opacity-90"
       style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', aspectRatio: '3/4' }}
     >

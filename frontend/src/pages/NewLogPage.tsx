@@ -6,6 +6,7 @@ import LogForm from '../components/LogForm';
 import api from '../services/api';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
+import { getLogUrl } from '../utils';
 
 const NewLogPage: React.FC = () => {
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
@@ -65,7 +66,7 @@ const NewLogPage: React.FC = () => {
       try {
         const { data } = await api.put(`/media/logs/${editingLog.id}`, payload);
         if (data?.id) {
-          navigate(`/log/${data.id}`);
+          navigate(getLogUrl(data.media_item));
         } else {
           navigate('/');
         }
@@ -82,7 +83,7 @@ const NewLogPage: React.FC = () => {
       try {
         const { data } = await api.post('/media/logs', payload);
         if (data?.id) {
-          navigate(`/log/${data.id}`);
+          navigate(getLogUrl(data.media_item));
         } else {
           navigate('/');
         }
@@ -105,7 +106,7 @@ const NewLogPage: React.FC = () => {
     <div className="space-y-6">
       {!selectedMedia ? (
         <div>
-          <Link to={editingLog ? '/log/' + editingLog.id : '/'} className="mdf-btn-ghost text-sm inline-flex items-center gap-2">
+          <Link to={editingLog ? getLogUrl(editingLog.media_item) : '/'} className="mdf-btn-ghost text-sm inline-flex items-center gap-2">
             <ChevronLeft size={16} />
             {editingLog ? 'Voltar ao log' : 'Voltar'}
           </Link>
@@ -116,7 +117,7 @@ const NewLogPage: React.FC = () => {
           onSubmit={handleLogSubmit}
           onCancel={() => {
             if (editingLog) {
-              navigate('/log/' + editingLog.id);
+              navigate(getLogUrl(editingLog.media_item));
             } else {
               setSelectedMedia(null);
             }

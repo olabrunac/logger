@@ -6,6 +6,7 @@ import { Heart } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { TYPE_META } from '../constants/designSystem';
+import { getLogUrl } from '../utils';
 
 interface DiaryPageProps {
   user: { id: number; username: string };
@@ -77,7 +78,7 @@ const DiaryPage = ({ user }: DiaryPageProps) => {
             <div className="space-y-2">
               {items.map(l => {
                 return (
-                  <Link key={l.id} to={`/log/${l.id}`}
+                  <Link key={l.id} to={getLogUrl(l.media_item)}
                     className="mdf-card mdf-card-hover flex items-stretch gap-4 p-3 transition-colors">
                     <div className="w-[72px] -my-3 -ml-3 flex-shrink-0 overflow-hidden bg-white/5" style={{borderBottom: '3px solid ' + (TYPE_META[l.media_item.media_type]?.color || '#666')}}>
                       {l.media_item.cover_image_url ? (

@@ -4,7 +4,7 @@ import api from '../services/api';
 import type { User, LogEntry } from '../types';
 import { TYPE_META, STATUS_COLORS, STATUS_ICONS, getStars } from '../constants/designSystem';
 import { ChevronRight } from 'lucide-react';
-import { imageUrl } from '../utils';
+import { imageUrl, getLogUrl } from '../utils';
 
 interface HomePageProps {
   user: User;
@@ -111,9 +111,9 @@ const HomePage = ({ user }: HomePageProps) => {
             Nenhum log ainda. Clique em <span className="text-white font-semibold">Novo log</span> para começar.
           </div>
         ) : (
-          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-2">
+          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
             {logs.map(log => (
-              <Link key={log.id} to={`/log/${log.id}`} className="poster-tile block group" style={{borderBottom: '3px solid ' + (TYPE_META[log.media_item.media_type]?.color || '#666')}}>
+              <Link key={log.id} to={getLogUrl(log.media_item)} className="poster-tile block group" style={{borderBottom: '3px solid ' + (TYPE_META[log.media_item.media_type]?.color || '#666')}}>
                 {log.media_item.cover_image_url ? (
                   <img src={log.media_item.cover_image_url} alt={log.media_item.title} className="w-full h-full object-cover" loading="lazy"/>
                 ) : (

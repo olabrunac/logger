@@ -6,6 +6,7 @@ import type { MediaItem } from '../types/media';
 import { Gamepad2, Film, Tv, Book, Pencil, Trash2, Plus, ChevronDown, ChevronRight, X, Search } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { TYPE_META, STATUS_COLORS, STATUS_ICONS, getStars } from '../constants/designSystem';
+import { getLogUrl } from '../utils';
 
 interface ListsPageProps {
   user: { id: number; username: string };
@@ -305,11 +306,11 @@ const ListsPage = ({ user }: ListsPageProps) => {
             <div className="mdf-card p-6 text-center text-white/30 text-sm">Nenhum item nesta categoria.</div>
           ) : (
             <>
-              <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-2">
+              <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
                 {visibleItems.map(l => {
               const typeEmoji = TYPE_META[l.media_item.media_type]?.emoji || '📄';
               return (
-                <Link key={l.id} to={`/log/${l.id}`} className="poster-tile block group" style={{borderBottom: '3px solid ' + (TYPE_META[l.media_item.media_type]?.color || '#666')}}>
+                <Link key={l.id} to={getLogUrl(l.media_item)} className="poster-tile block group" style={{borderBottom: '3px solid ' + (TYPE_META[l.media_item.media_type]?.color || '#666')}}>
                   {l.media_item.cover_image_url ? (
                     <img src={l.media_item.cover_image_url} alt={l.media_item.title} className="w-full h-full object-cover" loading="lazy" />
                   ) : (
@@ -407,11 +408,11 @@ const ListsPage = ({ user }: ListsPageProps) => {
             <div className="mdf-card p-6 text-center text-white/30 text-sm">Nenhum item na lista de desejos.</div>
           ) : (
             <>
-              <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-2">
+              <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
                 {visibleWishlist.map(l => {
                   const typeEmoji = TYPE_META[l.media_item.media_type]?.emoji || '📄';
                   return (
-                    <div key={l.id} className="poster-tile block group relative" style={{borderBottom: '3px solid ' + (TYPE_META[l.media_item.media_type]?.color || '#666')}}>
+                    <Link key={l.id} to={getLogUrl(l.media_item)} className="poster-tile block group relative" style={{borderBottom: '3px solid ' + (TYPE_META[l.media_item.media_type]?.color || '#666')}}>
                       {l.media_item.cover_image_url ? (
                         <img src={l.media_item.cover_image_url} alt={l.media_item.title} className="w-full h-full object-cover" loading="lazy" />
                       ) : (
@@ -446,7 +447,7 @@ const ListsPage = ({ user }: ListsPageProps) => {
                           <Trash2 size={12} />
                         </button>
                       </div>
-                    </div>
+                    </Link>
                   );
                 })}
               </div>
@@ -515,13 +516,13 @@ const ListsPage = ({ user }: ListsPageProps) => {
                       <div className="text-center text-white/30 text-xs py-4">Nenhum item ainda</div>
                     ) : (
                       <>
-                        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-2">
+                        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
                           {(expandedSections[`list-${cl.id}`] === true ? filteredItems : filteredItems.slice(0, 12)).map(item => {
                           if (!item.media_item) return null;
                           const mi = item.media_item;
                           const typeEmoji = TYPE_META[mi.media_type]?.emoji || '📄';
                           return (
-                            <div key={item.id} className="poster-tile block group relative" style={{borderBottom: '3px solid ' + (TYPE_META[mi.media_type]?.color || '#666')}}>
+                            <Link key={item.id} to={getLogUrl(mi)} className="poster-tile block group relative" style={{borderBottom: '3px solid ' + (TYPE_META[mi.media_type]?.color || '#666')}}>
                               {mi.cover_image_url ? (
                                 <img src={mi.cover_image_url} alt={mi.title} className="w-full h-full object-cover" loading="lazy" />
                               ) : (
@@ -540,7 +541,7 @@ const ListsPage = ({ user }: ListsPageProps) => {
                                 className="absolute top-2 right-2 w-6 h-6 rounded flex items-center justify-center bg-black/70 text-white/70 hover:text-red-400 backdrop-blur-sm transition-colors opacity-0 group-hover:opacity-100 z-10">
                                 <X size={12} />
                               </button>
-                            </div>
+                            </Link>
                           );
                         })}
                         </div>

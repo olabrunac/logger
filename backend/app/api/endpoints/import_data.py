@@ -20,6 +20,15 @@ from app.services import tmdb_service, steam_service
 router = APIRouter()
 
 
+def _cover_exists(url: str) -> bool:
+    """Check if a cover image URL returns a valid response."""
+    try:
+        r = requests.head(url, timeout=10, allow_redirects=True)
+        return r.status_code == 200
+    except Exception:
+        return False
+
+
 class ImportItem(BaseModel):
     title: str
     year: Optional[int] = None
@@ -266,12 +275,15 @@ async def letterboxd_import(
     created = 0
     skipped = 0
     enriched = 0
+    imported_items = []
+    skipped_items = []
     media_crud = CRUDMediaItem(MediaItem)
 
     for item in items:
         title = item.get("title", "").strip()
         if not title:
             skipped += 1
+            skipped_items.append({"title": item.get("title", ""), "reason": "empty_title"})
             continue
 
         year = item.get("year")
@@ -303,6 +315,7 @@ async def letterboxd_import(
 
         if not tmdb_id:
             skipped += 1
+            skipped_items.append({"title": title, "reason": "no_api_match"})
             continue
 
         media_in = schemas.MediaItemCreate(
@@ -323,6 +336,7 @@ async def letterboxd_import(
         ).first()
         if existing_log:
             skipped += 1
+            skipped_items.append({"title": title, "reason": "duplicate"})
             continue
 
         log_date = None
@@ -367,6 +381,7 @@ async def letterboxd_import(
             )
             db.add(review_entry)
         created += 1
+        imported_items.append({"title": title, "action": "created"})
 
         if tmdb_id:
             try:
@@ -395,7 +410,7 @@ async def letterboxd_import(
     except Exception:
         pass
 
-    return {"created": created, "skipped": skipped, "enriched": enriched, "total": len(items)}
+    return {"created": created, "updated": 0, "skipped": skipped, "enriched": enriched, "total": len(items), "imported_items": imported_items, "skipped_items": skipped_items}
 
 
 @router.post("/steam/preview")
@@ -499,8 +514,10 @@ async def steam_import(
         cover_url = None
         steam_details = None
         if appid:
-            # Use Steam library_600x900 (exactly 2:3 ratio) for poster format
             cover_url = f"https://cdn.akamai.steamstatic.com/steam/apps/{appid}/library_600x900.jpg"
+            if not _cover_exists(cover_url):
+                skipped += 1
+                continue
             steam_details = steam_service.get_app_details(appid)
             time.sleep(0.5)
 
@@ -511,6 +528,10 @@ async def steam_import(
             cover_image_url=cover_url,
         )
         media_item = media_crud.get_or_create(db, obj_in=media_in)
+
+        if cover_url:
+            media_item.cover_image_url = cover_url
+            db.add(media_item)
 
         if steam_details:
             parsed = steam_service.parse_steam_game_data(steam_details)
@@ -1030,6 +1051,7 @@ async def tvtime_preview(
             year=movie.get("year"),
             status="completed",
             log_date=movie.get("log_date"),
+            rating=movie.get("rating"),
         ))
 
     for wl_name in data.get("wishlist_series", {}):
@@ -1182,10 +1204,10 @@ async def tvtime_import(
             continue
 
         rating = None
-        for sel in selected_items:
-            if sel.get("title", "").lower().strip() == show_name.lower().strip():
-                rating = sel.get("rating")
-                break
+        ep_reviews = show_data.get("episode_reviews", {})
+        ep_ratings = [v["rating"] for v in ep_reviews.values() if v.get("rating")]
+        if ep_ratings:
+            rating = round(sum(ep_ratings) / len(ep_ratings), 1)
 
         if total_episodes_from_tmdb > 0 and num_watched >= total_episodes_from_tmdb:
             log_status = LogStatus.COMPLETED

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { LogEntry } from '../../types';
 import { STATUS_COLORS, STATUS_ICONS, TYPE_COLORS, TYPE_EMOJI, getStars } from '../../constants/designSystem';
+import { getLogUrl } from '../../utils';
 
 interface FavoritesSectionProps {
   logs: LogEntry[];
@@ -21,9 +22,9 @@ const FavoritesSection = ({ logs, accentColor: _accentColor, mediaType }: Favori
         <span style={{ color: 'var(--mdf-pink)' }}>&#9829;</span>
         Favoritos {mediaType && `· ${TYPE_EMOJI[mediaType] || ''}`}
       </h2>
-      <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-2">
+      <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
         {favorites.map((log) => (
-          <Link key={log.id} to={`/log/${log.id}`} className="poster-tile block group" style={{borderBottom: '3px solid ' + (TYPE_COLORS[log.media_item.media_type] || '#666')}}>
+          <Link key={log.id} to={getLogUrl(log.media_item)} className="poster-tile block group" style={{borderBottom: '3px solid ' + (TYPE_COLORS[log.media_item.media_type] || '#666')}}>
             {log.media_item.cover_image_url ? (
               <img src={log.media_item.cover_image_url} alt={log.media_item.title} className="w-full h-full object-cover" loading="lazy" />
             ) : (

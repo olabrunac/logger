@@ -489,7 +489,7 @@ const ImportPage = ({ user }: ImportPageProps) => {
             )}
           </div>
 
-          {result.imported_items.length > 0 && (
+          {result.imported_items?.length > 0 && (
             <div className="text-left mt-4 max-h-48 overflow-y-auto rounded-lg border" style={{ borderColor: 'var(--border)' }}>
               <div className="px-3 py-2 text-xs font-bold uppercase tracking-wider" style={{ background: 'var(--mdf-bg)', color: 'var(--text-muted)' }}>
                 Importados / Atualizados
@@ -505,7 +505,7 @@ const ImportPage = ({ user }: ImportPageProps) => {
             </div>
           )}
 
-          {result.skipped_items.length > 0 && (
+          {result.skipped_items?.length > 0 && (
             <div className="text-left mt-4 max-h-48 overflow-y-auto rounded-lg border" style={{ borderColor: 'var(--border)' }}>
               <div className="px-3 py-2 text-xs font-bold uppercase tracking-wider" style={{ background: 'var(--mdf-bg)', color: 'var(--text-muted)' }}>
                 Ignorados

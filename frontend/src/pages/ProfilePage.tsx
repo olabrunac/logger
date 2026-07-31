@@ -8,7 +8,7 @@ import YgpCard from '../components/sections/YgpCard';
 import SectionHeader from '../components/sections/SectionHeader';
 import LayoutEditorModal from '../components/sections/LayoutEditorModal';
 import { TYPE_META, getStars } from '../constants/designSystem';
-import { imageUrl } from '../utils';
+import { imageUrl, getLogUrl } from '../utils';
 
 interface ProfilePageProps {
   currentUser: User;
@@ -205,7 +205,7 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
       {recentLogs.length === 0 ? (
         <div className="mdf-card p-8 text-center text-white/50">Nenhum log ainda.</div>
       ) : (
-        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-2">
+        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
           {recentLogs.slice(0, 12).map(log => (
             <YgpCard key={log.id} log={log} accentColor={accentColor} />
           ))}
@@ -251,7 +251,7 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
                       </svg>
                     </div>
                   )}
-                  <Link to={media ? `/log/${top.id}` : '#'} className={`group relative flex flex-col overflow-hidden rounded-lg transition-opacity hover:opacity-90 ${isGoat ? 'outline outline-2' : ''}`}
+                  <Link to={media ? getLogUrl(media) : '#'} className={`group relative flex flex-col overflow-hidden rounded-lg transition-opacity hover:opacity-90 ${isGoat ? 'outline outline-2' : ''}`}
                     style={{
                       background: 'var(--bg-elevated)',
                       border: '1px solid var(--border)',
@@ -290,7 +290,7 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
             const media = top.media_item;
             const meta = TYPE_META[type];
             return (
-              <Link key={type} to={media ? `/log/${top.id}` : '#'} className="group relative flex flex-col overflow-hidden rounded-lg transition-opacity hover:opacity-90" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', aspectRatio: '3/4' }}>
+              <Link key={type} to={media ? getLogUrl(media) : '#'} className="group relative flex flex-col overflow-hidden rounded-lg transition-opacity hover:opacity-90" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', aspectRatio: '3/4' }}>
                 {media?.cover_image_url ? (
                   <img src={media.cover_image_url} alt={media.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
                 ) : (
@@ -334,7 +334,7 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
           {reviewEntries.slice(0, 10).map(e => {
             const meta = TYPE_META[e.log.media_item.media_type];
             return (
-              <Link key={e.review.id} to={'/log/' + e.log.id} className="flex w-[260px] shrink-0 gap-3 rounded-2xl p-3 transition-colors hover:bg-white/5" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
+              <Link key={e.review.id} to={getLogUrl(e.log.media_item)} className="flex w-[260px] shrink-0 gap-3 rounded-2xl p-3 transition-colors hover:bg-white/5" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
                 {e.log.media_item.cover_image_url ? (
                   <img src={e.log.media_item.cover_image_url} alt="" className="h-24 w-16 shrink-0 rounded-lg object-cover" style={{ border: '1px solid var(--border)' }} loading="lazy" />
                 ) : (
@@ -362,7 +362,7 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
           {reviewEntries.slice(0, 6).map(e => {
             const meta = TYPE_META[e.log.media_item.media_type];
             return (
-              <Link key={e.review.id} to={'/log/' + e.log.id} className="flex gap-4 rounded-2xl p-4 transition-colors hover:bg-white/[0.02]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
+              <Link key={e.review.id} to={getLogUrl(e.log.media_item)} className="flex gap-4 rounded-2xl p-4 transition-colors hover:bg-white/[0.02]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
                 {e.log.media_item.cover_image_url ? (
                   <img src={e.log.media_item.cover_image_url} alt="" className="h-28 w-[72px] shrink-0 rounded-lg object-cover" style={{ border: '1px solid var(--border)' }} loading="lazy" />
                 ) : (
@@ -496,7 +496,7 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
             {reviewEntries.slice(0, 50).map(e => {
               const meta = TYPE_META[e.log.media_item.media_type];
               return (
-                <Link key={e.review.id} to={'/log/' + e.log.id} className="flex gap-4 rounded-2xl p-4 transition-colors hover:bg-white/[0.02]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
+                <Link key={e.review.id} to={getLogUrl(e.log.media_item)} className="flex gap-4 rounded-2xl p-4 transition-colors hover:bg-white/[0.02]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
                   {e.log.media_item.cover_image_url ? (
                     <img src={e.log.media_item.cover_image_url} alt="" className="h-28 w-[72px] shrink-0 rounded-lg object-cover" style={{ border: '1px solid var(--border)' }} loading="lazy" />
                   ) : (
@@ -565,7 +565,7 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
             {[...logs].sort((a, b) => new Date(b.log_date || b.id).getTime() - new Date(a.log_date || a.id).getTime()).slice(0, 50).map(log => {
               const meta = TYPE_META[log.media_item.media_type];
               return (
-                <Link key={log.id} to={'/log/' + log.id} className="flex items-center gap-3 rounded-xl p-3 transition-colors hover:bg-white/[0.02]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
+                <Link key={log.id} to={getLogUrl(log.media_item)} className="flex items-center gap-3 rounded-xl p-3 transition-colors hover:bg-white/[0.02]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
                   {log.media_item.cover_image_url ? (
                     <img src={log.media_item.cover_image_url} alt="" className="h-14 w-10 rounded-lg object-cover" loading="lazy" />
                   ) : (

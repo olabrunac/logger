@@ -7,6 +7,7 @@ import YgpCard from '../components/sections/YgpCard';
 import SectionHeader from '../components/sections/SectionHeader';
 import LayoutEditorModal from '../components/sections/LayoutEditorModal';
 import { TYPE_META, getStars } from '../constants/designSystem';
+import { getLogUrl } from '../utils';
 import { Heart, Clock, Star, Target, CheckCircle, BookOpen, X, Layers, Menu, ChevronUp, ChevronDown, Trash2 } from 'lucide-react';
 
 interface MediaTypeProfilePageProps {
@@ -483,7 +484,7 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
         {sectionLogs.length === 0 ? (
           <div className="mdf-card p-6 text-center text-white/30 text-sm">{emptyMsg}</div>
         ) : (
-          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-2">
+          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
             {(expanded ? sectionLogs : sectionLogs.slice(0, 12)).map(log => (
               <YgpCard key={log.id} log={log} accentColor={accentColor} />
             ))}
@@ -505,7 +506,7 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
       {filteredLogs.length === 0 ? (
         <div className="mdf-card p-6 text-center text-white/30 text-sm">Nenhuma mídia registrada.</div>
       ) : (
-        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-2">
+        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
           {(showExpanded.recent ? filteredLogs : filteredLogs.slice(0, 12)).map(log => (
             <YgpCard key={log.id} log={log} accentColor={accentColor} />
           ))}
@@ -536,7 +537,7 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
           {reviewEntries.slice(0, 10).map(e => {
             const m = TYPE_META[e.log.media_item.media_type];
             return (
-              <Link key={e.review.id} to={'/log/' + e.log.id} className="flex w-[260px] shrink-0 gap-3 rounded-2xl p-3 transition-colors hover:bg-white/5" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
+              <Link key={e.review.id} to={getLogUrl(e.log.media_item)} className="flex w-[260px] shrink-0 gap-3 rounded-2xl p-3 transition-colors hover:bg-white/5" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
                 {e.log.media_item.cover_image_url ? (
                   <img src={e.log.media_item.cover_image_url} alt="" className="h-24 w-16 shrink-0 rounded-lg object-cover" style={{ border: '1px solid var(--border)' }} loading="lazy" />
                 ) : (
@@ -564,7 +565,7 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
           {reviewEntries.slice(0, 6).map(e => {
             const m = TYPE_META[e.log.media_item.media_type];
             return (
-              <Link key={e.review.id} to={'/log/' + e.log.id} className="flex gap-4 rounded-2xl p-4 transition-colors hover:bg-white/[0.02]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
+              <Link key={e.review.id} to={getLogUrl(e.log.media_item)} className="flex gap-4 rounded-2xl p-4 transition-colors hover:bg-white/[0.02]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
                 {e.log.media_item.cover_image_url ? (
                   <img src={e.log.media_item.cover_image_url} alt="" className="h-28 w-[72px] shrink-0 rounded-lg object-cover" style={{ border: '1px solid var(--border)' }} loading="lazy" />
                 ) : (
@@ -612,7 +613,7 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
       {filteredLogs.length === 0 ? (
         <div className="mdf-card p-6 text-center text-white/30 text-sm">Nenhuma mídia registrada.</div>
       ) : (
-        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-2">
+        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
           {(showExpanded.all ? filteredLogs : filteredLogs.slice(0, 12)).map(log => (
             <YgpCard key={log.id} log={log} accentColor={accentColor} />
           ))}
