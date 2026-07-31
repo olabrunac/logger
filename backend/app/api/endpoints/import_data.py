@@ -330,6 +330,11 @@ async def letterboxd_import(
             media_item.cover_image_url = cover_url
             db.add(media_item)
 
+        if not media_item.cover_image_url:
+            skipped += 1
+            skipped_items.append({"title": title, "reason": "no_cover"})
+            continue
+
         existing_log = db.query(LogEntry).filter(
             LogEntry.user_id == user_id,
             LogEntry.media_item_id == media_item.id,
@@ -802,6 +807,10 @@ async def trakt_import(
         )
         media_item = media_crud.get_or_create(db, obj_in=media_in)
 
+        if not media_item.cover_image_url:
+            skipped += 1
+            continue
+
         existing_log = db.query(LogEntry).filter(
             LogEntry.user_id == user_id,
             LogEntry.media_item_id == media_item.id,
@@ -1147,6 +1156,11 @@ async def tvtime_import(
             media_item.total_episodes = total_episodes_from_tmdb
             db.add(media_item)
 
+        if not media_item.cover_image_url:
+            skipped += 1
+            skipped_items.append({"title": show_name, "reason": "no_cover"})
+            continue
+
         episodes_watched = show_data["episodes_watched"]
 
         if tmdb_valid_episodes:
@@ -1306,6 +1320,11 @@ async def tvtime_import(
             cover_image_url=cover_url,
         )
         media_item = media_crud.get_or_create(db, obj_in=media_in)
+
+        if not media_item.cover_image_url:
+            skipped += 1
+            skipped_items.append({"title": movie["title"], "reason": "no_cover"})
+            continue
 
         log_date = None
         if movie.get("log_date"):
