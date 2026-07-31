@@ -17,7 +17,7 @@ const YgpCard = ({ log, accentColor, showStatus = true }: YgpCardProps) => {
     <Link
       to={getLogUrl(log.media_item)}
       className="group relative flex flex-col overflow-hidden rounded-lg transition-opacity hover:opacity-90"
-      style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', aspectRatio: '3/4' }}
+      style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderBottom: `5px solid ${color}`, aspectRatio: '3/4' }}
     >
       {log.media_item.cover_image_url ? (
         <img
@@ -30,17 +30,6 @@ const YgpCard = ({ log, accentColor, showStatus = true }: YgpCardProps) => {
         <div className="w-full h-full flex flex-col items-center justify-center gap-3 p-3 text-center">
           <span className="text-3xl">{meta?.emoji || '📄'}</span>
           <div className="text-xs text-white/70 font-medium line-clamp-3">{log.media_item.title}</div>
-        </div>
-      )}
-
-      {log.platform && (
-        <div className="absolute left-1.5 top-1.5">
-          <div
-            className="h-5 w-5 rounded-full flex items-center justify-center text-[8px] font-bold shadow-lg"
-            style={{ background: color }}
-          >
-            {meta?.emoji || '?'}
-          </div>
         </div>
       )}
 

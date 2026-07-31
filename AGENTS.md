@@ -45,6 +45,7 @@
 5. **Testar importação Steam (#18)**: Testar a importação de dados da Steam com ID de usuário real
 6. **CDN da Steam mudou**: Steam migrou de `cdn.akamai.steamstatic.com` para `shared.akamai.steamstatic.com/store_item_assets/`. `library_600x900.jpg` ainda funciona no CDN antigo, mas monitorar se quebrará.
 7. **Import otimizado**: O HEAD request por jogo no import da Steam adiciona ~1s por app (276 jogos ≈ 5min). Considerar batch ou paralelizar no futuro.
+8. **Reorganizar as pílulas dos poster tiles**: Reorganizar a disposição das pílulas (status, avaliação, horas, conquistas) nos poster tiles (`YgpCard` e similares) — avaliar posição, sobreposição e agrupamento.
 
 ## ✅ Implementado
 - **Filtrar mídias sem match na API (#20)**: Importadores (Letterboxd, Trakt, TV Time) pulam itens sem `tmdb_id` **ou sem capa** (`reason: no_cover`). Steam pula jogos sem capa válida (`library_600x900.jpg`).
