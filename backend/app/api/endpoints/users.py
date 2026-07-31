@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session, joinedload
 from app import crud, schemas
 from app.api import deps
+from app.services.hours_service import effective_hours
 
 router = APIRouter()
 
@@ -397,7 +398,7 @@ def get_timeline(
             "review": log.review,
             "platform": log.platform,
             "is_favorite": log.is_favorite,
-            "hours_spent": log.hours_spent,
+            "hours_spent": effective_hours(db, log),
         })
 
     result = []

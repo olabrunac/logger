@@ -151,7 +151,15 @@ const BadgesSection = ({ userId }: BadgesSectionProps) => {
   const [data, setData] = useState<BadgeResponse | null>(null);
 
   useEffect(() => {
-    getUserBadges(userId).then((r: { data: BadgeResponse }) => setData(r.data)).catch(() => {});
+    if (!userId || userId <= 0) {
+      setData(null);
+      return;
+    }
+    let cancelled = false;
+    getUserBadges(userId).then((r: { data: BadgeResponse }) => {
+      if (!cancelled) setData(r.data);
+    }).catch(() => {});
+    return () => { cancelled = true; };
   }, [userId, location.pathname]);
 
   if (!data) return null;

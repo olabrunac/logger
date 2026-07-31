@@ -136,11 +136,12 @@ def _count_favorites(db: Session, user_id: int) -> int:
 
 def _count_total_hours(db: Session, user_id: int) -> float:
     from app.models.media import LogEntry, LogStatus
-    return (
-        db.query(func.coalesce(func.sum(LogEntry.hours_spent), 0))
-        .filter(LogEntry.user_id == user_id, LogEntry.status.notin_([LogStatus.WISHLIST, LogStatus.SOON]))
-        .scalar()
-    ) or 0
+    from app.services.hours_service import effective_hours
+    logs = db.query(LogEntry).filter(
+        LogEntry.user_id == user_id,
+        LogEntry.status.notin_([LogStatus.WISHLIST, LogStatus.SOON]),
+    ).all()
+    return round(sum(effective_hours(db, log) or 0 for log in logs), 1)
 
 
 def check_and_unlock(db: Session, user_id: int) -> List[dict]:

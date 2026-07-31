@@ -43,10 +43,10 @@
 3. **Publicação (#10)**: Publicar o site, avaliar ferramentas de hosting do GitHub Students
 4. **Testar importação TV Time (#17)**: Testar a importação de dados do TV Time (ZIP do GDPR) com dados reais
 5. **Testar importação Steam (#18)**: Testar a importação de dados da Steam com ID de usuário real
-6. **Auto-somar runtime nas estatísticas (#21)**: Importar `runtime` de filmes e `episode_run_time` de episódios da TMDB, somar automaticamente nas horas totais do usuário (em vez de depender de `hours_spent` manual)
-7. **Badges 404 para user inexistente**: O endpoint `/badges/user/{id}` retorna 404 genérico quando user não existe. O frontend deve tratar ou evitar requisição com ID inválido.
-8. **CDN da Steam mudou**: Steam migrou de `cdn.akamai.steamstatic.com` para `shared.akamai.steamstatic.com/store_item_assets/`. `library_600x900.jpg` ainda funciona no CDN antigo, mas monitorar se quebrará.
-9. **Import otimizado**: O HEAD request por jogo no import da Steam adiciona ~1s por app (276 jogos ≈ 5min). Considerar batch ou paralelizar no futuro.
+6. **CDN da Steam mudou**: Steam migrou de `cdn.akamai.steamstatic.com` para `shared.akamai.steamstatic.com/store_item_assets/`. `library_600x900.jpg` ainda funciona no CDN antigo, mas monitorar se quebrará.
+7. **Import otimizado**: O HEAD request por jogo no import da Steam adiciona ~1s por app (276 jogos ≈ 5min). Considerar batch ou paralelizar no futuro.
 
 ## ✅ Implementado
 - **Filtrar mídias sem match na API (#20)**: Importadores (Letterboxd, Trakt, TV Time) pulam itens sem `tmdb_id` **ou sem capa** (`reason: no_cover`). Steam pula jogos sem capa válida (`library_600x900.jpg`).
+- **Auto-somar runtime nas estatísticas (#21)**: Helper `effective_hours` (`backend/app/services/hours_service.py`) calcula horas automaticamente quando `hours_spent` manual é nulo — filmes = `runtime/60`, séries = `runtime/60 × episódios assistidos`. Aplicado em `GET /media/logs`, `/media/logs/{id}`, `/media/logs/by-item`, `/media/stats`, timeline e na contagem dos badges `hours_332`/`hours_666`. Valor manual continua tendo precedência.
+- **Badges 404 para user inexistente**: `BadgesSection` não dispara requisição com id inválido (`≤0`/undefined) e cancela fetch ao trocar de usuário; `App.tsx` valida o usuário do localStorage no mount via `/login/by-username`, corrigindo id stale (ex: migração 3→2) ou limpando a sessão quando o usuário não existe mais (404).
