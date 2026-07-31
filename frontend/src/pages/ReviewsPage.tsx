@@ -6,6 +6,7 @@ import { Heart } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { TYPE_META } from '../constants/designSystem';
+import { getLogUrl } from '../utils';
 
 interface ReviewsPageProps {
   currentUser: User;
@@ -122,7 +123,7 @@ const ReviewsPage = ({ currentUser }: ReviewsPageProps) => {
               {items.map(e => {
                 const meta = TYPE_META[e.log.media_item.media_type];
                 return (
-                  <Link key={e.review.id} to={`/log/${e.log.id}`}
+                  <Link key={e.review.id} to={getLogUrl(e.log.media_item)}
                     className="mdf-card mdf-card-hover flex items-stretch gap-4 p-3 transition-colors">
                     <div className="w-[72px] -my-3 -ml-3 flex-shrink-0 overflow-hidden bg-white/5" style={{borderBottom: '3px solid ' + (meta?.color || '#666')}}>
                       {e.log.media_item.cover_image_url ? (

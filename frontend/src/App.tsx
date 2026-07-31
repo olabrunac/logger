@@ -213,7 +213,7 @@ function AppInner() {
               }
             />
             <Route
-              path="/log/:id"
+              path="/log/:mediaType/:apiId"
               element={
                 user ? <LogDetailPage /> : <Navigate to="/login" />
               }

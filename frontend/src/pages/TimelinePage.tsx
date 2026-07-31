@@ -4,7 +4,7 @@ import api, { uploadFile } from '../services/api';
 import type { User } from '../types';
 import { getStars, TYPE_META, STATUS_COLORS, STATUS_ICONS } from '../constants/designSystem';
 import { Send, Image as ImageIcon, X, MessageCircle, Trash2, Clock, Heart, ThumbsUp } from 'lucide-react';
-import { imageUrl } from '../utils';
+import { imageUrl, getLogUrl } from '../utils';
 
 interface TimelinePageProps {
   user: User;
@@ -304,7 +304,7 @@ const LogCard = ({ entry }: { entry: TimelineEntry }) => {
     : null;
 
   return (
-    <Link to={`/log/${entry.id}`} className="mdf-card mdf-card-hover rounded-xl p-4 flex gap-4 transition-colors block group">
+    <Link to={getLogUrl(entry.media_item)} className="mdf-card mdf-card-hover rounded-xl p-4 flex gap-4 transition-colors block group">
       <div className="flex-shrink-0">
         <div className="w-10 h-10 rounded-full overflow-hidden border-2" style={{ borderColor: 'var(--accent)' }}>
           {avatarUrl ? (
@@ -416,7 +416,7 @@ const LogGroupCard = ({ entry }: { entry: TimelineEntry }) => {
             {entry.group_items.map((item) => {
               const itemStatusLabel = item.status ? statusLabels[entry.media_item!.media_type]?.[item.status] : null;
               return (
-                <Link key={item.id} to={`/log/${item.id}`} className="group/log-item flex items-center gap-2 bg-white/[0.03] hover:bg-white/[0.06] rounded-lg px-3 py-2 transition-colors border" style={{ borderColor: 'var(--border)' }}>
+                <Link key={item.id} to={getLogUrl(entry.media_item!)} className="group/log-item flex items-center gap-2 bg-white/[0.03] hover:bg-white/[0.06] rounded-lg px-3 py-2 transition-colors border" style={{ borderColor: 'var(--border)' }}>
                   {item.cover_image_url ? (
                     <div className="w-8 h-11 rounded overflow-hidden flex-shrink-0">
                       <img src={imageUrl(item.cover_image_url) || ''} alt="" className="w-full h-full object-cover" />

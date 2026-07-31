@@ -5,6 +5,7 @@ import type { LogEntry, MediaType } from '../types';
 import { ChevronLeft, ChevronRight, Gamepad2, Film, Tv, Book } from 'lucide-react';
 import { startOfMonth, addMonths, subMonths, isSameMonth, isSameDay, format, startOfWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { getLogUrl } from '../utils';
 
 interface CalendarPageProps {
   user: { id: number; username: string };
@@ -135,7 +136,7 @@ const CalendarPage = ({ user }: CalendarPageProps) => {
                 const typeColor = TYPE_COLORS[it.media_item.media_type] || '#666';
                 return (
                   <li key={it.id}>
-                    <Link to={`/log/${it.id}`} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors">
+                    <Link to={getLogUrl(it.media_item)} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors">
                       {it.media_item.cover_image_url ? (
                         <img src={it.media_item.cover_image_url} alt="" className="w-10 h-14 rounded object-cover flex-shrink-0" />
                       ) : (

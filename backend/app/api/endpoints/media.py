@@ -350,6 +350,37 @@ def read_logs(*, db: Session = Depends(deps.get_db), user_id: int, skip: int = 0
         results.append(schemas.LogEntryWithStats(**log_dict))
     return results
 
+@router.get("/logs/by-item", response_model=schemas.LogEntryWithStats)
+def read_log_by_item(*, db: Session = Depends(deps.get_db), user_id: int, media_type: str, api_id: str) -> Any:
+    from sqlalchemy import or_
+    try:
+        mt = MediaType(media_type)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid media type")
+    api_num = int(api_id) if api_id.isdigit() else None
+    conditions = [MediaItem.google_books_id == api_id]
+    if api_num is not None:
+        conditions += [MediaItem.tmdb_id == api_num, MediaItem.igdb_id == api_num, MediaItem.steam_appid == api_num]
+    media_item = db.query(MediaItem).filter(MediaItem.media_type == mt, or_(*conditions)).first()
+    if not media_item:
+        raise HTTPException(status_code=404, detail="Media item not found")
+    log = db.query(LogEntry).filter(LogEntry.user_id == user_id, LogEntry.media_item_id == media_item.id).first()
+    if not log:
+        raise HTTPException(status_code=404, detail="Log not found")
+    stats = {"watched_episodes": None, "total_episodes": None, "unlocked_achievements": None, "total_achievements": None}
+    if log.media_item.media_type == MediaType.SERIES:
+        watched = db.query(EpisodeWatched).filter(EpisodeWatched.log_id == log.id, EpisodeWatched.watched == True).count()
+        stats["watched_episodes"] = watched
+        stats["total_episodes"] = log.media_item.total_episodes
+    elif log.media_item.media_type == MediaType.GAME:
+        unlocked = db.query(Achievement).filter(Achievement.log_id == log.id, Achievement.unlocked == True).count()
+        total = db.query(Achievement).filter(Achievement.log_id == log.id).count()
+        stats["unlocked_achievements"] = unlocked
+        stats["total_achievements"] = total
+    log_dict = schemas.LogEntryInDB.model_validate(log).model_dump()
+    log_dict.update(stats)
+    return schemas.LogEntryWithStats(**log_dict)
+
 @router.get("/logs/{log_id}", response_model=schemas.LogEntryWithStats)
 def read_log(*, db: Session = Depends(deps.get_db), log_id: int) -> Any:
     log = crud.log_entry.get(db, id=log_id)

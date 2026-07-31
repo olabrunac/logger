@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import type { MediaItem } from '../types/media';
+import { getLogUrl } from '../utils';
 import type { User } from '../types';
 import SearchMedia from './SearchMedia';
 import LogForm from './LogForm';
@@ -41,7 +42,7 @@ const FloatingLogButton = ({ user }: FloatingLogButtonProps) => {
       const { data } = await api.post('/media/logs', payload);
       handleClose();
       if (data?.id) {
-        navigate(`/log/${data.id}`);
+        navigate(getLogUrl(data.media_item));
       }
     } catch (error) {
       console.error('Failed to submit log', error);

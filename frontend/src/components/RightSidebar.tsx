@@ -3,6 +3,7 @@ import { useLocation, Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import api from '../services/api';
 import StatsSection from './sections/StatsSection';
+import { getLogUrl } from '../utils';
 import RatingDistribution from './sections/RatingDistribution';
 import GenreChart from './sections/GenreChart';
 import ActivityGraph from './sections/ActivityGraph';
@@ -130,7 +131,7 @@ const RightSidebar = ({ user, isCollapsed, onToggleCollapse }: RightSidebarProps
                 .sort((a, b) => b.id - a.id)
                 .slice(0, 5)
                 .map(log => (
-                  <Link key={log.id} to={`/log/${log.id}`} className="w-[48px] h-[66px] rounded-md overflow-hidden flex-shrink-0 relative group border" style={{ borderColor: 'var(--border)', borderBottom: '3px solid ' + (MEDIA_COLORS[log.media_item.media_type] || '#666') }} title={log.media_item.title}>
+                  <Link key={log.id} to={getLogUrl(log.media_item)} className="w-[48px] h-[66px] rounded-md overflow-hidden flex-shrink-0 relative group border" style={{ borderColor: 'var(--border)', borderBottom: '3px solid ' + (MEDIA_COLORS[log.media_item.media_type] || '#666') }} title={log.media_item.title}>
                     {log.media_item.cover_image_url ? (
                       <img src={log.media_item.cover_image_url} alt={log.media_item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                     ) : (

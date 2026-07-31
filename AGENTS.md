@@ -26,6 +26,7 @@
 - **Timeline messages**: Mapeamento `statusLabels` por tipo de mídia em `TimelinePage.tsx` (ex: "assistiu", "jogou", "leu", "está assistindo").
 - **Badges**: Evolutivas por grupo (1 badge por categoria, tiers substituem anteriores). Descrição no tooltip mostra progresso p/ próximo nível. Ordenadas por raridade decrescente (cósmico primeiro).
 - **Importadores**: Letterboxd (ZIP/CSV), Steam (API), Trakt (JSON/CSV), TV Time (ZIP GDPR). Badge check roda ao final de cada import.
+- **Steam covers**: Usar `library_600x900.jpg` (2:3 retrato). Importação verifica HEAD request antes; pula jogos sem capa válida (DLCs, betas, jogos sem capsule art).
 - **Review snapshots**: PUT `/logs/{log_id}` cria `LogReview` só quando review/rating/platform mudam.
 
 ## ⚙️ Convenções
@@ -44,3 +45,6 @@
 5. **Testar importação Steam (#18)**: Testar a importação de dados da Steam com ID de usuário real
 6. **Filtrar mídias sem match na API (#20)**: Ao importar, pular mídias cujo título não encontre correspondência na API (TMDB/Steam/Google Books), evitando itens sem capa, descrição ou metadados
 7. **Auto-somar runtime nas estatísticas (#21)**: Importar `runtime` de filmes e `episode_run_time` de episódios da TMDB, somar automaticamente nas horas totais do usuário (em vez de depender de `hours_spent` manual)
+8. **Badges 404 para user inexistente**: O endpoint `/badges/user/{id}` retorna 404 genérico quando user não existe. O frontend deve tratar ou evitar requisição com ID inválido.
+9. **CDN da Steam mudou**: Steam migrou de `cdn.akamai.steamstatic.com` para `shared.akamai.steamstatic.com/store_item_assets/`. `library_600x900.jpg` ainda funciona no CDN antigo, mas monitorar se quebrará.
+10. **Import otimizado**: O HEAD request por jogo no import da Steam adiciona ~1s por app (276 jogos ≈ 5min). Considerar batch ou paralelizar no futuro.
