@@ -372,6 +372,7 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
                     style={{
                       background: 'var(--bg-elevated)',
                       border: '1px solid var(--border)',
+                      borderBottom: `5px solid ${meta.color}`,
                       aspectRatio: '3/4',
                       outlineColor: isGoat && !editingTop5 ? '#F59E0B' : 'transparent',
                       outlineOffset: 0,
@@ -381,11 +382,6 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-white/20 text-xs" style={{background: meta.color + '11'}}>{meta.emoji}</div>
                     )}
-                    <div className="absolute left-1.5 top-1.5">
-                      <div className="h-5 w-5 rounded-full flex items-center justify-center text-[8px] font-bold shadow-lg" style={{ background: meta.color }}>
-                        {meta.emoji}
-                      </div>
-                    </div>
                     <div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-black/80 to-transparent" />
                     <div className="absolute inset-x-0 bottom-0 flex flex-wrap gap-1.5 p-2.5">
                       <div className="flex h-5 items-center gap-0.5 rounded bg-black/50 px-1.5 text-[10px] font-bold text-white/80 tabular-nums backdrop-blur-sm">
@@ -409,7 +405,7 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
                     <Trash2 size={12} />
                   </button>
                 )}
-                <div className="group relative flex flex-col overflow-hidden rounded-lg transition-opacity hover:opacity-90 w-full" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', aspectRatio: '3/4' }}>
+                <div className="group relative flex flex-col overflow-hidden rounded-lg transition-opacity hover:opacity-90 w-full" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderBottom: `5px solid ${meta.color}`, aspectRatio: '3/4' }}>
                   {media?.cover_image_url ? (
                     <img src={media.cover_image_url} alt={media.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
                   ) : (
@@ -485,13 +481,13 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
           <div className="mdf-card p-6 text-center text-white/30 text-sm">{emptyMsg}</div>
         ) : (
           <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
-            {(expanded ? sectionLogs : sectionLogs.slice(0, 12)).map(log => (
+            {(expanded ? sectionLogs : sectionLogs.slice(0, 10)).map(log => (
               <YgpCard key={log.id} log={log} accentColor={accentColor} />
             ))}
-            {sectionLogs.length > 12 && (
+            {sectionLogs.length > 10 && (
               <button onClick={() => toggleExpand(statusId)} className="flex flex-col items-center justify-center gap-1 rounded-lg transition-colors hover:bg-white/[0.02]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', aspectRatio: '3/4' }}>
                 <span className="text-lg font-bold text-white/40">{expanded ? '−' : '+'}</span>
-                <span className="text-[10px] text-white/30">{expanded ? 'Ver menos' : `${sectionLogs.length - 12} mais`}</span>
+                <span className="text-[10px] text-white/30">{expanded ? 'Ver menos' : `${sectionLogs.length - 10} mais`}</span>
               </button>
             )}
           </div>
@@ -507,13 +503,13 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
         <div className="mdf-card p-6 text-center text-white/30 text-sm">Nenhuma mídia registrada.</div>
       ) : (
         <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
-          {(showExpanded.recent ? filteredLogs : filteredLogs.slice(0, 12)).map(log => (
+          {(showExpanded.recent ? filteredLogs : filteredLogs.slice(0, 10)).map(log => (
             <YgpCard key={log.id} log={log} accentColor={accentColor} />
           ))}
-          {filteredLogs.length > 12 && (
+          {filteredLogs.length > 10 && (
             <button onClick={() => toggleExpand('recent')} className="flex flex-col items-center justify-center gap-1 rounded-lg transition-colors hover:bg-white/[0.02]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', aspectRatio: '3/4' }}>
               <span className="text-lg font-bold text-white/40">{showExpanded.recent ? '−' : '+'}</span>
-              <span className="text-[10px] text-white/30">{showExpanded.recent ? 'Recolher' : `${filteredLogs.length - 12} mais`}</span>
+              <span className="text-[10px] text-white/30">{showExpanded.recent ? 'Recolher' : `${filteredLogs.length - 10} mais`}</span>
             </button>
           )}
         </div>
@@ -539,9 +535,9 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
             return (
               <Link key={e.review.id} to={getLogUrl(e.log.media_item)} className="flex w-[260px] shrink-0 gap-3 rounded-2xl p-3 transition-colors hover:bg-white/5" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
                 {e.log.media_item.cover_image_url ? (
-                  <img src={e.log.media_item.cover_image_url} alt="" className="h-24 w-16 shrink-0 rounded-lg object-cover" style={{ border: '1px solid var(--border)' }} loading="lazy" />
+                  <img src={e.log.media_item.cover_image_url} alt="" className="h-24 w-16 shrink-0 rounded-lg object-cover" style={{ border: '1px solid var(--border)', borderBottom: '5px solid ' + (m?.color || '#666') }} loading="lazy" />
                 ) : (
-                  <div className="h-24 w-16 shrink-0 rounded-lg flex items-center justify-center" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                  <div className="h-24 w-16 shrink-0 rounded-lg flex items-center justify-center" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderBottom: '5px solid ' + (m?.color || '#666') }}>
                     <span className="text-sm">{m?.emoji || '📄'}</span>
                   </div>
                 )}
@@ -567,9 +563,9 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
             return (
               <Link key={e.review.id} to={getLogUrl(e.log.media_item)} className="flex gap-4 rounded-2xl p-4 transition-colors hover:bg-white/[0.02]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
                 {e.log.media_item.cover_image_url ? (
-                  <img src={e.log.media_item.cover_image_url} alt="" className="h-28 w-[72px] shrink-0 rounded-lg object-cover" style={{ border: '1px solid var(--border)' }} loading="lazy" />
+                  <img src={e.log.media_item.cover_image_url} alt="" className="h-28 w-[72px] shrink-0 rounded-lg object-cover" style={{ border: '1px solid var(--border)', borderBottom: '5px solid ' + (m?.color || '#666') }} loading="lazy" />
                 ) : (
-                  <div className="h-28 w-[72px] shrink-0 rounded-lg flex items-center justify-center" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                  <div className="h-28 w-[72px] shrink-0 rounded-lg flex items-center justify-center" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderBottom: '5px solid ' + (m?.color || '#666') }}>
                     <span className="text-lg">{m?.emoji || '📄'}</span>
                   </div>
                 )}
@@ -614,13 +610,13 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
         <div className="mdf-card p-6 text-center text-white/30 text-sm">Nenhuma mídia registrada.</div>
       ) : (
         <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
-          {(showExpanded.all ? filteredLogs : filteredLogs.slice(0, 12)).map(log => (
+          {(showExpanded.all ? filteredLogs : filteredLogs.slice(0, 10)).map(log => (
             <YgpCard key={log.id} log={log} accentColor={accentColor} />
           ))}
-          {filteredLogs.length > 12 && (
+          {filteredLogs.length > 10 && (
             <button onClick={() => toggleExpand('all')} className="flex flex-col items-center justify-center gap-1 rounded-lg transition-colors hover:bg-white/[0.02]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', aspectRatio: '3/4' }}>
               <span className="text-lg font-bold text-white/40">{showExpanded.all ? '−' : '+'}</span>
-              <span className="text-[10px] text-white/30">{showExpanded.all ? 'Recolher' : `${filteredLogs.length - 12} mais`}</span>
+              <span className="text-[10px] text-white/30">{showExpanded.all ? 'Recolher' : `${filteredLogs.length - 10} mais`}</span>
             </button>
           )}
         </div>
@@ -651,7 +647,7 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
                 <p className="text-sm text-white/40 line-clamp-2 mb-3">{list.description}</p>
               )}
               <div className="flex gap-1.5 overflow-hidden">
-                {list.items.slice(0, 8).map(item => (
+                {list.items.slice(0, 6).map(item => (
                   <div key={item.id} className="w-12 h-18 rounded-md overflow-hidden flex-shrink-0" style={{aspectRatio: '2/3'}}>
                     {item.media_item?.cover_image_url ? (
                       <img src={item.media_item.cover_image_url} alt="" className="w-full h-full object-cover" loading="lazy"/>
@@ -662,9 +658,9 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
                     )}
                   </div>
                 ))}
-                {list.items.length > 8 && (
+                {list.items.length > 6 && (
                   <div className="w-12 h-18 rounded-md flex items-center justify-center flex-shrink-0 text-xs text-white/40" style={{background: 'var(--bg-elevated)', aspectRatio: '2/3'}}>
-                    +{list.items.length - 8}
+                    +{list.items.length - 6}
                   </div>
                 )}
               </div>

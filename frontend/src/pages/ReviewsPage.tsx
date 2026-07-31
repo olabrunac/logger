@@ -125,7 +125,7 @@ const ReviewsPage = ({ currentUser }: ReviewsPageProps) => {
                 return (
                   <Link key={e.review.id} to={getLogUrl(e.log.media_item)}
                     className="mdf-card mdf-card-hover flex items-stretch gap-4 p-3 transition-colors">
-                    <div className="w-[72px] -my-3 -ml-3 flex-shrink-0 overflow-hidden bg-white/5" style={{borderBottom: '3px solid ' + (meta?.color || '#666')}}>
+                    <div className="w-[72px] -my-3 -ml-3 flex-shrink-0 overflow-hidden bg-white/5" style={{borderBottom: '5px solid ' + (meta?.color || '#666')}}>
                       {e.log.media_item.cover_image_url ? (
                         <img src={e.log.media_item.cover_image_url} alt="" className="w-full h-full object-cover" />
                       ) : (

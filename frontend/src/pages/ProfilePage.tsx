@@ -206,7 +206,7 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
         <div className="mdf-card p-8 text-center text-white/50">Nenhum log ainda.</div>
       ) : (
         <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
-          {recentLogs.slice(0, 12).map(log => (
+          {recentLogs.slice(0, 11).map(log => (
             <YgpCard key={log.id} log={log} accentColor={accentColor} />
           ))}
         </div>
@@ -255,6 +255,7 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
                     style={{
                       background: 'var(--bg-elevated)',
                       border: '1px solid var(--border)',
+                      borderBottom: `5px solid ${meta?.color || '#666'}`,
                       aspectRatio: '3/4',
                       outlineColor: isGoat ? '#F59E0B' : 'transparent',
                       outlineOffset: 0,
@@ -267,11 +268,6 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
                         <div className="text-xs text-white/70 font-medium line-clamp-3 mt-2">{media?.title || type}</div>
                       </div>
                     )}
-                    <div className="absolute left-1.5 top-1.5">
-                      <div className="h-5 w-5 rounded-full flex items-center justify-center text-[8px] font-bold shadow-lg" style={{ background: meta?.color || '#666' }}>
-                        {meta?.emoji || '?'}
-                      </div>
-                    </div>
                     <div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-black/80 to-transparent" />
                     <div className="absolute inset-x-0 bottom-0 flex flex-wrap gap-1.5 p-2.5">
                       <div className="flex h-5 items-center gap-0.5 rounded bg-black/50 px-1.5 text-[10px] font-bold text-white/80 tabular-nums backdrop-blur-sm">
@@ -290,7 +286,7 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
             const media = top.media_item;
             const meta = TYPE_META[type];
             return (
-              <Link key={type} to={media ? getLogUrl(media) : '#'} className="group relative flex flex-col overflow-hidden rounded-lg transition-opacity hover:opacity-90" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', aspectRatio: '3/4' }}>
+              <Link key={type} to={media ? getLogUrl(media) : '#'} className="group relative flex flex-col overflow-hidden rounded-lg transition-opacity hover:opacity-90" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderBottom: `5px solid ${meta?.color || '#666'}`, aspectRatio: '3/4' }}>
                 {media?.cover_image_url ? (
                   <img src={media.cover_image_url} alt={media.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
                 ) : (
@@ -299,11 +295,6 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
                     <div className="text-xs text-white/70 font-medium line-clamp-3 mt-2">{media?.title || type}</div>
                   </div>
                 )}
-                <div className="absolute left-1.5 top-1.5">
-                  <div className="h-5 w-5 rounded-full flex items-center justify-center text-[8px] font-bold shadow-lg" style={{ background: meta?.color || '#666' }}>
-                    {meta?.emoji || '?'}
-                  </div>
-                </div>
                 <div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-black/80 to-transparent" />
                 <div className="absolute inset-x-0 bottom-0 flex flex-wrap gap-1.5 p-2.5">
                   <div className="flex h-5 items-center gap-0.5 rounded bg-black/50 px-1.5 text-[10px] font-bold text-white/80 tabular-nums backdrop-blur-sm">
@@ -336,9 +327,9 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
             return (
               <Link key={e.review.id} to={getLogUrl(e.log.media_item)} className="flex w-[260px] shrink-0 gap-3 rounded-2xl p-3 transition-colors hover:bg-white/5" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
                 {e.log.media_item.cover_image_url ? (
-                  <img src={e.log.media_item.cover_image_url} alt="" className="h-24 w-16 shrink-0 rounded-lg object-cover" style={{ border: '1px solid var(--border)' }} loading="lazy" />
+                  <img src={e.log.media_item.cover_image_url} alt="" className="h-24 w-16 shrink-0 rounded-lg object-cover" style={{ border: '1px solid var(--border)', borderBottom: '5px solid ' + (meta?.color || '#666') }} loading="lazy" />
                 ) : (
-                  <div className="h-24 w-16 shrink-0 rounded-lg flex items-center justify-center" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                  <div className="h-24 w-16 shrink-0 rounded-lg flex items-center justify-center" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderBottom: '5px solid ' + (meta?.color || '#666') }}>
                     <span className="text-sm">{meta?.emoji || '📄'}</span>
                   </div>
                 )}
@@ -364,9 +355,9 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
             return (
               <Link key={e.review.id} to={getLogUrl(e.log.media_item)} className="flex gap-4 rounded-2xl p-4 transition-colors hover:bg-white/[0.02]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
                 {e.log.media_item.cover_image_url ? (
-                  <img src={e.log.media_item.cover_image_url} alt="" className="h-28 w-[72px] shrink-0 rounded-lg object-cover" style={{ border: '1px solid var(--border)' }} loading="lazy" />
+                  <img src={e.log.media_item.cover_image_url} alt="" className="h-28 w-[72px] shrink-0 rounded-lg object-cover" style={{ border: '1px solid var(--border)', borderBottom: '5px solid ' + (meta?.color || '#666') }} loading="lazy" />
                 ) : (
-                  <div className="h-28 w-[72px] shrink-0 rounded-lg flex items-center justify-center" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                  <div className="h-28 w-[72px] shrink-0 rounded-lg flex items-center justify-center" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderBottom: '5px solid ' + (meta?.color || '#666') }}>
                     <span className="text-lg">{meta?.emoji || '📄'}</span>
                   </div>
                 )}
@@ -498,9 +489,9 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
               return (
                 <Link key={e.review.id} to={getLogUrl(e.log.media_item)} className="flex gap-4 rounded-2xl p-4 transition-colors hover:bg-white/[0.02]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
                   {e.log.media_item.cover_image_url ? (
-                    <img src={e.log.media_item.cover_image_url} alt="" className="h-28 w-[72px] shrink-0 rounded-lg object-cover" style={{ border: '1px solid var(--border)' }} loading="lazy" />
+                    <img src={e.log.media_item.cover_image_url} alt="" className="h-28 w-[72px] shrink-0 rounded-lg object-cover" style={{ border: '1px solid var(--border)', borderBottom: '5px solid ' + (meta?.color || '#666') }} loading="lazy" />
                   ) : (
-                    <div className="h-28 w-[72px] shrink-0 rounded-lg flex items-center justify-center" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                    <div className="h-28 w-[72px] shrink-0 rounded-lg flex items-center justify-center" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderBottom: '5px solid ' + (meta?.color || '#666') }}>
                       <span className="text-lg">{meta?.emoji || '📄'}</span>
                     </div>
                   )}
@@ -537,7 +528,7 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
                 </div>
                 {list.description && <p className="text-sm text-white/40 line-clamp-2 mb-3">{list.description}</p>}
                 <div className="flex gap-1.5 overflow-hidden">
-                  {list.items.slice(0, 8).map((item: any) => (
+                  {list.items.slice(0, 6).map((item: any) => (
                     <div key={item.id} className="w-12 rounded-md overflow-hidden flex-shrink-0" style={{aspectRatio: '2/3'}}>
                       {item.media_item?.cover_image_url ? (
                         <img src={item.media_item.cover_image_url} alt="" className="w-full h-full object-cover" loading="lazy"/>
@@ -548,6 +539,11 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
                       )}
                     </div>
                   ))}
+                  {list.items.length > 6 && (
+                    <div className="w-12 rounded-md flex items-center justify-center flex-shrink-0 text-xs text-white/40" style={{background: 'var(--bg-elevated)', aspectRatio: '2/3'}}>
+                      +{list.items.length - 6}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
