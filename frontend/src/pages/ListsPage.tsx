@@ -310,7 +310,7 @@ const ListsPage = ({ user }: ListsPageProps) => {
                 {visibleItems.map(l => {
               const typeEmoji = TYPE_META[l.media_item.media_type]?.emoji || '📄';
               return (
-                <Link key={l.id} to={getLogUrl(l.media_item)} className="poster-tile block group" style={{borderBottom: '5px solid ' + (TYPE_META[l.media_item.media_type]?.color || '#666')}}>
+                <Link key={l.id} to={getLogUrl(l.media_item)} className="poster-tile block group" style={{borderBottom: '3px solid ' + (TYPE_META[l.media_item.media_type]?.color || '#666')}}>
                   {l.media_item.cover_image_url ? (
                     <img src={l.media_item.cover_image_url} alt={l.media_item.title} className="w-full h-full object-cover" loading="lazy" />
                   ) : (
@@ -412,7 +412,7 @@ const ListsPage = ({ user }: ListsPageProps) => {
                 {visibleWishlist.map(l => {
                   const typeEmoji = TYPE_META[l.media_item.media_type]?.emoji || '📄';
                   return (
-                    <Link key={l.id} to={getLogUrl(l.media_item)} className="poster-tile block group relative" style={{borderBottom: '5px solid ' + (TYPE_META[l.media_item.media_type]?.color || '#666')}}>
+                    <Link key={l.id} to={getLogUrl(l.media_item)} className="poster-tile block group relative" style={{borderBottom: '3px solid ' + (TYPE_META[l.media_item.media_type]?.color || '#666')}}>
                       {l.media_item.cover_image_url ? (
                         <img src={l.media_item.cover_image_url} alt={l.media_item.title} className="w-full h-full object-cover" loading="lazy" />
                       ) : (
@@ -522,7 +522,7 @@ const ListsPage = ({ user }: ListsPageProps) => {
                           const mi = item.media_item;
                           const typeEmoji = TYPE_META[mi.media_type]?.emoji || '📄';
                           return (
-                            <Link key={item.id} to={getLogUrl(mi)} className="poster-tile block group relative" style={{borderBottom: '5px solid ' + (TYPE_META[mi.media_type]?.color || '#666')}}>
+                            <Link key={item.id} to={getLogUrl(mi)} className="poster-tile block group relative" style={{borderBottom: '3px solid ' + (TYPE_META[mi.media_type]?.color || '#666')}}>
                               {mi.cover_image_url ? (
                                 <img src={mi.cover_image_url} alt={mi.title} className="w-full h-full object-cover" loading="lazy" />
                               ) : (

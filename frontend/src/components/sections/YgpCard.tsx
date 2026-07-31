@@ -17,7 +17,7 @@ const YgpCard = ({ log, accentColor, showStatus = true }: YgpCardProps) => {
     <Link
       to={getLogUrl(log.media_item)}
       className="group relative flex flex-col overflow-hidden rounded-lg transition-opacity hover:opacity-90"
-      style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderBottom: `5px solid ${color}`, aspectRatio: '3/4' }}
+      style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderBottom: `3px solid ${color}`, aspectRatio: '3/4' }}
     >
       {log.media_item.cover_image_url ? (
         <img

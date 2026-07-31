@@ -255,7 +255,7 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
                     style={{
                       background: 'var(--bg-elevated)',
                       border: '1px solid var(--border)',
-                      borderBottom: `5px solid ${meta?.color || '#666'}`,
+                      borderBottom: `3px solid ${meta?.color || '#666'}`,
                       aspectRatio: '3/4',
                       outlineColor: isGoat ? '#F59E0B' : 'transparent',
                       outlineOffset: 0,
@@ -286,7 +286,7 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
             const media = top.media_item;
             const meta = TYPE_META[type];
             return (
-              <Link key={type} to={media ? getLogUrl(media) : '#'} className="group relative flex flex-col overflow-hidden rounded-lg transition-opacity hover:opacity-90" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderBottom: `5px solid ${meta?.color || '#666'}`, aspectRatio: '3/4' }}>
+              <Link key={type} to={media ? getLogUrl(media) : '#'} className="group relative flex flex-col overflow-hidden rounded-lg transition-opacity hover:opacity-90" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderBottom: `3px solid ${meta?.color || '#666'}`, aspectRatio: '3/4' }}>
                 {media?.cover_image_url ? (
                   <img src={media.cover_image_url} alt={media.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
                 ) : (
@@ -327,9 +327,9 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
             return (
               <Link key={e.review.id} to={getLogUrl(e.log.media_item)} className="flex w-[260px] shrink-0 gap-3 rounded-2xl p-3 transition-colors hover:bg-white/5" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
                 {e.log.media_item.cover_image_url ? (
-                  <img src={e.log.media_item.cover_image_url} alt="" className="h-24 w-16 shrink-0 rounded-lg object-cover" style={{ border: '1px solid var(--border)', borderBottom: '5px solid ' + (meta?.color || '#666') }} loading="lazy" />
+                  <img src={e.log.media_item.cover_image_url} alt="" className="h-24 w-16 shrink-0 rounded-lg object-cover" style={{ border: '1px solid var(--border)', borderBottom: '3px solid ' + (meta?.color || '#666') }} loading="lazy" />
                 ) : (
-                  <div className="h-24 w-16 shrink-0 rounded-lg flex items-center justify-center" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderBottom: '5px solid ' + (meta?.color || '#666') }}>
+                  <div className="h-24 w-16 shrink-0 rounded-lg flex items-center justify-center" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderBottom: '3px solid ' + (meta?.color || '#666') }}>
                     <span className="text-sm">{meta?.emoji || '📄'}</span>
                   </div>
                 )}
@@ -355,9 +355,9 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
             return (
               <Link key={e.review.id} to={getLogUrl(e.log.media_item)} className="flex gap-4 rounded-2xl p-4 transition-colors hover:bg-white/[0.02]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
                 {e.log.media_item.cover_image_url ? (
-                  <img src={e.log.media_item.cover_image_url} alt="" className="h-28 w-[72px] shrink-0 rounded-lg object-cover" style={{ border: '1px solid var(--border)', borderBottom: '5px solid ' + (meta?.color || '#666') }} loading="lazy" />
+                  <img src={e.log.media_item.cover_image_url} alt="" className="h-28 w-[72px] shrink-0 rounded-lg object-cover" style={{ border: '1px solid var(--border)', borderBottom: '3px solid ' + (meta?.color || '#666') }} loading="lazy" />
                 ) : (
-                  <div className="h-28 w-[72px] shrink-0 rounded-lg flex items-center justify-center" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderBottom: '5px solid ' + (meta?.color || '#666') }}>
+                  <div className="h-28 w-[72px] shrink-0 rounded-lg flex items-center justify-center" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderBottom: '3px solid ' + (meta?.color || '#666') }}>
                     <span className="text-lg">{meta?.emoji || '📄'}</span>
                   </div>
                 )}
@@ -489,9 +489,9 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
               return (
                 <Link key={e.review.id} to={getLogUrl(e.log.media_item)} className="flex gap-4 rounded-2xl p-4 transition-colors hover:bg-white/[0.02]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
                   {e.log.media_item.cover_image_url ? (
-                    <img src={e.log.media_item.cover_image_url} alt="" className="h-28 w-[72px] shrink-0 rounded-lg object-cover" style={{ border: '1px solid var(--border)', borderBottom: '5px solid ' + (meta?.color || '#666') }} loading="lazy" />
+                    <img src={e.log.media_item.cover_image_url} alt="" className="h-28 w-[72px] shrink-0 rounded-lg object-cover" style={{ border: '1px solid var(--border)', borderBottom: '3px solid ' + (meta?.color || '#666') }} loading="lazy" />
                   ) : (
-                    <div className="h-28 w-[72px] shrink-0 rounded-lg flex items-center justify-center" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderBottom: '5px solid ' + (meta?.color || '#666') }}>
+                    <div className="h-28 w-[72px] shrink-0 rounded-lg flex items-center justify-center" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderBottom: '3px solid ' + (meta?.color || '#666') }}>
                       <span className="text-lg">{meta?.emoji || '📄'}</span>
                     </div>
                   )}
