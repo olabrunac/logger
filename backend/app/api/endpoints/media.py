@@ -7,6 +7,7 @@ from app import crud, schemas
 from app.crud import crud_top_list, crud_custom_list
 from app.api import deps
 from app.services import tmdb_service, igdb_service, google_books_service, steam_service
+from app.services.hours_service import effective_hours
 from app.models.media import MediaType, MediaItem, LogStatus, LogEntry, LogReview, EpisodeWatched, Achievement, TopListItem
 import datetime
 
@@ -347,6 +348,7 @@ def read_logs(*, db: Session = Depends(deps.get_db), user_id: int, skip: int = 0
             stats["total_achievements"] = total
         log_dict = schemas.LogEntryInDB.model_validate(log).model_dump()
         log_dict.update(stats)
+        log_dict["hours_spent"] = effective_hours(db, log)
         results.append(schemas.LogEntryWithStats(**log_dict))
     return results
 
@@ -379,6 +381,7 @@ def read_log_by_item(*, db: Session = Depends(deps.get_db), user_id: int, media_
         stats["total_achievements"] = total
     log_dict = schemas.LogEntryInDB.model_validate(log).model_dump()
     log_dict.update(stats)
+    log_dict["hours_spent"] = effective_hours(db, log)
     return schemas.LogEntryWithStats(**log_dict)
 
 @router.get("/logs/{log_id}", response_model=schemas.LogEntryWithStats)
@@ -419,6 +422,7 @@ def read_log(*, db: Session = Depends(deps.get_db), log_id: int) -> Any:
         stats["total_achievements"] = total
     log_dict = schemas.LogEntryInDB.model_validate(log).model_dump()
     log_dict.update(stats)
+    log_dict["hours_spent"] = effective_hours(db, log)
     return schemas.LogEntryWithStats(**log_dict)
 
 @router.get("/logs/{log_id}/reviews", response_model=List[schemas.LogReviewInDB])
@@ -680,9 +684,10 @@ def get_user_stats(*, db: Session = Depends(deps.get_db), user_id: int) -> Any:
     total_logs = db.query(LogEntry).filter(LogEntry.user_id == user_id, LogEntry.status.notin_(non_log)).count()
     favorites = db.query(LogEntry).filter(LogEntry.user_id == user_id, LogEntry.is_favorite == True, LogEntry.status.notin_(non_log)).count()
     completed = db.query(LogEntry).filter(LogEntry.user_id == user_id, LogEntry.status == 'completed').count()
-    hours_total = db.query(func.coalesce(func.sum(LogEntry.hours_spent), 0)).filter(LogEntry.user_id == user_id, LogEntry.status.notin_(non_log)).scalar()
+    stats_logs = db.query(LogEntry).filter(LogEntry.user_id == user_id, LogEntry.status.notin_(non_log)).all()
+    hours_total = sum(effective_hours(db, log) or 0 for log in stats_logs)
     wishlist_count = db.query(LogEntry).filter(LogEntry.user_id == user_id, LogEntry.status.in_(non_log)).count()
-    return {"total_logs": total_logs, "favorites": favorites, "completed": completed, "hours_total": hours_total or 0, "wishlist": wishlist_count}
+    return {"total_logs": total_logs, "favorites": favorites, "completed": completed, "hours_total": round(hours_total, 1), "wishlist": wishlist_count}
 
 @router.get("/wishlist", response_model=List[schemas.LogEntryInDB])
 def get_wishlist(*, db: Session = Depends(deps.get_db), user_id: int, media_type: Optional[str] = None) -> Any:

@@ -4,6 +4,7 @@ from typing import Optional
 from app.crud.base import CRUDBase
 from app.models.media import MediaItem, LogEntry, MediaType, LogStatus
 from app.schemas.media import MediaItemCreate, MediaItemUpdate, LogEntryCreate, LogEntryUpdate
+from app.services.hours_service import effective_hours
 
 
 class CRUDMediaItem(CRUDBase[MediaItem, MediaItemCreate, MediaItemUpdate]):
@@ -94,14 +95,16 @@ class CRUDLogEntry(CRUDBase[LogEntry, LogEntryCreate, LogEntryUpdate]):
          .group_by(MediaItem.media_type)\
          .all()
         
-        # Total hours (excluding wishlist/soon)
-        total_hours = db.query(
-            MediaItem.media_type,
-            func.sum(LogEntry.hours_spent).label('total')
-        ).join(LogEntry, LogEntry.media_item_id == MediaItem.id)\
-         .filter(LogEntry.user_id == user_id, LogEntry.hours_spent.isnot(None), LogEntry.status.notin_(non_log_statuses))\
-         .group_by(MediaItem.media_type)\
-         .all()
+        # Total hours (excluding wishlist/soon) - auto-calc from runtime when manual hours are null
+        hours_logs = db.query(LogEntry).filter(
+            LogEntry.user_id == user_id,
+            LogEntry.status.notin_(non_log_statuses),
+        ).all()
+        hours_by_type: dict = {}
+        for log in hours_logs:
+            eff = effective_hours(db, log) or 0
+            mt = log.media_item.media_type.value
+            hours_by_type[mt] = hours_by_type.get(mt, 0) + eff
         
         # Build result dict
         result = {}
@@ -123,8 +126,8 @@ class CRUDLogEntry(CRUDBase[LogEntry, LogEntryCreate, LogEntryUpdate]):
         for media_type, count in completed:
             result[media_type.value]['completed'] = count
             
-        for media_type, total in total_hours:
-            result[media_type.value]['hours'] = total or 0
+        for media_type, total in hours_by_type.items():
+            result[media_type]['hours'] = round(total, 1)
         
         # Add grand totals
         result['total'] = sum(v['total'] for v in result.values())

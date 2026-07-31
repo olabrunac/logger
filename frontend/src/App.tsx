@@ -41,8 +41,25 @@ function AppInner() {
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+    if (!storedUser) return;
+    try {
+      const parsed = JSON.parse(storedUser);
+      setUser(parsed);
+      if (!parsed.username) return;
+      api.get('/login/by-username/' + encodeURIComponent(parsed.username))
+        .then((res) => {
+          localStorage.setItem('user', JSON.stringify(res.data));
+          setUser(res.data);
+        })
+        .catch((err) => {
+          if (err.response?.status === 404) {
+            localStorage.removeItem('user');
+            setUser(null);
+          }
+        });
+    } catch {
+      localStorage.removeItem('user');
+      setUser(null);
     }
   }, []);
 
