@@ -92,6 +92,11 @@ export const getLogsReviewsBatch = (logIds: number[]) => {
   return api.post('/media/logs/reviews-batch', logIds);
 };
 
+// Global Search API
+export const globalSearch = (query: string) => {
+  return api.get('/search', { params: { q: query } });
+};
+
 // Notifications API
 export const getNotifications = (userId: number, limit = 50, offset = 0) => {
   return api.get(`/notifications/${userId}`, { params: { limit, offset } });

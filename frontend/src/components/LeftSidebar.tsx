@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { getUnreadCount } from '../services/api';
 import type { User as UserType } from '../types';
 import { imageUrl } from '../utils';
+import GlobalSearchModal from './GlobalSearchModal';
 
 interface LeftSidebarProps {
   user: UserType | null;
@@ -121,6 +122,11 @@ const LeftSidebar = ({ user, onLogout, refreshUnreadTrigger }: LeftSidebarProps)
         <span className="text-white/20 mx-1">·</span>
         <span className="font-bold" style={{ color: 'var(--accent)' }}>{followersCount}</span>
         <span className="text-white/40">Seguidores</span>
+      </div>
+
+      {/* Search */}
+      <div className="px-3 pt-2.5 flex-shrink-0">
+        <GlobalSearchModal />
       </div>
 
       {/* Nav */}
