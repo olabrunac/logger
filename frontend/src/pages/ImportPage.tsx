@@ -1,5 +1,4 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { useBlocker } from 'react-router-dom';
 import type { User } from '../types';
 import {
   letterboxdPreview,
@@ -42,19 +41,43 @@ interface ImportResult {
 }
 
 const usePrompt = (message: string | null) => {
-  const blocker = useBlocker(
-    useCallback(() => !!message, [message]),
-  );
+  const messageRef = useRef(message);
+  messageRef.current = message;
 
   useEffect(() => {
-    if (blocker.state === 'blocked' && message) {
-      if (window.confirm(message)) {
-        blocker.proceed();
-      } else {
-        blocker.reset();
+    if (!message) return;
+
+    // Block browser back/forward navigation (popstate) while active
+    const onPopState = () => {
+      if (!messageRef.current) return;
+      if (window.confirm(messageRef.current)) {
+        return;
       }
-    }
-  }, [blocker, message]);
+      window.history.pushState(null, '');
+    };
+    window.history.pushState(null, '');
+    window.addEventListener('popstate', onPopState);
+
+    // Block in-app link clicks while active
+    const onClick = (e: MouseEvent) => {
+      if (!messageRef.current) return;
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const target = (e.target as HTMLElement).closest('a');
+      if (!target || !target.href) return;
+      if (target.hasAttribute('download') || target.target === '_blank') return;
+      const sameOrigin = target.origin === window.location.origin;
+      if (!sameOrigin) return;
+      if (!window.confirm(messageRef.current)) {
+        e.preventDefault();
+      }
+    };
+    document.addEventListener('click', onClick);
+
+    return () => {
+      window.removeEventListener('popstate', onPopState);
+      document.removeEventListener('click', onClick);
+    };
+  }, [message]);
 };
 
 const ImportPage = ({ user }: ImportPageProps) => {
