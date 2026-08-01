@@ -251,30 +251,21 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
                       </svg>
                     </div>
                   )}
-                  <Link to={media ? getLogUrl(media) : '#'} className={`group relative flex flex-col overflow-hidden rounded-lg transition-opacity hover:opacity-90 ${isGoat ? 'outline outline-2' : ''}`}
-                    style={{
-                      background: 'var(--bg-elevated)',
-                      border: '1px solid var(--border)',
-                      borderBottom: `3px solid ${meta?.color || '#666'}`,
-                      aspectRatio: '3/4',
-                      outlineColor: isGoat ? '#F59E0B' : 'transparent',
-                      outlineOffset: 0,
-                    }}>
-                    {media?.cover_image_url ? (
-                      <img src={media.cover_image_url} alt={media.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
-                    ) : (
+                  {media ? (
+                    <YgpCard
+                      log={{ id: top.id, media_item: media }}
+                      rank={`#1 · ${meta?.label}`}
+                      className={isGoat ? 'outline outline-2' : undefined}
+                      style={{ outlineColor: isGoat ? '#F59E0B' : 'transparent', outlineOffset: 0 }}
+                    />
+                  ) : (
+                    <div className="group relative flex flex-col overflow-hidden rounded-lg" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderBottom: `3px solid ${meta?.color || '#666'}`, aspectRatio: '3/4' }}>
                       <div className="w-full h-full flex flex-col items-center justify-center p-3 text-center">
                         <span className="text-3xl">{meta?.emoji || '📄'}</span>
-                        <div className="text-xs text-white/70 font-medium line-clamp-3 mt-2">{media?.title || type}</div>
-                      </div>
-                    )}
-                    <div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-black/80 to-transparent" />
-                    <div className="absolute inset-x-0 bottom-0 flex flex-wrap gap-1.5 p-2.5">
-                      <div className="flex h-5 items-center gap-0.5 rounded bg-black/50 px-1.5 text-[10px] font-bold text-white/80 tabular-nums backdrop-blur-sm">
-                        #1
+                        <div className="text-xs text-white/70 font-medium line-clamp-3 mt-2">{type}</div>
                       </div>
                     </div>
-                  </Link>
+                  )}
                 </div>
               </div>
             );
@@ -285,23 +276,25 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
             const top = typeItems[0];
             const media = top.media_item;
             const meta = TYPE_META[type];
+            const isGoat = type === items[0].type;
             return (
-              <Link key={type} to={media ? getLogUrl(media) : '#'} className="group relative flex flex-col overflow-hidden rounded-lg transition-opacity hover:opacity-90" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderBottom: `3px solid ${meta?.color || '#666'}`, aspectRatio: '3/4' }}>
-                {media?.cover_image_url ? (
-                  <img src={media.cover_image_url} alt={media.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
+              <div key={type} className="min-w-0">
+                {media ? (
+                  <YgpCard
+                    log={{ id: top.id, media_item: media }}
+                    rank={`#1 · ${meta?.label}`}
+                    className={isGoat ? 'outline outline-2' : undefined}
+                    style={{ outlineColor: isGoat ? '#F59E0B' : 'transparent', outlineOffset: 0 }}
+                  />
                 ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center p-3 text-center">
-                    <span className="text-3xl">{meta?.emoji || '📄'}</span>
-                    <div className="text-xs text-white/70 font-medium line-clamp-3 mt-2">{media?.title || type}</div>
+                  <div className="group relative flex flex-col overflow-hidden rounded-lg" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderBottom: `3px solid ${meta?.color || '#666'}`, aspectRatio: '3/4' }}>
+                    <div className="w-full h-full flex flex-col items-center justify-center p-3 text-center">
+                      <span className="text-3xl">{meta?.emoji || '📄'}</span>
+                      <div className="text-xs text-white/70 font-medium line-clamp-3 mt-2">{type}</div>
+                    </div>
                   </div>
                 )}
-                <div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-black/80 to-transparent" />
-                <div className="absolute inset-x-0 bottom-0 flex flex-wrap gap-1.5 p-2.5">
-                  <div className="flex h-5 items-center gap-0.5 rounded bg-black/50 px-1.5 text-[10px] font-bold text-white/80 tabular-nums backdrop-blur-sm">
-                    #1 · {meta?.label}
-                  </div>
-                </div>
-              </Link>
+              </div>
             );
           })}
         </div>

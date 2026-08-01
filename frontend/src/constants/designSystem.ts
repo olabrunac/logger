@@ -1,3 +1,6 @@
+import { Eye, Ellipsis, Skull, Star, Hourglass, Library, Trophy } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+
 export const TYPE_META: Record<string, { emoji: string; color: string; label: string; singular: string; slug: string }> = {
   movie: { emoji: '🎬', color: '#fbbf24', label: 'Filmes', singular: 'Filme', slug: 'movies' },
   series: { emoji: '📺', color: '#ef4444', label: 'Séries', singular: 'Série', slug: 'tvshows' },
@@ -29,13 +32,14 @@ export const STATUS_COLORS: Record<string, string> = {
   library: 'rgba(99,102,241,0.85)',
 };
 
-export const STATUS_ICONS: Record<string, string> = {
-  completed: '✓',
-  in_progress: '•••',
-  dropped: '💀',
-  wishlist: '★',
-  soon: '…',
-  library: '📚',
+export const STATUS_ICONS: Record<string, LucideIcon> = {
+  completed: Eye,
+  in_progress: Ellipsis,
+  dropped: Skull,
+  wishlist: Star,
+  soon: Hourglass,
+  platinated: Trophy,
+  library: Library,
 };
 
 export const getStars = (rating?: number): string[] => {

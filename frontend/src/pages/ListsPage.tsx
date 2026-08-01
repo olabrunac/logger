@@ -5,8 +5,8 @@ import type { LogEntry, MediaType, CustomList, CustomListItem } from '../types';
 import type { MediaItem } from '../types/media';
 import { Gamepad2, Film, Tv, Book, Pencil, Trash2, Plus, ChevronDown, ChevronRight, X, Search } from 'lucide-react';
 import { createPortal } from 'react-dom';
-import { TYPE_META, STATUS_COLORS, STATUS_ICONS, getStars } from '../constants/designSystem';
-import { getLogUrl } from '../utils';
+import { TYPE_META } from '../constants/designSystem';
+import YgpCard from '../components/sections/YgpCard';
 
 interface ListsPageProps {
   user: { id: number; username: string };
@@ -307,79 +307,9 @@ const ListsPage = ({ user }: ListsPageProps) => {
           ) : (
             <>
               <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
-                {visibleItems.map(l => {
-              const typeEmoji = TYPE_META[l.media_item.media_type]?.emoji || '📄';
-              return (
-                <Link key={l.id} to={getLogUrl(l.media_item)} className="poster-tile block group" style={{borderBottom: '3px solid ' + (TYPE_META[l.media_item.media_type]?.color || '#666')}}>
-                  {l.media_item.cover_image_url ? (
-                    <img src={l.media_item.cover_image_url} alt={l.media_item.title} className="w-full h-full object-cover" loading="lazy" />
-                  ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center gap-3 p-3 text-center">
-                      <span className="text-3xl">{typeEmoji}</span>
-                      <div className="text-xs text-white/70 font-medium line-clamp-3">{l.media_item.title}</div>
-                    </div>
-                  )}
-                  <div className="absolute inset-0 pointer-events-none"
-                       style={{background:'linear-gradient(to top, rgba(0,0,0,0.9), rgba(0,0,0,0.3) 50%, transparent)'}}>
-                    <div className="absolute bottom-0 left-0 right-0 p-3">
-                      <div className="text-white text-xs font-semibold truncate">{l.media_item.title}</div>
-                      {l.rating && l.rating > 0 && (
-                        <div className="mt-1 flex items-center gap-0.5">
-                          {getStars(l.rating).map((star, i) => (
-                            <svg key={i} width="12" height="12" viewBox="0 0 24 24"
-                              fill={star === 'full' || star === 'half' ? 'var(--mdf-yellow)' : 'none'}
-                              stroke="var(--mdf-yellow)" strokeWidth="2">
-                              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                            </svg>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="absolute top-2 left-2 flex items-center gap-1">
-                    {l.is_favorite && (
-                      <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{background:'var(--mdf-pink)'}}>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="white" stroke="white" strokeWidth="2">
-                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                        </svg>
-                      </div>
-                    )}
-                    {l.status && !l.is_favorite && (
-                      <span className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style={{background: STATUS_COLORS[l.status] || 'rgba(100,100,100,0.85)'}}>
-                        {STATUS_ICONS[l.status] || l.status[0].toUpperCase()}
-                      </span>
-                    )}
-                    {l.media_item.media_type === 'game' && l.unlocked_achievements != null && l.total_achievements != null && l.total_achievements > 0 && (
-                      <span className="h-6 px-1.5 flex items-center justify-center text-[9px] font-bold backdrop-blur-sm rounded-full" style={{ background: l.unlocked_achievements === l.total_achievements ? 'rgba(250,204,21,0.85)' : 'rgba(0,0,0,0.7)', color: l.unlocked_achievements === l.total_achievements ? '#000' : '#fff' }}>
-                        {l.unlocked_achievements === l.total_achievements ? '100%' : `${l.unlocked_achievements}/${l.total_achievements}`}
-                      </span>
-                    )}
-                  </div>
-                  {l.platform && (
-                    <div className="absolute top-2 right-2 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
-                      {l.platform}
-                    </div>
-                  )}
-                  {(l.relog_count ?? 0) > 0 ? (
-                    <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
-                      {(l.relog_count ?? 0) + 1}x
-                    </div>
-                  ) : l.media_item.media_type === 'series' && l.watched_episodes != null && l.total_episodes != null && l.total_episodes > 0 ? (
-                    <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
-                      {Math.min(l.watched_episodes, l.total_episodes)}/{l.total_episodes}
-                    </div>
-                  ) : l.media_item.media_type === 'game' && l.hours_spent != null && l.hours_spent > 0 ? (
-                    <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
-                      {l.hours_spent}h
-                    </div>
-                  ) : l.media_item.media_type === 'book' && l.hours_spent != null && l.hours_spent > 0 ? (
-                    <div className="absolute bottom-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
-                      {l.hours_spent}h
-                    </div>
-                  ) : null}
-                </Link>
-              );
-            })}
+                {visibleItems.map(l => (
+                  <YgpCard key={l.id} log={l} />
+                ))}
               </div>
             </>
           )}
@@ -409,47 +339,20 @@ const ListsPage = ({ user }: ListsPageProps) => {
           ) : (
             <>
               <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
-                {visibleWishlist.map(l => {
-                  const typeEmoji = TYPE_META[l.media_item.media_type]?.emoji || '📄';
-                  return (
-                    <Link key={l.id} to={getLogUrl(l.media_item)} className="poster-tile block group relative" style={{borderBottom: '3px solid ' + (TYPE_META[l.media_item.media_type]?.color || '#666')}}>
-                      {l.media_item.cover_image_url ? (
-                        <img src={l.media_item.cover_image_url} alt={l.media_item.title} className="w-full h-full object-cover" loading="lazy" />
-                      ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center gap-3 p-3 text-center">
-                          <span className="text-3xl">{typeEmoji}</span>
-                          <div className="text-xs text-white/70 font-medium line-clamp-3">{l.media_item.title}</div>
-                        </div>
-                      )}
-                      <div className="absolute inset-0 pointer-events-none"
-                           style={{background:'linear-gradient(to top, rgba(0,0,0,0.9), rgba(0,0,0,0.3) 50%, transparent)'}}>
-                        <div className="absolute bottom-0 left-0 right-0 p-3">
-                          <div className="text-white text-xs font-semibold truncate">{l.media_item.title}</div>
-                        </div>
-                      </div>
-                      <div className="absolute top-2 left-2">
-                        <span className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style={{background: 'rgba(168,85,247,0.85)'}}>
-                          ★
-                        </span>
-                      </div>
-                      {l.platform && (
-                        <div className="absolute top-2 right-2 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-sm">
-                          {l.platform}
-                        </div>
-                      )}
-                      <div className="absolute bottom-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                        <Link to={`/new-log?edit=${l.id}`} onClick={(e) => e.stopPropagation()}
-                          className="w-6 h-6 rounded flex items-center justify-center bg-black/70 text-white/70 hover:text-white backdrop-blur-sm transition-colors">
-                          <Pencil size={12} />
-                        </Link>
-                        <button onClick={(e) => { e.stopPropagation(); deleteWishlistItem(l.id); }}
-                          className="w-6 h-6 rounded flex items-center justify-center bg-black/70 text-white/70 hover:text-red-400 backdrop-blur-sm transition-colors">
-                          <Trash2 size={12} />
-                        </button>
-                      </div>
-                    </Link>
-                  );
-                })}
+                {visibleWishlist.map(l => (
+                  <YgpCard key={l.id} log={l} actions={
+                    <>
+                      <Link to={`/new-log?edit=${l.id}`} onClick={(e) => e.stopPropagation()}
+                        className="w-6 h-6 rounded flex items-center justify-center bg-black/70 text-white/70 hover:text-white backdrop-blur-sm transition-colors" title="Editar">
+                        <Pencil size={12} />
+                      </Link>
+                      <button onClick={(e) => { e.stopPropagation(); deleteWishlistItem(l.id); }}
+                        className="w-6 h-6 rounded flex items-center justify-center bg-black/70 text-white/70 hover:text-red-400 backdrop-blur-sm transition-colors" title="Remover">
+                        <Trash2 size={12} />
+                      </button>
+                    </>
+                  } />
+                ))}
               </div>
             </>
           )}
@@ -519,29 +422,13 @@ const ListsPage = ({ user }: ListsPageProps) => {
                         <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
                           {(expandedSections[`list-${cl.id}`] === true ? filteredItems : filteredItems.slice(0, 12)).map(item => {
                           if (!item.media_item) return null;
-                          const mi = item.media_item;
-                          const typeEmoji = TYPE_META[mi.media_type]?.emoji || '📄';
                           return (
-                            <Link key={item.id} to={getLogUrl(mi)} className="poster-tile block group relative" style={{borderBottom: '3px solid ' + (TYPE_META[mi.media_type]?.color || '#666')}}>
-                              {mi.cover_image_url ? (
-                                <img src={mi.cover_image_url} alt={mi.title} className="w-full h-full object-cover" loading="lazy" />
-                              ) : (
-                                <div className="w-full h-full flex flex-col items-center justify-center gap-3 p-3 text-center">
-                                  <span className="text-3xl">{typeEmoji}</span>
-                                  <div className="text-xs text-white/70 font-medium line-clamp-3">{mi.title}</div>
-                                </div>
-                              )}
-                              <div className="absolute inset-0 pointer-events-none"
-                                   style={{background:'linear-gradient(to top, rgba(0,0,0,0.9), rgba(0,0,0,0.3) 50%, transparent)'}}>
-                                <div className="absolute bottom-0 left-0 right-0 p-3">
-                                  <div className="text-white text-xs font-semibold truncate">{mi.title}</div>
-                                </div>
-                              </div>
+                            <YgpCard key={item.id} log={{ id: item.id, media_item: item.media_item }} actions={
                               <button onClick={(e) => { e.stopPropagation(); handleRemoveItem(cl.id, item.id); }}
-                                className="absolute top-2 right-2 w-6 h-6 rounded flex items-center justify-center bg-black/70 text-white/70 hover:text-red-400 backdrop-blur-sm transition-colors opacity-0 group-hover:opacity-100 z-10">
+                                className="w-6 h-6 rounded flex items-center justify-center bg-black/70 text-white/70 hover:text-red-400 backdrop-blur-sm transition-colors" title="Remover da lista">
                                 <X size={12} />
                               </button>
-                            </Link>
+                            } />
                           );
                         })}
                         </div>
