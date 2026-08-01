@@ -54,14 +54,14 @@ class User(UserBase):
     email: Optional[str] = None
     banner_url: Optional[str] = None
     avatar_url: Optional[str] = None
-    accent_color: str = "#ff6b35"
+    accent_color: Optional[str] = "#ff6b35"
     section_order: Optional[str] = None
     social_links: Optional[str] = None
     country: Optional[str] = None
     state: Optional[str] = None
     display_name: Optional[str] = None
     bio: Optional[str] = None
-    trophy_showcase: str = '[]'
+    trophy_showcase: Optional[str] = '[]'
     followers_count: int = 0
     following_count: int = 0
 
@@ -69,6 +69,8 @@ class User(UserBase):
     def ensure_accent_color(self):
         if not self.accent_color:
             self.accent_color = "#ff6b35"
+        if not self.trophy_showcase:
+            self.trophy_showcase = '[]'
         return self
 
     class Config:
