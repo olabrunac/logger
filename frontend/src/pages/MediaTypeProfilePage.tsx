@@ -368,27 +368,18 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
                       </svg>
                     </div>
                   )}
-                  <div className={`group relative flex flex-col overflow-hidden rounded-lg transition-opacity hover:opacity-90 ${isGoat && !editingTop5 ? 'outline outline-2' : ''}`}
-                    style={{
-                      background: 'var(--bg-elevated)',
-                      border: '1px solid var(--border)',
-                      borderBottom: `3px solid ${meta.color}`,
-                      aspectRatio: '3/4',
-                      outlineColor: isGoat && !editingTop5 ? '#F59E0B' : 'transparent',
-                      outlineOffset: 0,
-                    }}>
-                    {media?.cover_image_url ? (
-                      <img src={media.cover_image_url} alt={media.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-white/20 text-xs" style={{background: meta.color + '11'}}>{meta.emoji}</div>
-                    )}
-                    <div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-black/80 to-transparent" />
-                    <div className="absolute inset-x-0 bottom-0 flex flex-wrap gap-1.5 p-2.5">
-                      <div className="flex h-5 items-center gap-0.5 rounded bg-black/50 px-1.5 text-[10px] font-bold text-white/80 tabular-nums backdrop-blur-sm">
-                        #{index + 1}
-                      </div>
+                  {media ? (
+                    <YgpCard
+                      log={{ id: index, media_item: media }}
+                      rank={`#${index + 1}`}
+                      className={isGoat && !editingTop5 ? 'outline outline-2' : undefined}
+                      style={{ outlineColor: isGoat && !editingTop5 ? '#F59E0B' : 'transparent', outlineOffset: 0 }}
+                    />
+                  ) : (
+                    <div className="group relative flex flex-col overflow-hidden rounded-lg" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderBottom: `3px solid ${meta.color}`, aspectRatio: '3/4' }}>
+                      <div className="w-full h-full flex items-center justify-center text-white/20 text-xs" style={{ background: meta.color + '11' }}>{meta.emoji}</div>
                     </div>
-                  </div>
+                  )}
                   <div className="text-xs text-center font-medium truncate w-full mt-1.5 text-white/70">{media?.title || '...'}</div>
                 </div>
               </div>
@@ -405,22 +396,13 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
                     <Trash2 size={12} />
                   </button>
                 )}
-                <div className="group relative flex flex-col overflow-hidden rounded-lg transition-opacity hover:opacity-90 w-full" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderBottom: `3px solid ${meta.color}`, aspectRatio: '3/4' }}>
-                  {media?.cover_image_url ? (
-                    <img src={media.cover_image_url} alt={media.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-white/20 text-xs" style={{background: meta.color + '11'}}>{meta.emoji}</div>
-                  )}
-                  <div className="absolute left-1 top-1 bg-black/70 text-white font-mono text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full">
-                    {index + 1}
+                {media ? (
+                  <YgpCard log={{ id: index, media_item: media }} rank={`#${index + 1}`} />
+                ) : (
+                  <div className="group relative flex flex-col overflow-hidden rounded-lg w-full" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderBottom: `3px solid ${meta.color}`, aspectRatio: '3/4' }}>
+                    <div className="w-full h-full flex items-center justify-center text-white/20 text-xs" style={{ background: meta.color + '11' }}>{meta.emoji}</div>
                   </div>
-                  <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-black/80 to-transparent" />
-                  <div className="absolute inset-x-0 bottom-0 flex flex-wrap gap-1 p-1.5">
-                    <div className="flex h-4 items-center gap-0.5 rounded bg-black/50 px-1 text-[8px] font-bold text-white/80 tabular-nums">
-                      #{index + 1}
-                    </div>
-                  </div>
-                </div>
+                )}
                 <div className="text-[10px] text-center font-medium truncate w-full text-white/60">{media?.title || '...'}</div>
               </div>
             );

@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import api, { uploadFile } from '../services/api';
 import type { User } from '../types';
 import type { MediaItem } from '../types/media';
-import { getStars, TYPE_META, STATUS_COLORS, STATUS_ICONS } from '../constants/designSystem';
+import { getStars, TYPE_META, STATUS_COLORS } from '../constants/designSystem';
+import StatusIcon from '../components/StatusIcon';
 import { Send, Image as ImageIcon, X, MessageCircle, Trash2, Clock, Heart, ThumbsUp } from 'lucide-react';
 import { imageUrl, getLogUrl } from '../utils';
 
@@ -339,8 +340,9 @@ const LogCard = ({ entry }: { entry: TimelineEntry }) => {
             <div className="text-sm font-semibold text-white/80 truncate">{entry.media_item.title}</div>
             <div className="flex items-center gap-2 mt-1">
               {entry.status && (
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white" style={{ background: STATUS_COLORS[entry.status] || 'rgba(100,100,100,0.85)' }}>
-                  {STATUS_ICONS[entry.status]} {entry.status === 'completed' ? 'Finalizado' : entry.status === 'in_progress' ? 'Em progresso' : entry.status === 'dropped' ? 'Abandonado' : entry.status === 'library' ? 'Biblioteca' : entry.status}
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white flex items-center gap-1" style={{ background: STATUS_COLORS[entry.status] || 'rgba(100,100,100,0.85)' }}>
+                  <StatusIcon status={entry.status} size={11} />
+                  {entry.status === 'completed' ? 'Finalizado' : entry.status === 'in_progress' ? 'Em progresso' : entry.status === 'dropped' ? 'Abandonado' : entry.status === 'library' ? 'Biblioteca' : entry.status}
                 </span>
               )}
               {entry.platform && (
