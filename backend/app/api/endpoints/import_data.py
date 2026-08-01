@@ -593,6 +593,9 @@ async def steam_import(
 
         ach_count = 0
         achievements_checked = False
+        unlocked_count = 0
+        player_total = 0
+        schema_total = 0
 
         # Import Steam achievements
         if resolved_steam_id and appid:
@@ -609,12 +612,15 @@ async def steam_import(
                 achievements = ach_data.get("achievements")
                 if isinstance(achievements, list):
                     achievements_checked = True
+                    player_total = len(achievements)
                     for a in achievements:
                         if not isinstance(a, dict):
                             continue
                         ext_id = a.get("apiname", "")
                         if not ext_id:
                             continue
+                        if a.get("achieved", 0) == 1:
+                            unlocked_count += 1
                         existing_ach = db.query(Achievement).filter(
                             Achievement.log_id == log.id,
                             Achievement.external_id == ext_id,
@@ -647,6 +653,7 @@ async def steam_import(
                         if isinstance(raw_list, list):
                             achievements_list = raw_list
                 if isinstance(achievements_list, list):
+                    schema_total = len(achievements_list)
                     schema_map = {}
                     for sa in achievements_list:
                         if not isinstance(sa, dict):
@@ -665,6 +672,12 @@ async def steam_import(
                     print(f"Error importing achievements for {title} (appid {appid}): {e}")
             except Exception as e:
                 print(f"Error importing achievements for {title} (appid {appid}): {e}")
+
+        # Games with 100% achievements unlocked are completed
+        total_ach = schema_total if schema_total > 0 else player_total
+        if total_ach > 0 and unlocked_count >= total_ach:
+            log.status = LogStatus.COMPLETED
+            db.add(log)
 
         # Games with <2h and no achievements go to library
         if hours is not None and hours < 2 and achievements_checked and ach_count == 0:
