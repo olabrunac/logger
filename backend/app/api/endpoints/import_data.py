@@ -539,14 +539,17 @@ async def steam_import(
             db.add(media_item)
 
         if steam_details:
-            parsed = steam_service.parse_steam_game_data(steam_details)
-            for key, value in parsed.items():
-                if value:
-                    if key == "screenshots":
-                        setattr(media_item, key, json.dumps(value))
-                    else:
-                        setattr(media_item, key, value)
-            db.add(media_item)
+            try:
+                parsed = steam_service.parse_steam_game_data(steam_details)
+                for key, value in parsed.items():
+                    if value:
+                        if key == "screenshots":
+                            setattr(media_item, key, json.dumps(value))
+                        else:
+                            setattr(media_item, key, value)
+                db.add(media_item)
+            except Exception:
+                pass
 
         existing_log = db.query(LogEntry).filter(
             LogEntry.user_id == user_id,
