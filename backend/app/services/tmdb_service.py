@@ -1,3 +1,5 @@
+import datetime
+
 import requests
 from app.core.config import settings
 
@@ -30,7 +32,7 @@ def get_tv_seasons(tmdb_id: int):
         response = requests.get(url, params=params)
         response.raise_for_status()
         data = response.json()
-        return [{"season_number": s["season_number"], "name": s["name"], "episode_count": s["episode_count"], "poster_path": s.get("poster_path")} for s in data.get("seasons", [])]
+        return [{"season_number": s["season_number"], "name": s["name"], "episode_count": s["episode_count"], "poster_path": s.get("poster_path")} for s in data.get("seasons", []) if s.get("season_number", 0) > 0]
     except requests.exceptions.RequestException as e:
         print(f"Error fetching TMDb seasons: {e}")
         return []
