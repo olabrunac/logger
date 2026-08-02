@@ -147,7 +147,8 @@ const NotificationsPage = ({ user, onNotificationsRead }: NotificationsPageProps
             return (
               <div
                 key={n.id}
-                className={`relative flex w-full items-start gap-3 px-4 py-3 lg:px-10 transition-opacity duration-300 ${n.read ? 'opacity-40' : 'bg-transparent'}`}
+                onClick={() => handleClick(n)}
+                className={`relative flex w-full cursor-pointer items-start gap-3 px-4 py-3 lg:px-10 transition-opacity duration-300 ${n.read ? 'opacity-40' : 'bg-transparent hover:bg-white/[0.03]'}`}
               >
                 <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ background: `${cfg.color}22` }}>
                   <Icon size={16} style={{ color: cfg.color === bg ? cfg.color : bg }} />
@@ -157,15 +158,6 @@ const NotificationsPage = ({ user, onNotificationsRead }: NotificationsPageProps
                   <p className="mt-0.5 line-clamp-4 whitespace-pre-line text-xs text-placeholder">{cfg.getDesc(n)}</p>
                   <p className="mt-1 text-xs text-placeholder">{timeAgo(n.created_at)}</p>
                 </div>
-                {!n.read && (
-                  <button
-                    onClick={() => handleClick(n)}
-                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-white/30 hover:text-white hover:bg-white/10 transition-colors"
-                    title="Marcar como lido"
-                  >
-                    <CheckCheck size={14} />
-                  </button>
-                )}
                 <div
                   aria-hidden="true"
                   className={`pointer-events-none absolute right-2 top-4 h-2 w-2 rounded-full bg-primary transition-all duration-300 ease-out lg:right-3 ${n.read ? 'scale-0 opacity-0' : 'scale-100 opacity-100'}`}
