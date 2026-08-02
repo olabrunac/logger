@@ -1,3 +1,5 @@
+import datetime
+
 import requests
 from app.core.config import settings
 
@@ -30,7 +32,7 @@ def get_tv_seasons(tmdb_id: int):
         response = requests.get(url, params=params)
         response.raise_for_status()
         data = response.json()
-        return [{"season_number": s["season_number"], "name": s["name"], "episode_count": s["episode_count"], "poster_path": s.get("poster_path")} for s in data.get("seasons", [])]
+        return [{"season_number": s["season_number"], "name": s["name"], "episode_count": s["episode_count"], "poster_path": s.get("poster_path")} for s in data.get("seasons", []) if s.get("season_number", 0) > 0]
     except requests.exceptions.RequestException as e:
         print(f"Error fetching TMDb seasons: {e}")
         return []
@@ -83,6 +85,52 @@ def get_movie_details(tmdb_id: int):
     except requests.exceptions.RequestException as e:
         print(f"Error fetching TMDb movie details: {e}")
         return None
+
+def get_movie_by_id(tmdb_id: int):
+    details = get_movie_details(tmdb_id)
+    if not details:
+        return None
+    url = f"{BASE_URL}/movie/{tmdb_id}"
+    params = {"api_key": settings.TMDB_API_KEY, "language": "pt-BR"}
+    try:
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        data = response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching TMDb movie: {e}")
+        data = {}
+    details["title"] = data.get("title") or data.get("original_title")
+    release_date = None
+    rdate = data.get("release_date")
+    if rdate:
+        try:
+            release_date = datetime.datetime.strptime(rdate, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+    details["release_date"] = release_date
+    return details
+
+def get_tv_by_id(tmdb_id: int):
+    details = get_tv_details(tmdb_id)
+    if not details:
+        return None
+    url = f"{BASE_URL}/tv/{tmdb_id}"
+    params = {"api_key": settings.TMDB_API_KEY, "language": "pt-BR"}
+    try:
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        data = response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching TMDb TV: {e}")
+        data = {}
+    details["title"] = data.get("name") or data.get("original_name")
+    details["total_episodes"] = sum(
+        s.get("episode_count", 0)
+        for s in data.get("seasons", [])
+        if s.get("season_number", 0) > 0
+    )
+    details["seasons_count"] = data.get("number_of_seasons")
+    return details
 
 def get_tv_details(tmdb_id: int):
     if not settings.TMDB_API_KEY:

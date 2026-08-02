@@ -50,6 +50,33 @@ def search_games(query: str):
     return _igdb_post("games", f'search "{query}"; fields name, cover.url, first_release_date, summary; limit 20;')
 
 
+def get_game_by_id(igdb_id: int) -> dict | None:
+    results = _igdb_post("games", f"fields name, cover.url, first_release_date, summary, genres.name, platforms.name; where id = {igdb_id}; limit 1;")
+    if not results:
+        return None
+    item = results[0]
+    release_date = None
+    if item.get("first_release_date"):
+        try:
+            import datetime
+            release_date = datetime.datetime.fromtimestamp(item["first_release_date"]).date()
+        except Exception:
+            release_date = None
+    cover_url = None
+    if item.get("cover") and item["cover"].get("url"):
+        cover_url = item["cover"]["url"].replace("t_thumb", "t_cover_big").lstrip("/")
+        cover_url = f"https://{cover_url}"
+    genres = ", ".join(g.get("name", "") for g in item.get("genres", []))
+    return {
+        "title": item.get("name"),
+        "cover_image_url": cover_url,
+        "release_date": release_date,
+        "synopsis": item.get("summary"),
+        "genres": genres,
+        "igdb_id": igdb_id,
+    }
+
+
 def get_steam_appid(igdb_id: int) -> int | None:
     """Find the Steam AppID for a game via IGDB's external_games endpoint (source 1 = Steam)."""
     results = _igdb_post("external_games", f"fields uid; where game = {igdb_id} & external_game_source = 1; limit 1;")

@@ -5,11 +5,16 @@ import { createPortal } from 'react-dom';
 import type { MediaItem } from '../types/media';
 import type { User as UserType } from '../types';
 import { globalSearch } from '../services/api';
-import { getLogUrl, imageUrl } from '../utils';
+import { getMediaUrl, imageUrl } from '../utils';
 import { TYPE_META } from '../constants/designSystem';
 
+interface SearchMediaItem extends MediaItem {
+  id?: number;
+  has_log?: boolean;
+}
+
 interface GlobalSearchResult {
-  media: Array<MediaItem & { id: number }>;
+  media: SearchMediaItem[];
   users: UserType[];
 }
 
@@ -22,6 +27,12 @@ const GlobalSearchModal = () => {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+
+  const currentUserId = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('user') || '{}')?.id as number | undefined;
+    } catch { return undefined; }
+  })();
 
   useEffect(() => {
     if (open) {
@@ -47,7 +58,7 @@ const GlobalSearchModal = () => {
     debounceRef.current = setTimeout(async () => {
       setIsLoading(true);
       try {
-        const { data } = await globalSearch(q);
+        const { data } = await globalSearch(q, currentUserId);
         setResults({ media: data?.media || [], users: data?.users || [] });
         setSearched(true);
       } catch (err) {
@@ -59,13 +70,18 @@ const GlobalSearchModal = () => {
       }
     }, 300);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [query]);
+  }, [query, currentUserId]);
 
   const handleClose = () => setOpen(false);
 
   const goTo = (url: string) => {
     handleClose();
     navigate(url);
+  };
+
+  const goToMedia = (item: SearchMediaItem) => {
+    handleClose();
+    navigate(getMediaUrl(item));
   };
 
   const hasResults = results.media.length > 0 || results.users.length > 0;
@@ -92,7 +108,7 @@ const GlobalSearchModal = () => {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Buscar mídias ou perfis..."
+                placeholder="Buscar mídias ou @usuários"
                 className="flex-1 bg-transparent text-white placeholder-white/30 text-sm outline-none"
                 onKeyDown={(e) => { if (e.key === 'Escape') handleClose(); }}
               />
@@ -105,7 +121,9 @@ const GlobalSearchModal = () => {
             <div className="flex-1 overflow-y-auto">
               {!query.trim() && (
                 <div className="p-8 text-center text-white/40 text-sm">
-                  Digite para buscar mídias (filmes, séries, jogos, livros) e perfis de usuários.
+                  Digite para buscar mídias (filmes, séries, jogos, livros) ou perfis de usuários.
+                  Use <span className="text-white/70">@</span> no início para buscar apenas perfis, ou
+                  <span className="text-white/70"> #filme</span>, <span className="text-white/70">#serie</span>, <span className="text-white/70">#jogo</span> ou <span className="text-white/70">#livro</span> para filtrar por tipo.
                 </div>
               )}
 
@@ -116,7 +134,7 @@ const GlobalSearchModal = () => {
                     {results.media.map((item) => (
                       <button
                         key={item.id || item.tmdb_id || item.igdb_id || item.google_books_id || item.title}
-                        onClick={() => goTo(getLogUrl(item))}
+                        onClick={() => goToMedia(item)}
                         className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 transition-colors text-left"
                       >
                         <div
