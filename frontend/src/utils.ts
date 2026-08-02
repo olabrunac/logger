@@ -21,3 +21,7 @@ export function getApiId(item: MediaItem): string {
 export function getLogUrl(item: MediaItem): string {
   return `/log/${item.media_type}/${getApiId(item)}`;
 }
+
+export function getMediaUrl(item: MediaItem): string {
+  return `/media/${item.media_type}/${getApiId(item)}`;
+}

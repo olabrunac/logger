@@ -6,6 +6,7 @@ import NewLogPage from './pages/NewLogPage';
 import CalendarPage from './pages/CalendarPage';
 import ProfilePage from './pages/ProfilePage';
 import LogDetailPage from './pages/LogDetailPage';
+import MediaDetailPage from './pages/MediaDetailPage';
 import SettingsPage from './pages/SettingsPage';
 import ListsPage from './pages/ListsPage';
 import DiaryPage from './pages/DiaryPage';
@@ -233,6 +234,12 @@ function AppInner() {
               path="/log/:mediaType/:apiId"
               element={
                 user ? <LogDetailPage /> : <Navigate to="/login" />
+              }
+            />
+            <Route
+              path="/media/:mediaType/:apiId"
+              element={
+                user ? <MediaDetailPage /> : <Navigate to="/login" />
               }
             />
           </Routes>

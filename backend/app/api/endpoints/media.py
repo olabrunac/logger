@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from typing import List, Any, Optional
-import json
 from app import crud, schemas
 from app.crud import crud_top_list, crud_custom_list
 from app.api import deps
@@ -43,6 +42,136 @@ def _fuzzy_score(query: str, title: str) -> float:
         return 1.0
     ratio = 1.0 - (lev / max_len)
     return max(ratio, 0.0)
+
+def _create_media_from_api(db: Session, mt: MediaType, api_id: Any) -> Optional[MediaItem]:
+    """Create a MediaItem in DB by fetching details from the external API."""
+    try:
+        if mt == MediaType.MOVIE and isinstance(api_id, int):
+            details = tmdb_service.get_movie_by_id(api_id)
+            if not details:
+                return None
+            item = MediaItem(
+                title=details.get("title"),
+                media_type=mt,
+                tmdb_id=api_id,
+                cover_image_url=details.get("cover_image_url"),
+                release_date=details.get("release_date"),
+                synopsis=details.get("synopsis"),
+                genres=details.get("genres"),
+                runtime=details.get("runtime"),
+                vote_average=details.get("vote_average"),
+                director=details.get("director"),
+                trailer_url=details.get("trailer_url"),
+                cast=details.get("cast"),
+            )
+        elif mt == MediaType.SERIES and isinstance(api_id, int):
+            details = tmdb_service.get_tv_by_id(api_id)
+            if not details:
+                return None
+            item = MediaItem(
+                title=details.get("title"),
+                media_type=mt,
+                tmdb_id=api_id,
+                cover_image_url=details.get("cover_image_url"),
+                release_date=details.get("release_date"),
+                synopsis=details.get("synopsis"),
+                genres=details.get("genres"),
+                runtime=details.get("runtime"),
+                vote_average=details.get("vote_average"),
+                director=details.get("director"),
+                cast=details.get("cast"),
+                total_episodes=details.get("total_episodes"),
+            )
+        elif mt == MediaType.GAME and isinstance(api_id, int):
+            details = igdb_service.get_game_by_id(api_id)
+            if not details:
+                return None
+            item = MediaItem(
+                title=details.get("title"),
+                media_type=mt,
+                igdb_id=api_id,
+                cover_image_url=details.get("cover_image_url"),
+                release_date=details.get("release_date"),
+                synopsis=details.get("synopsis"),
+                genres=details.get("genres"),
+            )
+            try:
+                steam_appid = igdb_service.get_steam_appid(api_id)
+                if steam_appid:
+                    item.steam_appid = steam_appid
+                    steam_data = steam_service.get_app_details(steam_appid)
+                    if steam_data:
+                        parsed = steam_service.parse_steam_game_data(steam_data)
+                        for key, value in parsed.items():
+                            if value:
+                                setattr(item, key, value)
+            except Exception:
+                pass
+        elif mt == MediaType.BOOK:
+            details = google_books_service.get_book_by_id(str(api_id))
+            if not details:
+                return None
+            item = MediaItem(
+                title=details.get("title"),
+                media_type=mt,
+                google_books_id=str(api_id),
+                cover_image_url=details.get("cover_image_url"),
+                release_date=details.get("release_date"),
+                synopsis=details.get("synopsis"),
+                page_count=details.get("page_count"),
+                publisher=details.get("publisher"),
+                book_categories=details.get("book_categories"),
+                book_language=details.get("book_language"),
+                book_rating=details.get("book_rating"),
+            )
+        else:
+            return None
+        db.add(item)
+        db.commit()
+        db.refresh(item)
+        return item
+    except Exception:
+        db.rollback()
+        return None
+
+
+def _enrich_media_item(db: Session, mi: MediaItem) -> None:
+    """Fill missing details for an existing MediaItem from the external API."""
+    try:
+        changed = False
+        if mi.media_type == MediaType.SERIES and mi.tmdb_id and (not mi.release_date or not mi.total_episodes):
+            details = tmdb_service.get_tv_details(mi.tmdb_id)
+            if details:
+                for key, value in details.items():
+                    if value and not getattr(mi, key, None):
+                        setattr(mi, key, value)
+                changed = True
+        elif mi.media_type == MediaType.MOVIE and mi.tmdb_id and not mi.release_date:
+            details = tmdb_service.get_movie_details(mi.tmdb_id)
+            if details:
+                for key, value in details.items():
+                    if value and not getattr(mi, key, None):
+                        setattr(mi, key, value)
+                changed = True
+        elif mi.media_type == MediaType.GAME and mi.igdb_id and not mi.steam_appid:
+            try:
+                steam_appid = igdb_service.get_steam_appid(mi.igdb_id)
+                if steam_appid:
+                    mi.steam_appid = steam_appid
+                    steam_data = steam_service.get_app_details(steam_appid)
+                    if steam_data:
+                        parsed = steam_service.parse_steam_game_data(steam_data)
+                        for key, value in parsed.items():
+                            if value and not getattr(mi, key, None):
+                                setattr(mi, key, value)
+                    changed = True
+            except Exception:
+                pass
+        if changed:
+            db.add(mi)
+            db.commit()
+    except Exception:
+        db.rollback()
 
 def transform_tmdb_result(item: dict, media_type: MediaType) -> dict:
     is_movie = media_type == MediaType.MOVIE
@@ -267,9 +396,7 @@ def create_log_entry(*, db: Session = Depends(deps.get_db), payload: schemas.Log
                 if steam_data:
                     parsed = steam_service.parse_steam_game_data(steam_data)
                     for key, value in parsed.items():
-                        if key == "screenshots":
-                            setattr(log.media_item, key, json.dumps(value))
-                        elif value:
+                        if value:
                             setattr(log.media_item, key, value)
                 db.add(log.media_item)
                 db.commit()
@@ -316,6 +443,7 @@ def create_log_entry(*, db: Session = Depends(deps.get_db), payload: schemas.Log
             watched = db.query(EpisodeWatched).filter(
                 EpisodeWatched.log_id == log.id,
                 EpisodeWatched.watched == True,
+                EpisodeWatched.season_number > 0,
             ).count()
             if watched > 0:
                 log.hours_spent = round((log.media_item.runtime / 60) * watched, 1)
@@ -337,7 +465,7 @@ def read_logs(*, db: Session = Depends(deps.get_db), user_id: int, skip: int = 0
     for log in logs:
         stats = {"watched_episodes": None, "total_episodes": None, "unlocked_achievements": None, "total_achievements": None}
         if log.media_item.media_type == MediaType.SERIES:
-            watched = db.query(EpisodeWatched).filter(EpisodeWatched.log_id == log.id, EpisodeWatched.watched == True).count()
+            watched = db.query(EpisodeWatched).filter(EpisodeWatched.log_id == log.id, EpisodeWatched.watched == True, EpisodeWatched.season_number > 0).count()
             total = log.media_item.total_episodes
             stats["watched_episodes"] = watched
             stats["total_episodes"] = total
@@ -371,7 +499,7 @@ def read_log_by_item(*, db: Session = Depends(deps.get_db), user_id: int, media_
         raise HTTPException(status_code=404, detail="Log not found")
     stats = {"watched_episodes": None, "total_episodes": None, "unlocked_achievements": None, "total_achievements": None}
     if log.media_item.media_type == MediaType.SERIES:
-        watched = db.query(EpisodeWatched).filter(EpisodeWatched.log_id == log.id, EpisodeWatched.watched == True).count()
+        watched = db.query(EpisodeWatched).filter(EpisodeWatched.log_id == log.id, EpisodeWatched.watched == True, EpisodeWatched.season_number > 0).count()
         stats["watched_episodes"] = watched
         stats["total_episodes"] = log.media_item.total_episodes
     elif log.media_item.media_type == MediaType.GAME:
@@ -383,6 +511,75 @@ def read_log_by_item(*, db: Session = Depends(deps.get_db), user_id: int, media_
     log_dict.update(stats)
     log_dict["hours_spent"] = effective_hours(db, log)
     return schemas.LogEntryWithStats(**log_dict)
+
+@router.get("/items/by-api")
+def read_media_by_api(*, db: Session = Depends(deps.get_db), media_type: str, api_id: str, user_id: Optional[int] = None) -> Any:
+    from sqlalchemy import or_
+    try:
+        mt = MediaType(media_type)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid media type")
+    api_num = int(api_id) if api_id.isdigit() else None
+    conditions = [MediaItem.google_books_id == api_id]
+    if api_num is not None:
+        conditions += [MediaItem.tmdb_id == api_num, MediaItem.igdb_id == api_num, MediaItem.steam_appid == api_num]
+    media_item = db.query(MediaItem).filter(MediaItem.media_type == mt, or_(*conditions)).first()
+
+    if not media_item:
+        media_item = _create_media_from_api(db, mt, api_num if api_num is not None else api_id)
+        if not media_item:
+            raise HTTPException(status_code=404, detail="Media item not found")
+    else:
+        _enrich_media_item(db, media_item)
+
+    data = schemas.MediaItemInDB.model_validate(media_item).model_dump()
+    data["has_log"] = False
+    data["log_id"] = None
+    data["user_log"] = None
+    if user_id is not None:
+        log = db.query(LogEntry).filter(LogEntry.user_id == user_id, LogEntry.media_item_id == media_item.id).first()
+        if log:
+            data["has_log"] = True
+            data["log_id"] = log.id
+            data["user_log"] = {
+                "id": log.id,
+                "status": log.status,
+                "rating": log.rating,
+                "review": log.review,
+                "log_date": log.log_date.isoformat() if log.log_date else None,
+                "platform": log.platform,
+                "hours_spent": log.hours_spent,
+                "pages_read": log.pages_read,
+                "is_favorite": log.is_favorite,
+                "relog_count": log.relog_count,
+            }
+
+    community_logs = (
+        db.query(LogEntry)
+        .filter(LogEntry.media_item_id == media_item.id)
+        .filter(LogEntry.review.isnot(None))
+        .order_by(LogEntry.log_date.desc())
+        .limit(20)
+        .all()
+    )
+    community_reviews = []
+    for log in community_logs:
+        u = log.user
+        community_reviews.append({
+            "id": log.id,
+            "user_id": log.user_id,
+            "username": u.username if u else None,
+            "display_name": u.display_name if u else None,
+            "avatar_url": u.avatar_url if u else None,
+            "accent_color": u.accent_color if u else None,
+            "status": log.status,
+            "rating": log.rating,
+            "review": log.review,
+            "log_date": log.log_date.isoformat() if log.log_date else None,
+            "platform": log.platform,
+        })
+    data["community_reviews"] = community_reviews
+    return data
 
 @router.get("/logs/{log_id}", response_model=schemas.LogEntryWithStats)
 def read_log(*, db: Session = Depends(deps.get_db), log_id: int) -> Any:
@@ -412,7 +609,7 @@ def read_log(*, db: Session = Depends(deps.get_db), log_id: int) -> Any:
         db.rollback()
     stats = {"watched_episodes": None, "total_episodes": None, "unlocked_achievements": None, "total_achievements": None}
     if log.media_item.media_type == MediaType.SERIES:
-        watched = db.query(EpisodeWatched).filter(EpisodeWatched.log_id == log.id, EpisodeWatched.watched == True).count()
+        watched = db.query(EpisodeWatched).filter(EpisodeWatched.log_id == log.id, EpisodeWatched.watched == True, EpisodeWatched.season_number > 0).count()
         stats["watched_episodes"] = watched
         stats["total_episodes"] = log.media_item.total_episodes
     elif log.media_item.media_type == MediaType.GAME:
@@ -567,9 +764,7 @@ def update_log_entry(*, db: Session = Depends(deps.get_db), log_id: int, updates
             if steam_data:
                 parsed = steam_service.parse_steam_game_data(steam_data)
                 for key, value in parsed.items():
-                    if key == "screenshots":
-                        setattr(log.media_item, key, json.dumps(value))
-                    elif value:
+                    if value:
                         setattr(log.media_item, key, value)
             db.add(log.media_item)
             db.commit()
@@ -613,6 +808,7 @@ def update_log_entry(*, db: Session = Depends(deps.get_db), log_id: int, updates
             watched = db.query(EpisodeWatched).filter(
                 EpisodeWatched.log_id == log.id,
                 EpisodeWatched.watched == True,
+                EpisodeWatched.season_number > 0,
             ).count()
             if watched > 0:
                 log.hours_spent = round((log.media_item.runtime / 60) * watched, 1)
@@ -662,6 +858,7 @@ def backfill_hours(*, db: Session = Depends(deps.get_db), user_id: int) -> Any:
             watched = db.query(EpisodeWatched).filter(
                 EpisodeWatched.log_id == log.id,
                 EpisodeWatched.watched == True,
+                EpisodeWatched.season_number > 0,
             ).count()
             if log.media_item.runtime and watched > 0:
                 log.hours_spent = round((log.media_item.runtime / 60) * watched, 1)
@@ -757,6 +954,7 @@ def _update_series_status(db: Session, log: LogEntry):
     watched_eps = db.query(EpisodeWatched).filter(
         EpisodeWatched.log_id == log.id,
         EpisodeWatched.watched == True,
+        EpisodeWatched.season_number > 0,
     ).count()
     if total_eps > 0 and watched_eps >= total_eps:
         log.status = LogStatus.COMPLETED

@@ -141,7 +141,7 @@ const LogDetailPage = () => {
       api.get(`/media/logs/${data.id}/reviews`)
         .then(r => setReviewHistory(r.data || []))
         .catch(() => {});
-    } catch { navigate('/'); } finally { setLoading(false); }
+    } catch { setLog(null); } finally { setLoading(false); }
   }, [mediaType, apiId, navigate]);
 
   useEffect(() => { fetchLog(); }, [fetchLog]);
@@ -339,7 +339,7 @@ const LogDetailPage = () => {
   };
 
   if (loading) return <div className="mdf-card p-8 text-center text-white/50">Carregando...</div>;
-  if (!log) return null;
+  if (!log) return <div className="mdf-card p-8 text-center text-white/50">Nenhum log encontrado para esta mídia.</div>;
 
   const md = log.media_item;
   const meta = TYPE_META[md.media_type] || TYPE_META.game;

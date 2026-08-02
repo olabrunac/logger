@@ -93,8 +93,12 @@ export const getLogsReviewsBatch = (logIds: number[]) => {
 };
 
 // Global Search API
-export const globalSearch = (query: string) => {
-  return api.get('/search', { params: { q: query } });
+export const globalSearch = (query: string, userId?: number) => {
+  return api.get('/search', { params: { q: query, user_id: userId } });
+};
+
+export const getMediaByApi = (mediaType: string, apiId: string, userId?: number) => {
+  return api.get('/media/items/by-api', { params: { media_type: mediaType, api_id: apiId, user_id: userId } });
 };
 
 // Notifications API
