@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from typing import List, Any, Optional
-import json
 from app import crud, schemas
 from app.crud import crud_top_list, crud_custom_list
 from app.api import deps
@@ -267,9 +266,7 @@ def create_log_entry(*, db: Session = Depends(deps.get_db), payload: schemas.Log
                 if steam_data:
                     parsed = steam_service.parse_steam_game_data(steam_data)
                     for key, value in parsed.items():
-                        if key == "screenshots":
-                            setattr(log.media_item, key, json.dumps(value))
-                        elif value:
+                        if value:
                             setattr(log.media_item, key, value)
                 db.add(log.media_item)
                 db.commit()
@@ -316,6 +313,7 @@ def create_log_entry(*, db: Session = Depends(deps.get_db), payload: schemas.Log
             watched = db.query(EpisodeWatched).filter(
                 EpisodeWatched.log_id == log.id,
                 EpisodeWatched.watched == True,
+                EpisodeWatched.season_number > 0,
             ).count()
             if watched > 0:
                 log.hours_spent = round((log.media_item.runtime / 60) * watched, 1)
@@ -337,7 +335,7 @@ def read_logs(*, db: Session = Depends(deps.get_db), user_id: int, skip: int = 0
     for log in logs:
         stats = {"watched_episodes": None, "total_episodes": None, "unlocked_achievements": None, "total_achievements": None}
         if log.media_item.media_type == MediaType.SERIES:
-            watched = db.query(EpisodeWatched).filter(EpisodeWatched.log_id == log.id, EpisodeWatched.watched == True).count()
+            watched = db.query(EpisodeWatched).filter(EpisodeWatched.log_id == log.id, EpisodeWatched.watched == True, EpisodeWatched.season_number > 0).count()
             total = log.media_item.total_episodes
             stats["watched_episodes"] = watched
             stats["total_episodes"] = total
@@ -371,7 +369,7 @@ def read_log_by_item(*, db: Session = Depends(deps.get_db), user_id: int, media_
         raise HTTPException(status_code=404, detail="Log not found")
     stats = {"watched_episodes": None, "total_episodes": None, "unlocked_achievements": None, "total_achievements": None}
     if log.media_item.media_type == MediaType.SERIES:
-        watched = db.query(EpisodeWatched).filter(EpisodeWatched.log_id == log.id, EpisodeWatched.watched == True).count()
+        watched = db.query(EpisodeWatched).filter(EpisodeWatched.log_id == log.id, EpisodeWatched.watched == True, EpisodeWatched.season_number > 0).count()
         stats["watched_episodes"] = watched
         stats["total_episodes"] = log.media_item.total_episodes
     elif log.media_item.media_type == MediaType.GAME:
@@ -412,7 +410,7 @@ def read_log(*, db: Session = Depends(deps.get_db), log_id: int) -> Any:
         db.rollback()
     stats = {"watched_episodes": None, "total_episodes": None, "unlocked_achievements": None, "total_achievements": None}
     if log.media_item.media_type == MediaType.SERIES:
-        watched = db.query(EpisodeWatched).filter(EpisodeWatched.log_id == log.id, EpisodeWatched.watched == True).count()
+        watched = db.query(EpisodeWatched).filter(EpisodeWatched.log_id == log.id, EpisodeWatched.watched == True, EpisodeWatched.season_number > 0).count()
         stats["watched_episodes"] = watched
         stats["total_episodes"] = log.media_item.total_episodes
     elif log.media_item.media_type == MediaType.GAME:
@@ -567,9 +565,7 @@ def update_log_entry(*, db: Session = Depends(deps.get_db), log_id: int, updates
             if steam_data:
                 parsed = steam_service.parse_steam_game_data(steam_data)
                 for key, value in parsed.items():
-                    if key == "screenshots":
-                        setattr(log.media_item, key, json.dumps(value))
-                    elif value:
+                    if value:
                         setattr(log.media_item, key, value)
             db.add(log.media_item)
             db.commit()
@@ -613,6 +609,7 @@ def update_log_entry(*, db: Session = Depends(deps.get_db), log_id: int, updates
             watched = db.query(EpisodeWatched).filter(
                 EpisodeWatched.log_id == log.id,
                 EpisodeWatched.watched == True,
+                EpisodeWatched.season_number > 0,
             ).count()
             if watched > 0:
                 log.hours_spent = round((log.media_item.runtime / 60) * watched, 1)
@@ -662,6 +659,7 @@ def backfill_hours(*, db: Session = Depends(deps.get_db), user_id: int) -> Any:
             watched = db.query(EpisodeWatched).filter(
                 EpisodeWatched.log_id == log.id,
                 EpisodeWatched.watched == True,
+                EpisodeWatched.season_number > 0,
             ).count()
             if log.media_item.runtime and watched > 0:
                 log.hours_spent = round((log.media_item.runtime / 60) * watched, 1)
@@ -757,6 +755,7 @@ def _update_series_status(db: Session, log: LogEntry):
     watched_eps = db.query(EpisodeWatched).filter(
         EpisodeWatched.log_id == log.id,
         EpisodeWatched.watched == True,
+        EpisodeWatched.season_number > 0,
     ).count()
     if total_eps > 0 and watched_eps >= total_eps:
         log.status = LogStatus.COMPLETED
