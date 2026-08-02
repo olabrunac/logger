@@ -40,7 +40,6 @@ def parse_steam_game_data(steam_data: dict) -> dict:
         pc_requirements = ""
 
     return {
-        "steam_appid": steam_data.get("steam_appid"),
         "header_image": steam_data.get("header_image", ""),
         "metacritic_score": steam_data.get("metacritic", {}).get("score"),
         "steam_genres": ", ".join(genres),
