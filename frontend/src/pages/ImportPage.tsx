@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import type { User } from '../types';
 import {
+  getImportJob,
   letterboxdPreview,
   letterboxdImport,
   steamPreview,
@@ -107,7 +108,7 @@ const ImportPage = ({ user }: ImportPageProps) => {
   };
   const [selectAll, setSelectAll] = useState(true);
   const [rawFile, setRawFile] = useState<File | null>(null);
-  const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
+  const [importProgress, setImportProgress] = useState<{ current: number; total: number; etaSeconds: number | null }>({ current: 0, total: 0, etaSeconds: null });
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -270,7 +271,7 @@ const ImportPage = ({ user }: ImportPageProps) => {
     const selected = getSelected();
     if (selected.length === 0) return;
     setPhase('importing');
-    setImportProgress({ current: 0, total: selected.length });
+    setImportProgress({ current: 0, total: selected.length, etaSeconds: null });
     setError(null);
     try {
       let res;
@@ -284,13 +285,40 @@ const ImportPage = ({ user }: ImportPageProps) => {
       } else {
         res = await traktImport(user.id, cleanItems);
       }
-      setResult(res.data);
-      setImportProgress({ current: selected.length, total: selected.length });
-      setTimeout(() => setPhase('done'), 600);
+      const jobId: string | undefined = res.data?.job_id;
+      if (!jobId) {
+        setResult(res.data);
+        setImportProgress({ current: selected.length, total: selected.length, etaSeconds: 0 });
+        setTimeout(() => setPhase('done'), 600);
+        return;
+      }
+      await pollJob(jobId, selected.length);
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { detail?: string } } };
       setError(axiosErr.response?.data?.detail || 'Erro ao importar.');
       setPhase('preview');
+    }
+  };
+
+  const pollJob = async (jobId: string, total: number) => {
+    for (;;) {
+      const jobRes = await getImportJob(jobId);
+      const job = jobRes.data;
+      setImportProgress({
+        current: job.current ?? 0,
+        total: job.total ?? total,
+        etaSeconds: job.eta_seconds ?? null,
+      });
+      if (job.status === 'done') {
+        setResult(job.result);
+        setImportProgress({ current: job.total ?? total, total: job.total ?? total, etaSeconds: 0 });
+        setTimeout(() => setPhase('done'), 600);
+        return;
+      }
+      if (job.status === 'error') {
+        throw new Error(job.error || 'Erro ao importar.');
+      }
+      await new Promise(r => setTimeout(r, 1500));
     }
   };
 
@@ -501,15 +529,25 @@ const ImportPage = ({ user }: ImportPageProps) => {
           </p>
           <div className="w-full max-w-md mx-auto">
             <div className="flex justify-between text-xs mb-1.5" style={{ color: 'var(--text-dim)' }}>
-              <span>{importProgress.total > 0 ? `Processando ${importProgress.total} itens...` : 'Preparando...'}</span>
+              <span>
+                {importProgress.total > 0
+                  ? `Processando ${Math.min(importProgress.current, importProgress.total)} de ${importProgress.total} itens...`
+                  : 'Preparando...'}
+              </span>
+              {importProgress.etaSeconds != null && importProgress.etaSeconds > 0 && (
+                <span>
+                  ~{Math.ceil(importProgress.etaSeconds / 60)} min restantes
+                </span>
+              )}
             </div>
             <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: 'var(--mdf-bg)' }}>
               <div
                 className="h-full rounded-full transition-all duration-500"
                 style={{
                   background: 'var(--accent)',
-                  width: importProgress.total > 0 ? '60%' : '30%',
-                  animation: 'pulse 1.5s ease-in-out infinite',
+                  width: importProgress.total > 0
+                    ? `${Math.min(100, Math.round((importProgress.current / importProgress.total) * 100))}%`
+                    : '30%',
                 }}
               />
             </div>
