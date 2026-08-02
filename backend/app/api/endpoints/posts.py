@@ -122,14 +122,13 @@ async def upload_post_image(
     is_gif = file.content_type == "image/gif"
     ext = file.filename.rsplit(".", 1)[-1] if "." in (file.filename or "") else "png"
     filename = f"post_{uuid.uuid4().hex[:8]}.{ext}"
-    filepath = os.path.join("uploads", filename)
 
     contents = await file.read()
     if len(contents) > 10 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="File too large. Max 10MB")
 
-    with open(filepath, "wb") as f:
-        f.write(contents)
+    from app.crud.crud_upload import save_file
+    save_file(db, filename=filename, content_type=file.content_type, data=contents, is_gif=is_gif)
 
     crud_post.add_image(db, post_id=post_id, url=f"/uploads/{filename}", is_gif=is_gif)
     return {"url": f"/uploads/{filename}", "is_gif": is_gif}
