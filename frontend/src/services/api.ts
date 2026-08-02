@@ -110,6 +110,10 @@ export const markAllNotificationsRead = (userId: number) => {
 };
 
 // Import API
+export const getImportJob = (jobId: string) => {
+  return api.get(`/import/jobs/${jobId}`);
+};
+
 export const letterboxdPreview = (formData: FormData) => {
   return uploadApi.post('/import/letterboxd/preview', formData);
 };
