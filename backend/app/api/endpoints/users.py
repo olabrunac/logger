@@ -71,10 +71,9 @@ async def upload_image(
 
     ext = file.filename.rsplit(".", 1)[-1] if "." in (file.filename or "") else "png"
     filename = f"{upload_type}_{user_id}_{uuid.uuid4().hex[:8]}.{ext}"
-    filepath = os.path.join(UPLOAD_DIR, filename)
 
-    with open(filepath, "wb") as f:
-        f.write(contents)
+    from app.crud.crud_upload import save_file, delete_file
+    save_file(db, filename=filename, content_type=file.content_type, data=contents, is_gif=file.content_type == "image/gif")
 
     url = f"/uploads/{filename}"
 
@@ -87,8 +86,8 @@ async def upload_image(
 
     if old_url:
         old_path = old_url.lstrip("/")
-        if os.path.exists(old_path):
-            os.remove(old_path)
+        if old_path.startswith("uploads/"):
+            delete_file(db, old_path[len("uploads/"):])
 
     return {"url": url}
 
