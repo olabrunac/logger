@@ -1,3 +1,5 @@
+import json
+
 import requests
 
 STORE_API_URL = "https://store.steampowered.com/api"
@@ -26,7 +28,6 @@ def parse_steam_game_data(steam_data: dict) -> dict:
     """Parse raw Steam Store API response into a clean dict for storage."""
     genres = [g.get("description", "") for g in steam_data.get("genres", [])]
     categories = [c.get("description", "") for c in steam_data.get("categories", [])]
-    screenshots = [s.get("path_full", s.get("path_thumbnail", "")) for s in steam_data.get("screenshots", [])[:6]]
 
     price_data = steam_data.get("price_overview")
     price = None
@@ -45,7 +46,7 @@ def parse_steam_game_data(steam_data: dict) -> dict:
         "steam_genres": ", ".join(genres),
         "steam_categories": ", ".join(categories),
         "steam_price": price,
-        "screenshots": screenshots,
+        "screenshots": json.dumps([s.get("path_full", s.get("path_thumbnail", "")) for s in steam_data.get("screenshots", [])[:6]]),
         "pc_requirements": pc_requirements,
         "short_description": steam_data.get("short_description", ""),
     }

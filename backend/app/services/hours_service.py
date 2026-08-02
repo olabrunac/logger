@@ -19,6 +19,7 @@ def effective_hours(db: Session, log: LogEntry) -> Optional[float]:
         watched = db.query(EpisodeWatched).filter(
             EpisodeWatched.log_id == log.id,
             EpisodeWatched.watched == True,
+            EpisodeWatched.season_number > 0,
         ).count()
         if watched > 0:
             return round((media.runtime / 60) * watched, 1)
