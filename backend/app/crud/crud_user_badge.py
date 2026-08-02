@@ -197,14 +197,13 @@ def check_and_unlock(db: Session, user_id: int) -> List[dict]:
     _upgrade_group([(f"streak_{t}", t) for t in [7, 30, 90, 180, 365, 730, 1095]], streak)
     _upgrade_group([(f"logs_{t}", t) for t in [10, 25, 50, 100, 250, 500, 1000, 2500, 5000]], total)
     _upgrade_group([(f"fav_{t}", t) for t in [5, 25, 100, 250]], fav_count)
+    _upgrade_group([(f"hours_{t}", t) for t in [10, 25, 50, 100, 250, 500, 1000, 2500, 5000]], int(total_hours))
     _upgrade_group([("first_follower", 1), ("10_followers", 10), ("50_followers", 50), ("100_followers", 100), ("250_followers", 250), ("500_followers", 500)], follower_count)
 
     checks = []
     checks.append(("first_post", has_post))
     checks.append(("first_log", total >= 1))
     checks.append(("omnivoro", all_types))
-    checks.append(("hours_332", total_hours >= 332))
-    checks.append(("hours_666", total_hours >= 666))
 
     for key, condition in checks:
         if condition and key not in unlocked_keys and key in BADGE_DEFS:
@@ -317,9 +316,10 @@ def get_user_badges_with_progress(db: Session, user_id: int) -> dict:
     _handle_group([(f"streak_{t}", t) for t in [7, 30, 90, 180, 365, 730, 1095]], streak)
     _handle_group([(f"logs_{t}", t) for t in [10, 25, 50, 100, 250, 500, 1000, 2500, 5000]], total)
     _handle_group([(f"fav_{t}", t) for t in [5, 25, 100, 250]], fav_count)
+    _handle_group([(f"hours_{t}", t) for t in [10, 25, 50, 100, 250, 500, 1000, 2500, 5000]], int(total_hours))
     _handle_group([("first_follower", 1), ("10_followers", 10), ("50_followers", 50), ("100_followers", 100), ("250_followers", 250), ("500_followers", 500)], follower_count)
 
-    for key in ["first_post", "first_log", "omnivoro", "hours_332", "hours_666"]:
+    for key in ["first_post", "first_log", "omnivoro"]:
         if key not in unlocked_keys and key in BADGE_DEFS:
             defn = BADGE_DEFS[key]
             if key == "omnivoro":
