@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Globe, Settings2 } from 'lucide-react';
+import { Settings2 } from 'lucide-react';
 import type { User, LogEntry } from '../types';
 import { imageUrl } from '../utils';
 
@@ -17,19 +17,8 @@ interface ProfileHeroProps {
   onEditLayout?: () => void;
 }
 
-const PLATFORM_CONFIG: Record<string, { label: string; icon: string }> = {
-  x: { label: 'X', icon: '𝕏' },
-  instagram: { label: 'Instagram', icon: '📷' },
-  discord: { label: 'Discord', icon: '💬' },
-  youtube: { label: 'YouTube', icon: '▶️' },
-  twitch: { label: 'Twitch', icon: '🔴' },
-  kick: { label: 'Kick', icon: '👟' },
-  spotify: { label: 'Spotify', icon: '🎵' },
-};
-
 const ProfileHero = ({
   profileUser,
-  currentUser,
   logs,
   isOwnProfile,
   isFollowing,
@@ -42,15 +31,6 @@ const ProfileHero = ({
 }: ProfileHeroProps) => {
   const bannerUrl = imageUrl(profileUser.banner_url);
   const avatarUrl = imageUrl(profileUser.avatar_url);
-
-  let socialData: { platforms?: Record<string, string>; spotify?: string; custom?: Array<{ label: string; url: string }> } = {};
-  try { socialData = JSON.parse(profileUser.social_links || '{}'); } catch {}
-
-  const platformLinks = socialData.platforms || {};
-  const customLinks = socialData.custom || [];
-  const spotifyUrl = socialData.spotify || '';
-
-  const activePlatforms = Object.entries(platformLinks).filter(([, v]) => v);
 
   const displayName = profileUser.display_name || profileUser.username;
   const bio = profileUser.bio || '';
@@ -98,7 +78,7 @@ const tabs = [
         <div className="flex flex-col md:flex-row md:items-end gap-4 md:gap-6">
           <div className="flex-shrink-0 self-center md:self-end">
             <div
-              className="w-24 h-24 md:w-28 md:h-28 rounded-full overflow-hidden border-4 flex-shrink-0 ring-2"
+              className="w-48 h-48 md:w-56 md:h-56 rounded-full overflow-hidden border-4 flex-shrink-0 ring-2"
               style={{
                 borderColor: 'var(--mdf-bg)',
                 background: avatarUrl ? 'transparent' : `linear-gradient(135deg, ${accentColor}, #a855f7)`,
@@ -108,7 +88,7 @@ const tabs = [
               {avatarUrl ? (
                 <img src={avatarUrl} alt={profileUser.username} className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center font-display text-3xl font-black text-white/60">
+                <div className="w-full h-full flex items-center justify-center font-display text-6xl font-black text-white/60">
                   {profileUser.username.charAt(0).toUpperCase()}
                 </div>
               )}
@@ -127,29 +107,6 @@ const tabs = [
               </div>
 
               <div className="flex items-center justify-center md:justify-end gap-2">
-                <div className="flex items-center gap-1 mr-1">
-                  {activePlatforms.map(([key, url]) => (
-                    <a key={key} href={url} target="_blank" rel="noopener noreferrer"
-                      className="w-8 h-8 flex items-center justify-center rounded-full transition-colors hover:bg-white/10"
-                      style={{ color: 'var(--text-muted)' }} title={PLATFORM_CONFIG[key]?.label || key}>
-                      <span className="text-sm">{PLATFORM_CONFIG[key]?.icon || '🔗'}</span>
-                    </a>
-                  ))}
-                  {spotifyUrl && (
-                    <a href={spotifyUrl} target="_blank" rel="noopener noreferrer"
-                      className="w-8 h-8 flex items-center justify-center rounded-full transition-colors hover:bg-white/10"
-                      style={{ color: 'var(--text-muted)' }} title="Spotify">
-                      <span className="text-sm">🎵</span>
-                    </a>
-                  )}
-                  {customLinks.map((link, i) => (
-                    <a key={i} href={link.url} target="_blank" rel="noopener noreferrer"
-                      className="w-8 h-8 flex items-center justify-center rounded-full transition-colors hover:bg-white/10"
-                      style={{ color: 'var(--text-muted)' }} title={link.label}>
-                      <Globe size={14} />
-                    </a>
-                  ))}
-                </div>
                 {isOwnProfile ? (
                   <Link to="/settings" className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition-all"
                     style={{ background: `${accentColor}22`, color: accentColor, border: `1px solid ${accentColor}44` }}>
