@@ -1,17 +1,14 @@
 import { useState, useRef } from 'react';
-import api, { uploadFile } from '../services/api';
+import api, { uploadFile, deleteUpload } from '../services/api';
 import ImportPage from './ImportPage';
-import type { User, SocialLink } from '../types';
+import type { User } from '../types';
 import { imageUrl } from '../utils';
 import {
   User as UserIcon,
-  Globe,
   Shield,
   Download,
   Crown,
   Settings as SettingsIcon,
-  Bell,
-  Mail,
   Eye,
   Trash2,
   AlertTriangle,
@@ -20,68 +17,19 @@ import {
   X,
   ChevronUp,
   ChevronDown,
-  Image,
-  Music,
-  Trophy,
-  Monitor,
-  Smartphone,
-  LayoutDashboard,
-  Sparkles,
-  Circle,
-  Square,
-  UserPlus,
-  Palette,
-  ExternalLink,
   Heart,
-  Gamepad2,
-  Camera,
-  Hash,
-  GripVertical,
-  ChevronLeft,
-  ChevronRight,
-  Plus,
-  Minus,
-  Trash,
   Star,
-  Award,
   Clock,
   Target,
-  Zap,
   Medal,
   Layers,
   Menu,
   CheckCircle,
-  ShieldCheck,
   BookOpen,
-  Calendar,
   BarChart2,
   Activity,
-  Lock,
-  Flag,
-  Ghost,
-  Search,
-  Filter,
-  MoreVertical,
-  Maximize2,
-  Minimize2,
-  Move,
-  Crown as CrownIcon,
-  Loader2,
   MessageCircle,
 } from 'lucide-react';
-
-// Default profile stats with icons
-const DEFAULT_PROFILE_STATS = [
-  { id: 'finished', label: 'Finalizados', icon: <CheckCircle className="h-3.5 w-3.5" />, visible: true, premium: false },
-  { id: 'completed', label: 'Completados', icon: <Trophy className="h-3.5 w-3.5" />, visible: true, premium: false },
-  { id: 'platinas', label: 'Platinas', icon: <Award className="h-3.5 w-3.5" />, visible: true, premium: false },
-  { id: 'time', label: 'Tempo', icon: <Clock className="h-3.5 w-3.5" />, visible: true, premium: false },
-  { id: 'verified', label: 'Verificado', icon: <ShieldCheck className="h-3.5 w-3.5" />, visible: true, premium: false },
-  { id: 'achievements', label: 'Conquistas', icon: <Target className="h-3.5 w-3.5" />, visible: true, premium: false },
-  { id: 'miletados', label: 'Miletados', icon: <Medal className="h-3.5 w-3.5" />, visible: true, premium: false },
-  { id: 'perfects', label: 'Perfeitos', icon: <Star className="h-3.5 w-3.5" />, visible: true, premium: false },
-  { id: 'hundred', label: '100%', icon: <Zap className="h-3.5 w-3.5" />, visible: true, premium: false },
-];
 
 // Per-category layout defaults
 const LAYOUT_CATEGORIES = ['general', 'games', 'movies', 'series', 'books'] as const;
@@ -107,13 +55,13 @@ const GENERAL_MOBILE: LayoutSectionDef[] = [
   { id: 'posts', label: 'Posts', icon: <MessageCircle className="h-3.5 w-3.5" />, visible: true, premium: false },
 ];
 const GENERAL_SIDEBAR: LayoutSectionDef[] = [
-  { id: 'badges', label: 'Medalhas', icon: <Medal className="h-3.5 w-3.5" />, visible: false, premium: false },
-  { id: 'year_review', label: 'Retrospectiva do Ano', icon: <Calendar className="h-3.5 w-3.5" />, visible: false, premium: false },
-  { id: 'rating_distribution', label: 'Distribuição de Notas', icon: <BarChart2 className="h-3.5 w-3.5" />, visible: false, premium: false },
-  { id: 'top_genres', label: 'Principais Gêneros', icon: <BarChart2 className="h-3.5 w-3.5" />, visible: false, premium: false },
-  { id: 'activity', label: 'Atividade', icon: <Activity className="h-3.5 w-3.5" />, visible: false, premium: false },
-  { id: 'highlights', label: 'Destaques', icon: <Star className="h-3.5 w-3.5" />, visible: false, premium: false },
-  { id: 'platforms', label: 'Plataformas', icon: <Monitor className="h-3.5 w-3.5" />, visible: false, premium: false },
+  { id: 'stats', label: 'Estatísticas', icon: <BarChart2 className="h-3.5 w-3.5" />, visible: true, premium: false },
+  { id: 'rating_distribution', label: 'Distribuição de Notas', icon: <BarChart2 className="h-3.5 w-3.5" />, visible: true, premium: false },
+  { id: 'top_genres', label: 'Principais Gêneros', icon: <BarChart2 className="h-3.5 w-3.5" />, visible: true, premium: false },
+  { id: 'hours', label: 'Horas por Tipo', icon: <Clock className="h-3.5 w-3.5" />, visible: true, premium: false },
+  { id: 'activity_map', label: 'Mapa de Atividade', icon: <Activity className="h-3.5 w-3.5" />, visible: true, premium: false },
+  { id: 'recent_activity', label: 'Atividade Recente', icon: <Clock className="h-3.5 w-3.5" />, visible: true, premium: false },
+  { id: 'badges', label: 'Conquistas e Medalhas', icon: <Medal className="h-3.5 w-3.5" />, visible: true, premium: false },
 ];
 
 const MEDIA_DESKTOP: LayoutSectionDef[] = [
@@ -145,15 +93,6 @@ const CATEGORY_DEFAULTS: Record<LayoutCategory, Record<LayoutDevice, LayoutSecti
   series: { desktop: MEDIA_DESKTOP, mobile: MEDIA_MOBILE, sidebar: MEDIA_SIDEBAR },
   books: { desktop: MEDIA_DESKTOP, mobile: MEDIA_MOBILE, sidebar: MEDIA_SIDEBAR },
 };
-
-// Default setup items
-const DEFAULT_SETUP_ITEMS = [
-  { id: '1', category: 'Placa de vídeo', name: 'NVIDIA Geforce RTX 3060 Ti', link: '', photos: [] },
-  { id: '2', category: 'Volante', name: 'Logitech G29', link: '', photos: [] },
-];
-
-// Default favorite characters
-const DEFAULT_FAVORITE_CHARACTERS = [] as Array<{id: string; name: string; game: string; image: string}>;
 
 type SettingsTab = 'general' | 'profile' | 'security' | 'privacy' | 'import' | 'premium' | 'community';
 
@@ -188,16 +127,6 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
-  const [socialLinks, setSocialLinks] = useState<SocialLink[]>(() => {
-    try {
-      const parsed = JSON.parse(user.social_links || '{}');
-      if (Array.isArray(parsed)) return parsed;
-      return [];
-    } catch {
-      return [];
-    }
-  });
-
   const [country, setCountry] = useState(user.country || '');
   const [state, setState] = useState(user.state || '');
 
@@ -206,38 +135,7 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
   const [bio, setBio] = useState(user.bio || '');
   const [editingDisplayName, setEditingDisplayName] = useState(false);
   const [editingBio, setEditingBio] = useState(false);
-  const [avatarFormat, setAvatarFormat] = useState<'circle' | 'square'>('circle');
-  const [selectedAvatar, setSelectedAvatar] = useState<'upload' | 'steam' | 'xbox' | 'playstation' | 'nintendo'>('upload');
-  const [avatarBorders, setAvatarBorders] = useState<Array<{id: string; name: string; image: string; owned: boolean; premium: boolean}>>([]);
-  const [activeAvatarBorder, setActiveAvatarBorder] = useState<string | null>(null);
 
-  // Profile stats with drag order and visibility
-  const [profileStats, setProfileStats] = useState(DEFAULT_PROFILE_STATS);
-
-  const [socialLinksInputs, setSocialLinksInputs] = useState(() => {
-    try {
-      const parsed = JSON.parse(user.social_links || '{}');
-      if (!Array.isArray(parsed) && parsed.platforms) {
-        return {
-          x: parsed.platforms.x || '',
-          instagram: parsed.platforms.instagram || '',
-          discord: parsed.platforms.discord || '',
-          youtube: parsed.platforms.youtube || '',
-          twitch: parsed.platforms.twitch || '',
-          kick: parsed.platforms.kick || '',
-        };
-      }
-      return { x: '', instagram: '', discord: '', youtube: '', twitch: '', kick: '' };
-    } catch { return { x: '', instagram: '', discord: '', youtube: '', twitch: '', kick: '' }; }
-  });
-  const [spotifyUrl, setSpotifyUrl] = useState(() => {
-    try {
-      const parsed = JSON.parse(user.social_links || '{}');
-      if (!Array.isArray(parsed) && parsed.spotify) return parsed.spotify;
-      return '';
-    } catch { return ''; }
-  });
-  
   // Parse saved section_order — supports both old {desktop,mobile,sidebar} and new per-category format
   const parseSectionOrder = (): Record<string, any> | null => {
     try {
@@ -328,23 +226,6 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
     }));
   };
 
-  // Setup
-  const [setupItems, setSetupItems] = useState(DEFAULT_SETUP_ITEMS);
-
-  // Trophy showcase
-  const [trophyShowcaseItems, setTrophyShowcaseItems] = useState<Array<{id: number; log_id: number; name: string; image_url?: string; game_title: string}>>(() => {
-    try {
-      return JSON.parse(user.trophy_showcase || '[]');
-    } catch { return []; }
-  });
-  const [allAchievements, setAllAchievements] = useState<Array<{id: number; log_id: number; external_id: string; name: string; description?: string; image_url?: string; game_title: string; game_cover?: string}>>([]);
-  const [showTrophyPicker, setShowTrophyPicker] = useState(false);
-  const [loadingAchievements, setLoadingAchievements] = useState(false);
-  const [searchAchievements, setSearchAchievements] = useState('');
-
-  // Favorite characters
-  const [favoriteCharacters, setFavoriteCharacters] = useState(DEFAULT_FAVORITE_CHARACTERS);
-
   const showSuccess = (text: string) => setMessage({ type: 'success', text });
   const showError = (text: string) => setMessage({ type: 'error', text });
 
@@ -375,22 +256,14 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
     setSaving(true);
     setMessage(null);
     try {
-      const socialLinksData = JSON.stringify({
-        platforms: socialLinksInputs,
-        spotify: spotifyUrl,
-        custom: socialLinks,
-      });
-
       const sectionOrderData = JSON.stringify(layoutByCategory);
 
       const res = await api.put(`/users/${user.id}/profile`, {
         accent_color: accentColor,
-        social_links: socialLinksData,
         country,
         state,
         display_name: displayName || null,
         bio: bio || null,
-        trophy_showcase: JSON.stringify(trophyShowcaseItems),
         section_order: sectionOrderData,
       });
       onUserUpdate(res.data);
@@ -400,6 +273,22 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
       showError('Erro ao salvar perfil.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDeleteImage = async (uploadType: 'banner' | 'avatar') => {
+    setUploading(uploadType);
+    setMessage(null);
+    try {
+      await deleteUpload(user.id, uploadType);
+      const updatedUser = { ...user, [`${uploadType}_url`]: null };
+      onUserUpdate(updatedUser);
+      showSuccess(`${uploadType === 'banner' ? 'Banner' : 'Avatar'} removido!`);
+    } catch (err) {
+      console.error(err);
+      showError('Erro ao remover imagem.');
+    } finally {
+      setUploading(null);
     }
   };
 
@@ -623,7 +512,7 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
         <div className="flex items-start justify-between gap-4 mb-4">
           <div>
             <h2 className="text-base font-semibold text-white">Biografia</h2>
-            <p className="text-xs text-white/50 mt-0.5">Conte um pouco sobre você. Máximo 500 caracteres.</p>
+            <p className="text-xs text-white/50 mt-0.5">Conte um pouco sobre você. Máximo 100 caracteres.</p>
           </div>
         </div>
         <div className="rounded-xl border border-white/10 bg-[var(--mdf-bg)] p-4">
@@ -631,15 +520,15 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
             <div className="space-y-3">
               <textarea
                 value={bio}
-                onChange={(e) => setBio(e.target.value)}
+                onChange={(e) => setBio(e.target.value.slice(0, 100))}
                 placeholder="Escreva sua biografia..."
                 className="w-full rounded-lg border border-white/10 bg-[var(--mdf-surface)] px-3 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:border-[var(--accent)] resize-none"
-                rows={4}
-                maxLength={500}
+                rows={3}
+                maxLength={100}
                 autoFocus
               />
               <div className="flex items-center justify-between">
-                <span className="text-xs text-white/30">{bio.length}/500</span>
+                <span className="text-xs text-white/30">{bio.length}/100</span>
                 <div className="flex gap-2">
                   <button onClick={() => setEditingBio(false)} className="rounded-lg bg-[var(--accent)] px-3 py-2 text-xs font-medium text-white">Salvar</button>
                   <button onClick={() => { setBio(user.bio || ''); setEditingBio(false); }} className="rounded-lg border border-white/10 px-3 py-2 text-xs font-medium text-white/50 hover:text-white">Cancelar</button>
@@ -661,50 +550,6 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
       <div className="rounded-2xl border border-white/5 bg-[var(--mdf-surface)] p-5">
         <div className="flex items-start justify-between gap-4 mb-4">
           <div>
-            <h2 className="text-base font-semibold text-white">Estatísticas do Perfil</h2>
-            <p className="text-xs text-white/50 mt-0.5">Escolha quais estatísticas exibir e reordene como preferir.</p>
-          </div>
-        </div>
-        <div className="space-y-1">
-          {profileStats.map((stat, idx) => (
-            <div key={stat.id} className="flex items-center justify-between rounded-xl border border-white/10 bg-[var(--mdf-bg)] px-3 py-2.5">
-              <div className="flex items-center gap-3">
-                <div className="flex flex-col gap-0.5">
-                  <button
-                    onClick={() => { if (idx > 0) { const updated = [...profileStats]; [updated[idx-1], updated[idx]] = [updated[idx], updated[idx-1]]; setProfileStats(updated); } }}
-                    className="text-white/30 hover:text-white/70 transition-colors disabled:opacity-20"
-                    disabled={idx === 0}
-                  ><ChevronUp className="h-3 w-3" /></button>
-                  <button
-                    onClick={() => { if (idx < profileStats.length - 1) { const updated = [...profileStats]; [updated[idx], updated[idx+1]] = [updated[idx+1], updated[idx]]; setProfileStats(updated); } }}
-                    className="text-white/30 hover:text-white/70 transition-colors disabled:opacity-20"
-                    disabled={idx === profileStats.length - 1}
-                  ><ChevronDown className="h-3 w-3" /></button>
-                </div>
-                <span className="text-white/50">{stat.icon}</span>
-                <span className="text-sm text-white">{stat.label}</span>
-                {stat.premium && <span title="Premium"><Crown className="h-3 w-3 text-yellow-500" /></span>}
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={stat.visible}
-                    onChange={() => { const updated = [...profileStats]; updated[idx] = { ...updated[idx], visible: !updated[idx].visible }; setProfileStats(updated); }}
-                    className="sr-only peer"
-                    disabled={stat.premium}
-                  />
-                  <div className="w-9 h-5 rounded-full bg-white/10 peer-focus:outline-none peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:h-[18px] after:w-[18px] after:rounded-full after:bg-white/40 after:transition-all peer-checked:bg-[var(--accent)]"></div>
-                </label>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="rounded-2xl border border-white/5 bg-[var(--mdf-surface)] p-5">
-        <div className="flex items-start justify-between gap-4 mb-4">
-          <div>
             <h2 className="text-base font-semibold text-white">Banner</h2>
             <p className="text-xs text-white/50 mt-0.5">Tamanho ideal: 1400x300px. Max 5 MB.</p>
           </div>
@@ -718,6 +563,17 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
             <img src={bannerUrl} alt="Banner" className="w-full h-full object-cover" />
           ) : (
             <span className="text-sm text-white/40">{uploading === 'banner' ? 'Enviando...' : 'Clique para enviar banner'}</span>
+          )}
+        </div>
+        <div className="flex items-center gap-2 mt-3">
+          <button onClick={() => bannerInputRef.current?.click()} disabled={uploading === 'banner'} className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-medium text-white/70 transition-colors hover:border-white/20 hover:text-white disabled:opacity-50">
+            Alterar
+          </button>
+          {bannerUrl && (
+            <button onClick={() => handleDeleteImage('banner')} disabled={uploading === 'banner'} className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50" style={{ borderColor: 'rgba(248,113,113,0.3)', color: '#f87171' }}>
+              <Trash2 className="h-3.5 w-3.5" />
+              Remover
+            </button>
           )}
         </div>
         <input ref={bannerInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={(e) => handleFileChange(e, 'banner')} />
@@ -745,6 +601,12 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
           <div>
             <p className="text-sm text-white/50 mb-1">{uploading === 'avatar' ? 'Enviando...' : 'Clique no avatar para alterar'}</p>
             <p className="text-xs text-white/30">JPEG, PNG, WebP ou GIF. Max 5 MB.</p>
+            {avatarUrl && (
+              <button onClick={() => handleDeleteImage('avatar')} disabled={uploading === 'avatar'} className="mt-2 flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50" style={{ borderColor: 'rgba(248,113,113,0.3)', color: '#f87171' }}>
+                <Trash2 className="h-3.5 w-3.5" />
+                Remover avatar
+              </button>
+            )}
           </div>
         </div>
         <input ref={avatarInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={(e) => handleFileChange(e, 'avatar')} />
@@ -761,57 +623,6 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
           <input type="color" value={accentColor} onChange={(e) => setAccentColor(e.target.value)} className="w-12 h-12 rounded-lg cursor-pointer border-2" style={{ borderColor: 'var(--border)', background: 'transparent', padding: 0 }} />
           <input type="text" value={accentColor} onChange={(e) => setAccentColor(e.target.value)} className="w-28 font-mono text-sm rounded-xl border border-white/10 bg-[var(--mdf-bg)] px-3 py-2 text-white" />
           <div className="w-10 h-10 rounded-lg" style={{ background: accentColor, border: `2px solid ${accentColor}` }} />
-        </div>
-      </div>
-
-      <div className="rounded-2xl border border-white/5 bg-[var(--mdf-surface)] p-5">
-        <div className="flex items-start justify-between gap-4 mb-4">
-          <div>
-            <h2 className="text-base font-semibold text-white">Redes Sociais</h2>
-            <p className="text-xs text-white/50 mt-0.5">Links para suas redes sociais. Exibidos no seu perfil.</p>
-          </div>
-        </div>
-        <div className="space-y-3">
-          {[
-            { key: 'x', label: 'X (Twitter)', icon: <Hash className="h-4 w-4" /> },
-            { key: 'instagram', label: 'Instagram', icon: <Image className="h-4 w-4" /> },
-            { key: 'discord', label: 'Discord', icon: <MessageCircle className="h-4 w-4" /> },
-            { key: 'youtube', label: 'YouTube', icon: <Monitor className="h-4 w-4" /> },
-            { key: 'twitch', label: 'Twitch', icon: <Monitor className="h-4 w-4" /> },
-            { key: 'kick', label: 'Kick', icon: <Monitor className="h-4 w-4" /> },
-          ].map((platform) => (
-            <div key={platform.key} className="flex items-center gap-3 rounded-xl border border-white/10 bg-[var(--mdf-bg)] px-4 py-2.5">
-              <span className="text-white/40 w-5 h-5 flex items-center justify-center shrink-0">{platform.icon}</span>
-              <span className="text-xs text-white/50 w-20 shrink-0">{platform.label}</span>
-              <input
-                type="url"
-                value={(socialLinksInputs as Record<string, string>)[platform.key] || ''}
-                onChange={(e) => setSocialLinksInputs({ ...socialLinksInputs, [platform.key]: e.target.value })}
-                placeholder={`https://${platform.key}.com/seu-perfil`}
-                className="flex-1 bg-transparent text-sm text-white placeholder:text-white/20 outline-none"
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="rounded-2xl border border-white/5 bg-[var(--mdf-surface)] p-5">
-        <div className="flex items-start justify-between gap-4 mb-4">
-          <div>
-            <h2 className="text-base font-semibold text-white">Spotify</h2>
-            <p className="text-xs text-white/50 mt-0.5">Link para seu perfil do Spotify. Exibe seu artista ou playlist em destaque.</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-[var(--mdf-bg)] px-4 py-2.5">
-          <span className="text-white/40 w-5 h-5 flex items-center justify-center shrink-0"><Music className="h-4 w-4" /></span>
-          <span className="text-xs text-white/50 w-20 shrink-0">Spotify</span>
-          <input
-            type="url"
-            value={spotifyUrl}
-            onChange={(e) => setSpotifyUrl(e.target.value)}
-            placeholder="https://open.spotify.com/user/seu-id"
-            className="flex-1 bg-transparent text-sm text-white placeholder:text-white/20 outline-none"
-          />
         </div>
       </div>
 
@@ -867,110 +678,6 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
               </label>
             </div>
           ))}
-        </div>
-      </div>
-
-      {/* Trophy Showcase */}
-      <div className="rounded-2xl border border-white/5 bg-[var(--mdf-surface)] p-5">
-        <div className="flex items-start justify-between gap-4 mb-4">
-          <div>
-            <h2 className="text-base font-semibold text-white">Troféus em Destaque</h2>
-            <p className="text-xs text-white/50 mt-0.5">Até 5 conquistas em destaque no seu perfil.</p>
-          </div>
-        </div>
-        <div className="space-y-2">
-          {trophyShowcaseItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-xl border border-white/10 bg-[var(--mdf-bg)] py-8">
-              <Trophy className="h-8 w-8 text-white/30" />
-              <p className="mt-3 text-sm text-white/50">Nenhum troféu em destaque</p>
-              <p className="mt-1 text-xs text-white/40">Clique no botão abaixo para adicionar conquistas.</p>
-            </div>
-          ) : (
-            trophyShowcaseItems.map((item, idx) => (
-              <div key={item.id} className="flex items-center gap-3 rounded-xl border border-white/10 bg-[var(--mdf-bg)] px-3 py-2">
-                <div className="w-8 h-8 rounded-lg overflow-hidden bg-white/5 shrink-0">
-                  {item.image_url ? <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" /> : <Trophy className="w-full h-full p-1.5 text-white/30" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white truncate">{item.name}</p>
-                  <p className="text-xs text-white/40 truncate">{item.game_title}</p>
-                </div>
-                <button onClick={() => setTrophyShowcaseItems(trophyShowcaseItems.filter((_, i) => i !== idx))} className="text-white/30 hover:text-red-400 transition-colors">
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            ))
-          )}
-        </div>
-        <button onClick={() => { setShowTrophyPicker(true); if (allAchievements.length === 0) { setLoadingAchievements(true); api.get(`/users/${user.id}/achievements`).then(res => setAllAchievements(res.data)).catch(() => {}).finally(() => setLoadingAchievements(false)); } }} disabled={trophyShowcaseItems.length >= 5} className="mt-3 w-full rounded-xl border border-white/10 bg-[var(--mdf-bg)] px-4 py-2.5 text-sm font-medium text-white/70 transition-colors hover:border-white/20 hover:text-white disabled:opacity-40">
-          {trophyShowcaseItems.length >= 5 ? 'Limite de 5 atingido' : 'Adicionar Conquista'}
-        </button>
-      </div>
-
-      {showTrophyPicker && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowTrophyPicker(false)}>
-          <div className="w-full max-w-lg max-h-[80vh] rounded-2xl bg-[var(--mdf-surface)] border border-white/10 p-5 flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-white">Selecionar Conquistas</h3>
-              <button className="text-white/50 hover:text-white" onClick={() => setShowTrophyPicker(false)}><X className="h-5 w-5" /></button>
-            </div>
-            <input type="text" value={searchAchievements} onChange={(e) => setSearchAchievements(e.target.value)} placeholder="Buscar conquistas..." className="w-full rounded-lg border border-white/10 bg-[var(--mdf-bg)] px-3 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:border-white/20 mb-3" />
-            <div className="flex-1 overflow-y-auto space-y-1 min-h-0">
-              {loadingAchievements ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-6 w-6 text-white/30 animate-spin" />
-                </div>
-              ) : allAchievements.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-8">
-                  <Trophy className="h-8 w-8 text-white/30" />
-                  <p className="mt-2 text-sm text-white/50">Nenhuma conquista desbloqueada</p>
-                </div>
-              ) : (
-                allAchievements
-                  .filter(a => a.name.toLowerCase().includes(searchAchievements.toLowerCase()) || a.game_title.toLowerCase().includes(searchAchievements.toLowerCase()))
-                  .map((ach) => {
-                    const isSelected = trophyShowcaseItems.some(t => t.id === ach.id);
-                    return (
-                      <button key={ach.id} onClick={() => {
-                        if (isSelected) {
-                          setTrophyShowcaseItems(trophyShowcaseItems.filter(t => t.id !== ach.id));
-                        } else if (trophyShowcaseItems.length < 5) {
-                          setTrophyShowcaseItems([...trophyShowcaseItems, { id: ach.id, log_id: ach.log_id, name: ach.name, image_url: ach.image_url, game_title: ach.game_title }]);
-                        }
-                      }} disabled={!isSelected && trophyShowcaseItems.length >= 5} className={`w-full flex items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors ${isSelected ? 'border-[var(--accent)] bg-[var(--accent)]/10' : 'border-white/10 bg-[var(--mdf-bg)] hover:border-white/20'} disabled:opacity-40`}>
-                        <div className="w-8 h-8 rounded-lg overflow-hidden bg-white/5 shrink-0">
-                          {ach.image_url ? <img src={ach.image_url} alt={ach.name} className="w-full h-full object-cover" /> : <Trophy className="w-full h-full p-1.5 text-white/30" />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-white truncate">{ach.name}</p>
-                          <p className="text-xs text-white/40 truncate">{ach.game_title}</p>
-                        </div>
-                        {isSelected && <Check className="h-4 w-4 text-[var(--accent)] shrink-0" />}
-                      </button>
-                    );
-                  })
-              )}
-            </div>
-            <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between">
-              <span className="text-xs text-white/40">{trophyShowcaseItems.length}/5 selecionados</span>
-              <button onClick={() => setShowTrophyPicker(false)} className="rounded-lg bg-[var(--accent)] px-4 py-2 text-xs font-medium text-white">Concluído</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Favorite Characters */}
-      <div className="rounded-2xl border border-white/5 bg-[var(--mdf-surface)] p-5">
-        <div className="flex items-start justify-between gap-4 mb-4">
-          <div>
-            <h2 className="text-base font-semibold text-white">Personagens Favoritos</h2>
-            <p className="text-xs text-white/50 mt-0.5">Seus personagens favoritos em destaque.</p>
-          </div>
-        </div>
-        <div className="flex flex-col items-center justify-center rounded-xl border border-white/10 bg-[var(--mdf-bg)] py-8">
-          <Ghost className="h-8 w-8 text-white/30" />
-          <p className="mt-3 text-sm text-white/50">Nenhum personagem adicionado ainda</p>
-          <p className="mt-1 text-xs text-white/40">Em breve você poderá adicionar personagens aqui.</p>
         </div>
       </div>
     </div>

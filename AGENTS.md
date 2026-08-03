@@ -43,6 +43,8 @@
 2. **Publicação (#10)**: Publicar o site, avaliar ferramentas de hosting do GitHub Students
 3. **CDN da Steam mudou**: Steam migrou de `cdn.akamai.steamstatic.com` para `shared.akamai.steamstatic.com/store_item_assets/`. `library_600x900.jpg` ainda funciona no CDN antigo, mas monitorar se quebrará.
 4. **Import otimizado**: O HEAD request por jogo no import da Steam adiciona ~1s por app (276 jogos ≈ 5min). Considerar batch ou paralelizar no futuro.
+5. **Retirar badge de primeiro log**: Remover a badge de "primeiro log" do sistema de badges.
+6. **Importação de achievements dos jogos**: Ajustar/corrigir a importação de conquistas (achievements) dos jogos.
 
 ## ✅ Implementado
 - **Popout do log**: Modal "Novo Log" (`FloatingLogButton.tsx`) fecha apenas no **X** — removido `onClick={handleClose}` do overlay.
