@@ -1134,8 +1134,6 @@ async def tvtime_preview(
 
     seen_movies = set()
     for movie in data["movies"]:
-        processed += 1
-        job.progress(current=processed, created=created, skipped=skipped, updated=updated)
         key = movie["title"].lower().strip()
         if key in seen_movies:
             continue
@@ -1155,8 +1153,6 @@ async def tvtime_preview(
         ))
 
     for wl_movie in data.get("wishlist_movies", []):
-        processed += 1
-        job.progress(current=processed, created=created, skipped=skipped, updated=updated)
         items.append(ImportItem(
             title=wl_movie["title"],
             year=wl_movie.get("year"),
