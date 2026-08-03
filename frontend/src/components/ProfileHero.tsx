@@ -3,6 +3,20 @@ import { Settings2 } from 'lucide-react';
 import type { User, LogEntry } from '../types';
 import { imageUrl } from '../utils';
 
+const COUNTRY_NAMES: Record<string, string> = {
+  BR: 'Brasil',
+  US: 'Estados Unidos',
+  PT: 'Portugal',
+  ES: 'Espanha',
+  FR: 'França',
+  DE: 'Alemanha',
+  IT: 'Itália',
+  JP: 'Japão',
+  AR: 'Argentina',
+  MX: 'México',
+  CA: 'Canadá',
+};
+
 interface ProfileHeroProps {
   profileUser: User;
   currentUser: User;
@@ -34,6 +48,12 @@ const ProfileHero = ({
 
   const displayName = profileUser.display_name || profileUser.username;
   const bio = profileUser.bio || '';
+
+  const countryCode = profileUser.country || '';
+  const countryName = countryCode ? COUNTRY_NAMES[countryCode] : '';
+  const stateCode = profileUser.state || '';
+  const showLocation = Boolean(countryCode || stateCode);
+  const locationText = [countryName, stateCode].filter(Boolean).join(' - ');
 
   const totalLogs = logs.length;
   const finishedCount = logs.filter(l => l.status === 'completed').length;
@@ -136,8 +156,24 @@ const tabs = [
               </div>
             </div>
 
-            {bio && (
-              <p className="text-sm text-white/60 mt-3 max-w-2xl leading-relaxed">{bio}</p>
+            {(bio || showLocation) && (
+              <div className="flex items-start gap-3 mt-3 max-w-2xl">
+                {showLocation && (
+                  <span className="flex items-center gap-1.5 text-sm text-white/50 shrink-0">
+                    {countryCode && (
+                      <img
+                        src={`https://flagcdn.com/w40/${countryCode.toLowerCase()}.png`}
+                        alt={countryName}
+                        loading="lazy"
+                        className="h-2 w-auto shrink-0 rounded-[1px] shadow-sm"
+                      />
+                    )}
+                    {locationText}
+                  </span>
+                )}
+                {bio && showLocation && <div className="w-px self-stretch bg-white/10" />}
+                {bio && <p className="text-sm text-white/60 leading-relaxed flex-1">{bio}</p>}
+              </div>
             )}
 
             <div className="flex items-center justify-center md:justify-start gap-3 mt-4 text-center md:text-left">
@@ -146,7 +182,6 @@ const tabs = [
                 <span className="font-display text-lg md:text-xl font-black text-white">{profileUser.following_count ?? 0}</span>
                 <span className="text-[10px] uppercase tracking-[0.2em] text-white/40 group-hover:text-white/60 transition-colors">Seguindo</span>
               </Link>
-              <div className="w-px h-10 bg-white/10" />
               <Link to={`/profile/${profileUser.username}`}
                 className="flex flex-col items-center md:items-start group min-w-[50px]">
                 <span className="font-display text-lg md:text-xl font-black text-white">{profileUser.followers_count ?? 0}</span>
