@@ -138,27 +138,34 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
   }, [profileUser?.section_order]);
 
   const effectiveSections = useMemo(() => {
-    const defaultSections: Array<{ id: string; visible: boolean; label: string }> = [
+    const allDefs: Array<{ id: string; visible: boolean; label: string }> = [
       { id: 'favorite_games', visible: true, label: 'Favoritos' },
       { id: 'recent_games', visible: true, label: 'Atividade recente' },
       { id: 'reviews', visible: true, label: 'Reviews' },
       { id: 'posts', visible: true, label: 'Posts' },
+      { id: 'top_5', visible: false, label: 'Top 5' },
+      { id: 'recent', visible: false, label: 'Recentes' },
+      { id: 'in_progress', visible: false, label: 'Em Progresso' },
+      { id: 'completed', visible: false, label: 'Finalizados' },
+      { id: 'wishlist', visible: false, label: 'Lista de Desejos' },
+      { id: 'library', visible: false, label: 'Biblioteca' },
+      { id: 'dropped', visible: false, label: 'Abandonados' },
+      { id: 'all_items', visible: false, label: 'Todos' },
+      { id: 'custom_lists', visible: false, label: 'Listas Personalizadas' },
     ];
 
-    if (!sectionConfig) return defaultSections;
+    if (!sectionConfig) return allDefs.filter(s => s.visible);
 
     const configMap = new Map(sectionConfig.map(s => [s.id, s.visible]));
     const order = sectionConfig.map(s => s.id);
 
-    const ordered = defaultSections
+    const ordered = allDefs
       .filter(s => order.includes(s.id))
       .sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
 
-    for (const d of defaultSections) {
-      if (!order.includes(d.id)) ordered.push(d);
-    }
+    const remaining = allDefs.filter(s => !order.includes(s.id));
 
-    return ordered.map(s => ({
+    return [...ordered, ...remaining].map(s => ({
       ...s,
       visible: configMap.has(s.id) ? configMap.get(s.id)! : s.visible,
     }));
@@ -444,11 +451,160 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
     );
   };
 
+  const perTypeBlocks = (renderer: (type: string, typeLogs: LogEntry[]) => React.ReactNode) =>
+    ['game', 'movie', 'series', 'book'].map(type => {
+      const typeLogs = logs.filter(l => l.media_item.media_type === type);
+      if (typeLogs.length === 0) return null;
+      return <div key={type}>{renderer(type, typeLogs)}</div>;
+    });
+
+  const renderTop5All = () => perTypeBlocks((type) => {
+    const typeTop = topListItems
+      .filter(item => item.media_item?.media_type === type)
+      .sort((a, b) => a.position - b.position);
+    if (typeTop.length === 0) return null;
+    const meta = TYPE_META[type];
+    return (
+      <section>
+        <SectionHeader title={`Top 5 · ${meta?.label}`} />
+        <div className="hidden gap-2 lg:flex lg:items-end lg:justify-center">
+          {typeTop.map((item, index) => {
+            const isGoat = index === 0;
+            return (
+              <div key={item.id} className="min-w-0" style={{ width: 'calc((100% - 32px) / 5)', maxWidth: 'calc((100% - 32px) / 5)' }}>
+                <div className="relative">
+                  {isGoat && (
+                    <div className="flex justify-center -mb-3 relative z-10">
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="#F59E0B" stroke="#F59E0B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7z"/>
+                        <path d="M12 16v4"/>
+                      </svg>
+                    </div>
+                  )}
+                  {item.media_item ? (
+                    <YgpCard log={{ id: item.id, media_item: item.media_item }} rank={`#${index + 1}`} className={isGoat ? 'outline outline-2' : undefined} style={{ outlineColor: isGoat ? '#F59E0B' : 'transparent', outlineOffset: 0 }} />
+                  ) : (
+                    <div className="group relative flex flex-col overflow-hidden rounded-lg" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderBottom: `3px solid ${meta?.color || '#666'}`, aspectRatio: '3/4' }}>
+                      <div className="w-full h-full flex items-center justify-center text-white/20 text-xs" style={{ background: (meta?.color || '#666') + '11' }}>{meta?.emoji}</div>
+                    </div>
+                  )}
+                  <div className="text-xs text-center font-medium truncate w-full mt-1.5 text-white/70">{item.media_item?.title || '...'}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div className="flex gap-2 lg:hidden">
+          {typeTop.map((item, index) => (
+            <div key={item.id} className="flex flex-col items-center gap-1 w-20">
+              {item.media_item ? (
+                <YgpCard log={{ id: item.id, media_item: item.media_item }} rank={`#${index + 1}`} />
+              ) : (
+                <div className="group relative flex flex-col overflow-hidden rounded-lg w-full" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderBottom: `3px solid ${meta?.color || '#666'}`, aspectRatio: '3/4' }}>
+                  <div className="w-full h-full flex items-center justify-center text-white/20 text-xs" style={{ background: (meta?.color || '#666') + '11' }}>{meta?.emoji}</div>
+                </div>
+              )}
+              <div className="text-[10px] text-center font-medium truncate w-full text-white/60">{item.media_item?.title || '...'}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  });
+
+  const renderRecentAll = () => perTypeBlocks((type, typeLogs) => {
+    const meta = TYPE_META[type];
+    const sorted = [...typeLogs].sort((a, b) => b.id - a.id);
+    return (
+      <section>
+        <SectionHeader title={`Recentes · ${meta?.label}`} count={typeLogs.length} />
+        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
+          {sorted.slice(0, 12).map(log => <YgpCard key={log.id} log={log} accentColor={accentColor} />)}
+        </div>
+      </section>
+    );
+  });
+
+  const renderStatusAll = (status: string, label: string) => perTypeBlocks((type, typeLogs) => {
+    const sectionLogs = typeLogs.filter(l => l.status === status);
+    if (sectionLogs.length === 0) return null;
+    const meta = TYPE_META[type];
+    return (
+      <section>
+        <SectionHeader title={`${label} · ${meta?.label}`} count={sectionLogs.length} />
+        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
+          {sectionLogs.slice(0, 12).map(log => <YgpCard key={log.id} log={log} accentColor={accentColor} />)}
+        </div>
+      </section>
+    );
+  });
+
+  const renderAllItemsAll = () => perTypeBlocks((type, typeLogs) => {
+    const meta = TYPE_META[type];
+    return (
+      <section>
+        <SectionHeader title={`Todos · ${meta?.label}`} count={typeLogs.length} />
+        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
+          {typeLogs.slice(0, 12).map(log => <YgpCard key={log.id} log={log} accentColor={accentColor} />)}
+        </div>
+      </section>
+    );
+  });
+
+  const renderCustomListsAll = () => ['game', 'movie', 'series', 'book'].map(type => {
+    const meta = TYPE_META[type];
+    const lists = customLists.filter(list => list.items.some(item => item.media_item?.media_type === type));
+    if (lists.length === 0) return null;
+    return (
+      <section key={type}>
+        <SectionHeader title={`Listas Personalizadas · ${meta?.label}`} count={lists.length} />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {lists.map(list => (
+            <Link key={list.id} to={`/profile/${profileUser?.username}/lists`} className="mdf-card mdf-card-hover rounded-xl p-4 transition-colors block group">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-display text-lg font-bold text-white/80 truncate">{list.name}</h3>
+                <span className="text-xs text-white/40 font-mono">{list.items.length} itens</span>
+              </div>
+              {list.description && <p className="text-sm text-white/40 line-clamp-2 mb-3">{list.description}</p>}
+              <div className="flex gap-1.5 overflow-hidden">
+                {list.items.slice(0, 6).map((item: any) => (
+                  <div key={item.id} className="w-12 rounded-md overflow-hidden flex-shrink-0" style={{ aspectRatio: '2/3' }}>
+                    {item.media_item?.cover_image_url ? (
+                      <img src={item.media_item.cover_image_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-xs" style={{ background: (TYPE_META[item.media_item?.media_type]?.color || '#666') + '22' }}>
+                        {TYPE_META[item.media_item?.media_type]?.emoji || '📄'}
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {list.items.length > 6 && (
+                  <div className="w-12 rounded-md flex items-center justify-center flex-shrink-0 text-xs text-white/40" style={{ background: 'var(--bg-elevated)', aspectRatio: '2/3' }}>
+                    +{list.items.length - 6}
+                  </div>
+                )}
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+    );
+  });
+
   const PROFILE_SECTIONS = [
     { id: 'favorite_games', label: 'Favoritos' },
     { id: 'recent_games', label: 'Atividade Recente' },
     { id: 'reviews', label: 'Reviews' },
     { id: 'posts', label: 'Posts' },
+    { id: 'top_5', label: 'Top 5' },
+    { id: 'recent', label: 'Recentes' },
+    { id: 'in_progress', label: 'Em Progresso' },
+    { id: 'completed', label: 'Finalizados' },
+    { id: 'wishlist', label: 'Lista de Desejos' },
+    { id: 'library', label: 'Biblioteca' },
+    { id: 'dropped', label: 'Abandonados' },
+    { id: 'all_items', label: 'Todos' },
+    { id: 'custom_lists', label: 'Listas Personalizadas' },
   ];
 
   const handleSaveLayout = async (newSections: { id: string; visible: boolean }[]) => {
@@ -467,6 +623,15 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
     recent_games: renderRecentGames,
     reviews: renderReviews,
     posts: renderPosts,
+    top_5: renderTop5All,
+    recent: renderRecentAll,
+    in_progress: () => renderStatusAll('in_progress', 'Em Progresso'),
+    completed: () => renderStatusAll('completed', 'Finalizados'),
+    wishlist: () => renderStatusAll('wishlist', 'Lista de Desejos'),
+    library: () => renderStatusAll('library', 'Biblioteca'),
+    dropped: () => renderStatusAll('dropped', 'Abandonados'),
+    all_items: renderAllItemsAll,
+    custom_lists: renderCustomListsAll,
   };
 
   const viewRenderers: Record<string, () => React.ReactNode> = {

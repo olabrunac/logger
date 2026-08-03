@@ -92,6 +92,30 @@ async def upload_image(
     return {"url": url}
 
 
+@router.delete("/{user_id}/upload/{upload_type}", response_model=dict)
+def delete_image(
+    *,
+    db: Session = Depends(deps.get_db),
+    user_id: int,
+    upload_type: str,
+):
+    if upload_type not in ("banner", "avatar"):
+        raise HTTPException(status_code=400, detail="Invalid upload type. Use 'banner' or 'avatar'.")
+
+    user = crud.user.get(db, id=user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    url = user.banner_url if upload_type == "banner" else user.avatar_url
+    if url:
+        path = url.lstrip("/")
+        if os.path.exists(path):
+            os.remove(path)
+
+    crud.user.update(db, db_obj=user, obj_in={f"{upload_type}_url": None})
+    return {"detail": "deleted"}
+
+
 @router.delete("/{user_id}")
 def delete_user(
     *,

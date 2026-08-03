@@ -1,4 +1,4 @@
-from pydantic import BaseModel, model_validator, EmailStr
+from pydantic import BaseModel, model_validator, EmailStr, field_validator
 from typing import Optional
 
 # Shared properties
@@ -23,6 +23,13 @@ class UserUpdate(BaseModel):
     display_name: Optional[str] = None
     bio: Optional[str] = None
     trophy_showcase: Optional[str] = None
+
+    @field_validator('bio')
+    @classmethod
+    def validate_bio_length(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and len(v) > 100:
+            raise ValueError('Biografia deve ter no máximo 100 caracteres')
+        return v
 
 # Login request
 class LoginRequest(BaseModel):
