@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import api from '../services/api';
@@ -58,6 +58,25 @@ const RightSidebar = ({ user, isCollapsed, onToggleCollapse }: RightSidebarProps
     }
   }, [user?.id]);
 
+  const sidebarOrder = useMemo(() => {
+    const defaults = ['stats', 'rating_distribution', 'top_genres', 'hours', 'activity_map', 'recent_activity', 'badges'];
+    try {
+      const raw = user?.section_order;
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const sidebar = parsed?.general?.sidebar || parsed?.sidebar;
+        if (Array.isArray(sidebar)) {
+          const configMap = new Map(sidebar.map((s: { id: string; visible?: boolean }) => [s.id, s.visible]));
+          const order = sidebar.map((s: { id: string }) => s.id);
+          const ordered = defaults.filter(id => order.includes(id)).sort((a, b) => order.indexOf(a) - order.indexOf(b));
+          for (const d of defaults) if (!order.includes(d)) ordered.push(d);
+          return ordered.filter(id => configMap.get(id) !== false);
+        }
+      }
+    } catch {}
+    return defaults;
+  }, [user?.section_order]);
+
   const accentColor = user.accent_color || '#00e054';
   const currentMediaColor = activeMediaType ? MEDIA_COLORS[activeMediaType] : accentColor;
 
@@ -76,6 +95,62 @@ const RightSidebar = ({ user, isCollapsed, onToggleCollapse }: RightSidebarProps
       </aside>
     );
   }
+
+  const renderBlock = (id: string) => {
+    switch (id) {
+      case 'stats':
+        return <StatsSection logs={logs} accentColor={currentMediaColor} mediaType={activeMediaType} />;
+      case 'rating_distribution':
+        return <RatingDistribution logs={logs} color={currentMediaColor} mediaType={activeMediaType} />;
+      case 'top_genres':
+        return <GenreChart logs={logs} accentColor={currentMediaColor} mediaType={activeMediaType} />;
+      case 'hours':
+        return !activeMediaType ? <HoursPieChart logs={logs} /> : null;
+      case 'activity_map':
+        return (
+          <>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-2">Mapa de Atividade</div>
+            <ActivityGraph logs={logs} mediaType={activeMediaType} />
+          </>
+        );
+      case 'recent_activity':
+        return (
+          <>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-2">Atividade Recente</div>
+            {logs.length > 0 ? (
+              <div className="flex gap-1.5 overflow-x-auto pb-1">
+                {[...logs]
+                  .filter(l => !activeMediaType || l.media_item.media_type === activeMediaType)
+                  .sort((a, b) => b.id - a.id)
+                  .slice(0, 5)
+                  .map(log => (
+                    <Link key={log.id} to={getLogUrl(log.media_item)} className="w-[44px] h-[60px] rounded-md overflow-hidden flex-shrink-0 relative group border" style={{ borderColor: 'var(--border)', borderBottom: '3px solid ' + (MEDIA_COLORS[log.media_item.media_type] || '#666') }} title={log.media_item.title}>
+                      {log.media_item.cover_image_url ? (
+                        <img src={log.media_item.cover_image_url} alt={log.media_item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-[10px] text-center p-1 bg-white/5">
+                          {log.media_item.title}
+                        </div>
+                      )}
+                    </Link>
+                  ))}
+              </div>
+            ) : (
+              <div className="text-[11px] text-white/40 py-2 text-center">Nenhum log recente</div>
+            )}
+          </>
+        );
+      case 'badges':
+        return (
+          <>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-2">Conquistas e Medalhas</div>
+            <BadgesSection userId={user.id} />
+          </>
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
     <aside className="fixed top-0 right-0 h-screen w-[324px] p-4 border-l flex flex-col z-40 overflow-y-auto space-y-3 right-sidebar"
@@ -99,58 +174,11 @@ const RightSidebar = ({ user, isCollapsed, onToggleCollapse }: RightSidebarProps
       </div>
 
       <div className="space-y-2 pb-8">
-        <div className="mdf-card p-3">
-          <StatsSection logs={logs} accentColor={currentMediaColor} mediaType={activeMediaType} />
-        </div>
-
-        <div className="mdf-card p-3">
-          <RatingDistribution logs={logs} color={currentMediaColor} mediaType={activeMediaType} />
-        </div>
-
-        <div className="mdf-card p-3">
-          <GenreChart logs={logs} accentColor={currentMediaColor} mediaType={activeMediaType} />
-        </div>
-
-        {!activeMediaType && (
-          <div className="mdf-card p-3">
-             <HoursPieChart logs={logs} />
+        {sidebarOrder.filter(id => renderBlock(id) !== null).map(id => (
+          <div key={id} className="mdf-card p-3">
+            {renderBlock(id)}
           </div>
-        )}
-
-        <div className="mdf-card p-3">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-2">Mapa de Atividade</div>
-          <ActivityGraph logs={logs} mediaType={activeMediaType} />
-        </div>
-
-        <div className="mdf-card p-3">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-2">Atividade Recente</div>
-          {logs.length > 0 ? (
-            <div className="flex gap-1.5 overflow-x-auto pb-1">
-              {[...logs]
-                .filter(l => !activeMediaType || l.media_item.media_type === activeMediaType)
-                .sort((a, b) => b.id - a.id)
-                .slice(0, 5)
-                .map(log => (
-                  <Link key={log.id} to={getLogUrl(log.media_item)} className="w-[44px] h-[60px] rounded-md overflow-hidden flex-shrink-0 relative group border" style={{ borderColor: 'var(--border)', borderBottom: '3px solid ' + (MEDIA_COLORS[log.media_item.media_type] || '#666') }} title={log.media_item.title}>
-                    {log.media_item.cover_image_url ? (
-                      <img src={log.media_item.cover_image_url} alt={log.media_item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-[10px] text-center p-1 bg-white/5">
-                        {log.media_item.title}
-                      </div>
-                    )}
-                  </Link>
-                ))}
-            </div>
-          ) : (
-            <div className="text-[11px] text-white/40 py-2 text-center">Nenhum log recente</div>
-          )}
-        </div>
-
-        <div className="mdf-card p-3">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-2">Conquistas e Medalhas</div>
-          <BadgesSection userId={user.id} />
-        </div>
+        ))}
       </div>
     </aside>
   );
