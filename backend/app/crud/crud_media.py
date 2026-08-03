@@ -53,13 +53,19 @@ class CRUDLogEntry(CRUDBase[LogEntry, LogEntryCreate, LogEntryUpdate]):
         return db_obj
 
     def get_multi_by_user(self, db: Session, *, user_id: int, skip: int = 0, limit: int = 100):
-        return db.query(self.model).filter(
+        from sqlalchemy.orm import joinedload
+        return db.query(self.model).options(
+            joinedload(LogEntry.media_item)
+        ).filter(
             LogEntry.user_id == user_id,
             LogEntry.status.notin_([LogStatus.WISHLIST, LogStatus.SOON])
         ).order_by(LogEntry.log_date.desc()).offset(skip).limit(limit).all()
 
     def get_wishlist_by_user(self, db: Session, *, user_id: int):
-        return db.query(self.model).filter(
+        from sqlalchemy.orm import joinedload
+        return db.query(self.model).options(
+            joinedload(LogEntry.media_item)
+        ).filter(
             LogEntry.user_id == user_id,
             LogEntry.status.in_([LogStatus.WISHLIST, LogStatus.SOON])
         ).order_by(LogEntry.log_date.desc()).all()

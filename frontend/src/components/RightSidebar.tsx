@@ -56,7 +56,7 @@ const RightSidebar = ({ user, isCollapsed, onToggleCollapse }: RightSidebarProps
     } else {
       setLogs([]);
     }
-  }, [user?.id, location.pathname]);
+  }, [user?.id]);
 
   const accentColor = user.accent_color || '#00e054';
   const currentMediaColor = activeMediaType ? MEDIA_COLORS[activeMediaType] : accentColor;
