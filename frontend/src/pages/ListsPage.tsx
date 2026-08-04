@@ -270,10 +270,13 @@ const ListsPage = ({ currentUser }: ListsPageProps) => {
 
   const grouped = STATUS_GROUPS.map(g => ({
     ...g,
-    items: filteredLogs.filter(l => l.status === g.key),
+    items: filteredLogs
+      .filter(l => l.status === g.key)
+      .sort((a, b) => (a.media_item?.title || '').localeCompare(b.media_item?.title || '', 'pt-BR', { sensitivity: 'base', numeric: true })),
   }));
 
-  const filteredWishlist = tab === 'all' ? wishlist : wishlist.filter(l => l.media_item.media_type === tab);
+  const filteredWishlist = (tab === 'all' ? wishlist : wishlist.filter(l => l.media_item.media_type === tab))
+    .sort((a, b) => (a.media_item?.title || '').localeCompare(b.media_item?.title || '', 'pt-BR', { sensitivity: 'base', numeric: true }));
 
   return (
     <div className="space-y-6">

@@ -34,6 +34,7 @@
 - **Estrelas**: 5 estrelas com meio ponto. Usar `getStars(rating)` → `['full'|'half'|'empty']`.
 - **"Ver mais"**: Sempre visível, mesmo com ≤12 itens. No header da seção (`justify-between`), seta `ChevronRight` gira 90° expandido.
 - **Poster tiles**: `grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-2`.
+- **Formato das capas no poster-tile**: **3:4** (aspectRatio `3/4`, como no `YgpCard` e na capa `t_cover_big` do IGDB). NUNCA usar 2:3 nos tiles de pôster — buscas, bibliotecas e grids de capas devem padronizar em 3:4.
 - **Platform options**: Multi-select (até 2), específico por tipo de mídia (`frontend/src/constants/designSystem.ts`).
 - **Contador de stats**: `completed + in_progress + dropped` (exclui wishlist).
 - **Wishlist**: Fetch separado via `/media/wishlist` (merge manual com logs nas páginas de perfil).

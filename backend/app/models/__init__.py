@@ -5,3 +5,4 @@ from .post import Post, PostImage, PostReply, PostLike
 from .user_badge import UserBadge
 from .notification import Notification
 from .upload import UploadedFile
+from .search_term import SearchTerm

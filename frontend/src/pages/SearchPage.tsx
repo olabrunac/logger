@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Search, User, X } from 'lucide-react';
+import { Search, User, X, Clock, TrendingUp } from 'lucide-react';
 import type { MediaItem } from '../types/media';
 import type { User as UserType } from '../types';
-import { globalSearch } from '../services/api';
+import { globalSearch, getPopularSearches, trackSearch } from '../services/api';
 import { getMediaUrl, imageUrl } from '../utils';
 import { TYPE_META } from '../constants/designSystem';
 
@@ -17,6 +17,17 @@ interface GlobalSearchResult {
   users: UserType[];
 }
 
+const RECENT_KEY = 'recent_searches';
+const MAX_RECENT = 8;
+
+const loadRecent = (): string[] => {
+  try {
+    const raw = localStorage.getItem(RECENT_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr.filter((s: unknown): s is string => typeof s === 'string') : [];
+  } catch { return []; }
+};
+
 const SearchPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialQuery = searchParams.get('q') || '';
@@ -24,6 +35,8 @@ const SearchPage = () => {
   const [results, setResults] = useState<GlobalSearchResult>({ media: [], users: [] });
   const [isLoading, setIsLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [popular, setPopular] = useState<string[]>([]);
+  const [recent, setRecent] = useState<string[]>(loadRecent);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -36,6 +49,34 @@ const SearchPage = () => {
   useEffect(() => {
     setTimeout(() => inputRef.current?.focus(), 50);
   }, []);
+
+  useEffect(() => {
+    getPopularSearches().then(r => setPopular(r.data || [])).catch(() => {});
+  }, []);
+
+  const rememberSearch = (q: string) => {
+    const term = q.trim();
+    if (term.length < 2) return;
+    setRecent(prev => {
+      const next = [term, ...prev.filter(s => s.toLowerCase() !== term.toLowerCase())].slice(0, MAX_RECENT);
+      try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+    trackSearch(term).catch(() => {});
+  };
+
+  const removeRecent = (term: string) => {
+    setRecent(prev => {
+      const next = prev.filter(s => s !== term);
+      try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  };
+
+  const clearRecent = () => {
+    setRecent([]);
+    try { localStorage.removeItem(RECENT_KEY); } catch { /* ignore */ }
+  };
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -56,6 +97,7 @@ const SearchPage = () => {
         const { data } = await globalSearch(q, currentUserId);
         setResults({ media: data?.media || [], users: data?.users || [] });
         setSearched(true);
+        rememberSearch(q);
       } catch (err) {
         console.error('Global search failed', err);
         setResults({ media: [], users: [] });
@@ -95,11 +137,50 @@ const SearchPage = () => {
       </div>
 
       {!query.trim() && (
-        <div className="mdf-card p-8 text-center text-white/40 text-sm">
-          Digite para buscar mídias (filmes, séries, jogos, livros) ou perfis de usuários.
-          <br />
-          Use <span className="text-white/70">@</span> no início para buscar apenas perfis, ou
-          <span className="text-white/70"> #filme</span>, <span className="text-white/70">#serie</span>, <span className="text-white/70">#jogo</span> ou <span className="text-white/70">#livro</span> para filtrar por tipo.
+        <div className="space-y-6">
+          <div className="mdf-card p-8 text-center text-white/40 text-sm">
+            Digite para buscar mídias (filmes, séries, jogos, livros) ou perfis de usuários.
+            <br />
+            Use <span className="text-white/70">@</span> no início para buscar apenas perfis, ou
+            <span className="text-white/70"> #filme</span>, <span className="text-white/70">#serie</span>, <span className="text-white/70">#jogo</span> ou <span className="text-white/70">#livro</span> para filtrar por tipo.
+          </div>
+
+          {recent.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between px-1 mb-2">
+                <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-white/40">
+                  <Clock size={12} /> Buscas recentes
+                </h3>
+                <button onClick={clearRecent} className="text-xs text-white/40 hover:text-white transition-colors">Limpar</button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {recent.map(term => (
+                  <button key={term} onClick={() => setQuery(term)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm bg-white/5 text-white/70 hover:bg-white/10 transition-colors group">
+                    {term}
+                    <X size={12} onClick={(e) => { e.stopPropagation(); removeRecent(term); }}
+                      className="text-white/40 group-hover:text-white transition-colors" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {popular.length > 0 && (
+            <div>
+              <h3 className="flex items-center gap-1.5 px-1 mb-2 text-xs font-semibold uppercase tracking-wider text-white/40">
+                <TrendingUp size={12} /> Buscas populares
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {popular.map(term => (
+                  <button key={term} onClick={() => setQuery(term)}
+                    className="px-3 py-1.5 rounded-full text-sm bg-white/5 text-white/70 hover:bg-white/10 transition-colors">
+                    {term}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -115,7 +196,7 @@ const SearchPage = () => {
                   to={getMediaUrl(item)}
                   className="mdf-card overflow-hidden hover:bg-white/5 transition-colors group"
                 >
-                  <div className="relative w-full" style={{ aspectRatio: '2/3', background: meta.color + '22' }}>
+                  <div className="relative w-full" style={{ aspectRatio: '3/4', background: meta.color + '22' }}>
                     {item.cover_image_url ? (
                       <img src={imageUrl(item.cover_image_url)} alt={item.title} className="w-full h-full object-cover" loading="lazy" />
                     ) : (
