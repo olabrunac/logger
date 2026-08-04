@@ -1,5 +1,6 @@
 from pydantic import BaseModel, model_validator, EmailStr, field_validator
 from typing import Optional
+from datetime import date
 
 # Shared properties
 class UserBase(BaseModel):
@@ -9,6 +10,7 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     email: str
     password: str
+    birth_date: Optional[date] = None
 
 # Properties to receive on user update
 class UserUpdate(BaseModel):
@@ -23,6 +25,7 @@ class UserUpdate(BaseModel):
     display_name: Optional[str] = None
     bio: Optional[str] = None
     trophy_showcase: Optional[str] = None
+    birth_date: Optional[date] = None
 
     @field_validator('bio')
     @classmethod
@@ -61,14 +64,15 @@ class User(UserBase):
     email: Optional[str] = None
     banner_url: Optional[str] = None
     avatar_url: Optional[str] = None
-    accent_color: str = "#ff6b35"
+    accent_color: Optional[str] = "#ff6b35"
     section_order: Optional[str] = None
     social_links: Optional[str] = None
     country: Optional[str] = None
     state: Optional[str] = None
     display_name: Optional[str] = None
     bio: Optional[str] = None
-    trophy_showcase: str = '[]'
+    trophy_showcase: Optional[str] = '[]'
+    birth_date: Optional[date] = None
     followers_count: int = 0
     following_count: int = 0
 
@@ -76,6 +80,8 @@ class User(UserBase):
     def ensure_accent_color(self):
         if not self.accent_color:
             self.accent_color = "#ff6b35"
+        if not self.trophy_showcase:
+            self.trophy_showcase = '[]'
         return self
 
     class Config:

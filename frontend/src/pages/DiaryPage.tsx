@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import api from '../services/api';
-import type { LogEntry, MediaType } from '../types';
+import type { LogEntry, MediaType, User } from '../types';
 import { Heart } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -9,7 +9,7 @@ import { TYPE_META } from '../constants/designSystem';
 import { getLogUrl } from '../utils';
 
 interface DiaryPageProps {
-  user: { id: number; username: string };
+  currentUser: User;
 }
 
 const FILTERS: { key: MediaType | 'all'; label: string }[] = [
@@ -31,18 +31,24 @@ const groupByDate = (logs: LogEntry[]) => {
     .sort((a, b) => b[0].localeCompare(a[0]));
 };
 
-const DiaryPage = ({ user }: DiaryPageProps) => {
+const DiaryPage = ({ currentUser }: DiaryPageProps) => {
+  const { username } = useParams<{ username: string }>();
   const [filter, setFilter] = useState<MediaType | 'all'>('all');
   const [logs, setLogs] = useState<LogEntry[]>([]);
 
   const fetchLogs = useCallback(async () => {
     try {
-      const response = await api.get('/media/logs', { params: { user_id: user.id, limit: 500 } });
+      let targetUser = currentUser;
+      if (username && username !== currentUser.username) {
+        const userRes = await api.get('/login/by-username/' + encodeURIComponent(username));
+        targetUser = userRes.data;
+      }
+      const response = await api.get('/media/logs', { params: { user_id: targetUser.id, limit: 500 } });
       setLogs(response.data || []);
     } catch (err) {
       console.error('Failed to fetch logs', err);
     }
-  }, [user.id]);
+  }, [username, currentUser]);
 
   useEffect(() => { fetchLogs(); }, [fetchLogs]);
 

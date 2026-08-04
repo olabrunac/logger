@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import api from '../services/api';
 import type { LogEntry, LogReview, User, MediaType } from '../types';
 import { Heart } from 'lucide-react';
@@ -31,12 +31,13 @@ const ReviewsPage = ({ currentUser }: ReviewsPageProps) => {
   const [reviewMap, setReviewMap] = useState<Map<number, LogReview[]>>(new Map());
   const [loading, setLoading] = useState(true);
 
-  const username = currentUser.username;
+  const { username } = useParams<{ username: string }>();
+  const displayUsername = username || currentUser.username;
 
   const fetchLogs = useCallback(async () => {
     try {
       let targetUser = currentUser;
-      const userRes = await api.get('/login/by-username/' + encodeURIComponent(username));
+      const userRes = await api.get('/login/by-username/' + encodeURIComponent(displayUsername));
       targetUser = userRes.data;
       const response = await api.get('/media/logs', { params: { user_id: targetUser.id, limit: 500 } });
       const allLogs = response.data || [];
@@ -56,7 +57,7 @@ const ReviewsPage = ({ currentUser }: ReviewsPageProps) => {
     } finally {
       setLoading(false);
     }
-  }, [currentUser, username]);
+  }, [currentUser, displayUsername]);
 
   useEffect(() => { fetchLogs(); }, [fetchLogs]);
 
@@ -96,7 +97,7 @@ const ReviewsPage = ({ currentUser }: ReviewsPageProps) => {
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-black tracking-tight">Reviews</h1>
-          <div className="text-white/50 text-sm mt-1">@{username} · {allReviewEntries.length} review{allReviewEntries.length !== 1 ? 's' : ''}</div>
+          <div className="text-white/50 text-sm mt-1">@{displayUsername} · {allReviewEntries.length} review{allReviewEntries.length !== 1 ? 's' : ''}</div>
         </div>
         <div className="flex items-center gap-1 flex-wrap">
           {FILTERS.map(t => (

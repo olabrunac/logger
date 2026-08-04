@@ -327,14 +327,16 @@ def wipe_user_data(
     if follow_ids:
         db.query(UserFollow).filter(UserFollow.id.in_(follow_ids)).delete(synchronize_session=False)
 
+    from app.core.badge_definitions import BADGE_DEFS
+    special_keys = {k for k, d in BADGE_DEFS.items() if d.special}
     badge_ids = [b.id for b in db.query(UserBadge).filter(
-        UserBadge.user_id == user_id, UserBadge.badge_key != "dev"
+        UserBadge.user_id == user_id, ~UserBadge.badge_key.in_(special_keys)
     ).all()]
     if badge_ids:
         db.query(UserBadge).filter(UserBadge.id.in_(badge_ids)).delete(synchronize_session=False)
 
     db.commit()
-    return {"message": "Dados limpos com sucesso. Avatar, banner, cor e badge dev mantidos."}
+    return {"message": "Dados limpos com sucesso. Avatar, banner, cor e badges especiais mantidos."}
 
 @router.get("/{user_id}/achievements")
 def get_user_achievements(

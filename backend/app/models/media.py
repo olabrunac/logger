@@ -49,6 +49,8 @@ class MediaItem(Base):
     trailer_url = Column(String, nullable=True)
     cast = Column(String, nullable=True)
     total_episodes = Column(Integer, nullable=True)
+    time_to_beat = Column(Text, nullable=True)
+    similar_games = Column(Text, nullable=True)
     # Google Books enrichment
     page_count = Column(Integer, nullable=True)
     publisher = Column(String, nullable=True)

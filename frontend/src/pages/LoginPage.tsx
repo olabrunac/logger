@@ -15,6 +15,7 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [birthDate, setBirthDate] = useState('');
   const [resetEmail, setResetEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -63,6 +64,7 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
         username: username.trim(),
         email: email.trim(),
         password,
+        birth_date: birthDate || null,
       });
       onLogin(response.data);
     } catch (err: any) {
@@ -183,6 +185,13 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
               placeholder="Confirmar senha"
               disabled={loading}
               className="w-full bg-[var(--mdf-surface)] border border-white/10 focus:border-[var(--mdf-green)] outline-none rounded-xl px-5 py-3 text-white placeholder:text-white/30 transition-colors"
+            />
+            <input
+              type="date"
+              value={birthDate}
+              onChange={(e) => setBirthDate(e.target.value)}
+              disabled={loading}
+              className="w-full bg-[var(--mdf-surface)] border border-white/10 focus:border-[var(--mdf-green)] outline-none rounded-xl px-5 py-3 text-white placeholder:text-white/30 transition-colors [color-scheme:dark]"
             />
             <button type="submit" disabled={loading} className="mdf-btn-primary w-full disabled:opacity-50">
               {loading ? 'Criando conta...' : 'Criar Conta'}
