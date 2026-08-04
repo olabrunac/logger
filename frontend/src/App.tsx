@@ -40,7 +40,14 @@ function App() {
 
 function AppInner() {
   const location = useLocation();
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    try {
+      const stored = localStorage.getItem('user');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [viewedUser, setViewedUser] = useState<User | null>(null);
   const [unreadTrigger, setUnreadTrigger] = useState(0);
