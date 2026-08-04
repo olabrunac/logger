@@ -47,6 +47,8 @@
 6. **Publicação (#10)**: Publicar o site, avaliar ferramentas de hosting do GitHub Students
 
 ## ✅ Implementado
+- **URL direta de perfil alheio (#17)**: `user` iniciava como `null` (só era lido do localStorage num `useEffect`), então digitar `/profile/:username` no browser (full page load) redirecionava para o próprio perfil (cascata `/login` → `/` → `/profile/{user.username}`). Fix: `App.tsx` inicializa `user` **sincronamente** via `useState` lazy a partir do localStorage — URL direta de qualquer rota agora renderiza o destino direto.
+- **Railway — crash do Postgres corrigido (#16)**: `init_db.py` usava `ALTER TABLE user ...` (sem aspas, `user` é palavra reservada) com `except: pass` engolindo o erro → crash de startup (`column user.birth_date does not exist`). Fix: `_migrate()` cita `"user"`, roda cada statement em transação própria com `commit`/`rollback` e loga o erro.
 - **Pílula branca no "Meu Log"**: Pílula de status no bloco "Meu Log" da página de mídia usa `color: '#fff'` fixa — `STATUS_TEXT_COLORS` removido de `MediaDetailPage.tsx`.
 - **Grid de imagens estilo Twitter (#2)**: `PostImages.tsx` (grid 1/2/3/4 + lightbox fullscreen com setas/Escape/contador) integrado ao `TimelinePage`.
 - **Poster tiles fixos (#3)**: Favoritos (`ProfilePage`) e Top 5 (`MediaTypeProfilePage`) usam a mesma grid fixa da Atividade recente (`grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2`).
