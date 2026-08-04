@@ -42,9 +42,10 @@
 1. **Tags de jogos parados**: Na importação de jogos, adicionar tags corretas quando o jogo está há mais de 120 dias sem ser jogado.
 2. **Import otimizado**: O HEAD request por jogo no import da Steam adiciona ~1s por app (276 jogos ≈ 5min). Considerar batch ou paralelizar no futuro.
 3. **Retirar badge de primeiro log**: Remover a badge de "primeiro log" do sistema de badges.
-4. **Importação de achievements dos jogos**: Ajustar/corrigir a importação de conquistas (achievements) dos jogos.
-5. **Ajustar site para mobile**: Revisar layout responsivo (sidebar, grids, modais) para telas pequenas.
-6. **Publicação (#10)**: Publicar o site, avaliar ferramentas de hosting do GitHub Students
+4. **Data de nascimento no Settings → Geral**: Mostrar a data de nascimento num bloco e permitir trocá-la **1 única vez** (caso o usuário tenha preenchido errado inicialmente).
+5. **Importação de achievements dos jogos**: Ajustar/corrigir a importação de conquistas (achievements) dos jogos.
+6. **Ajustar site para mobile**: Revisar layout responsivo (sidebar, grids, modais) para telas pequenas.
+7. **Publicação (#10)**: Publicar o site, avaliar ferramentas de hosting do GitHub Students
 
 ## ✅ Implementado
 - **URL direta de perfil alheio (#17)**: `user` iniciava como `null` (só era lido do localStorage num `useEffect`), então digitar `/profile/:username` no browser (full page load) redirecionava para o próprio perfil (cascata `/login` → `/` → `/profile/{user.username}`). Fix: `App.tsx` inicializa `user` **sincronamente** via `useState` lazy a partir do localStorage — URL direta de qualquer rota agora renderiza o destino direto.
