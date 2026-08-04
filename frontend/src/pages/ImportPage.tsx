@@ -500,6 +500,11 @@ const ImportPage = ({ user }: ImportPageProps) => {
                       biblioteca
                     </span>
                   )}
+                  {item.status === 'dropped' && (
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: 'rgba(239,68,68,0.2)', color: '#f87171' }}>
+                      abandonado
+                    </span>
+                  )}
                 </div>
               ))}
             </div>

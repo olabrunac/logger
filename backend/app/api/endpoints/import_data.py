@@ -3,6 +3,7 @@ import io
 import json
 import time
 import zipfile
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests
 import datetime
 from typing import List, Optional, Dict
@@ -492,12 +493,9 @@ async def steam_preview(
         hours = round(playtime_minutes / 60, 1) if playtime_minutes > 0 else None
         log_date = None
         rtime = g.get("rtime_last_played")
-        ninety_days = 90 * 24 * 3600
-        if playtime_minutes > 0:
-            if rtime and (datetime.datetime.now().timestamp() - rtime) > ninety_days:
-                status = "dropped"
-            else:
-                status = "in_progress"
+        ABANDONED_SECONDS = 120 * 24 * 3600
+        if playtime_minutes > 0 and rtime and (datetime.datetime.now().timestamp() - rtime) > ABANDONED_SECONDS:
+            status = "dropped"
         else:
             status = "library"
         if rtime:
@@ -538,7 +536,7 @@ async def steam_import(
     job_id = start_job(
         source="steam",
         total=len(items),
-        baseline_seconds_per_item=2.5,
+        baseline_seconds_per_item=1.5,
         fn=lambda job, db: _run_steam_import(job, db, user_id, resolved_steam_id, items),
     )
     return {"job_id": job_id}
@@ -549,6 +547,20 @@ def _run_steam_import(job, db, user_id: int, resolved_steam_id: str, items: list
     created = 0
     skipped = 0
     media_crud = CRUDMediaItem(MediaItem)
+
+    # Pre-resolve cover URLs for all appids in parallel (each HEAD ~1s, so
+    # 276 games ≈ 5min serial → ~30s with 10 workers).
+    cover_map: Dict[int, Optional[str]] = {}
+    appids = [item.get("appid") for item in items if item.get("appid")]
+    unique_appids = list(dict.fromkeys(appids))
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        future_to_appid = {executor.submit(_steam_cover_url, appid): appid for appid in unique_appids}
+        for future in as_completed(future_to_appid):
+            appid = future_to_appid[future]
+            try:
+                cover_map[appid] = future.result()
+            except Exception:
+                cover_map[appid] = None
 
     for idx, item in enumerate(items):
         title = item.get("title", "").strip()
@@ -565,17 +577,15 @@ def _run_steam_import(job, db, user_id: int, resolved_steam_id: str, items: list
             job.progress(current=idx + 1, created=created, skipped=skipped)
             continue
 
-        cover_url = None
+        cover_url = cover_map.get(appid)
         steam_details = None
-        if appid:
-            cover_url = _steam_cover_url(appid)
-            if not cover_url:
-                skipped += 1
-                job.add_skipped({"title": title, "reason": "no_cover"})
-                job.progress(current=idx + 1, created=created, skipped=skipped)
-                continue
-            steam_details = steam_service.get_app_details(appid)
-            time.sleep(0.5)
+        if not cover_url:
+            skipped += 1
+            job.add_skipped({"title": title, "reason": "no_cover"})
+            job.progress(current=idx + 1, created=created, skipped=skipped)
+            continue
+        steam_details = steam_service.get_app_details(appid)
+        time.sleep(0.5)
 
         media_in = schemas.MediaItemCreate(
             title=title,
