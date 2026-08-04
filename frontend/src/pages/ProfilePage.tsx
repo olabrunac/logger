@@ -12,6 +12,7 @@ import { imageUrl, getLogUrl } from '../utils';
 
 interface ProfilePageProps {
   currentUser: User;
+  onUserUpdate?: (updatedUser: User) => void;
 }
 
 interface Post {
@@ -29,7 +30,7 @@ interface Post {
 
 const IMAGE_URL = (url: string) => imageUrl(url) || '';
 
-const ProfilePage = ({ currentUser }: ProfilePageProps) => {
+const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
   const { username } = useParams<{ username: string }>();
   const [searchParams] = useSearchParams();
   const view = searchParams.get('view');
@@ -51,6 +52,10 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
   useEffect(() => {
     fetchData();
   }, [username]);
+
+  useEffect(() => {
+    if (isOwnProfile && currentUser) setProfileUser(currentUser);
+  }, [currentUser, isOwnProfile]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -168,6 +173,7 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
     if (!profileUser || followLoading) return;
     setFollowLoading(true);
     try {
+      const delta = isFollowing ? -1 : 1;
       if (isFollowing) {
         await api.delete(`/users/${currentUser.id}/follow/${profileUser.id}`);
         setIsFollowing(false);
@@ -175,6 +181,8 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
         await api.post(`/users/${currentUser.id}/follow/${profileUser.id}`);
         setIsFollowing(true);
       }
+      setProfileUser(prev => prev ? { ...prev, followers_count: Math.max(0, (prev.followers_count ?? 0) + delta) } : prev);
+      onUserUpdate?.({ ...currentUser, following_count: Math.max(0, (currentUser.following_count ?? 0) + delta) });
     } catch {}
     setFollowLoading(false);
   };
@@ -234,14 +242,14 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
     return (
       <section>
         <SectionHeader title="Favoritos" linkTo={`/profile/${profileUser.username}/${items[0] ? TYPE_META[items[0].type]?.slug : 'games'}`} linkLabel="Ver mais" />
-        <div className="hidden gap-2 lg:flex lg:items-end lg:justify-center lg:mx-auto" style={{ width: `calc(${Math.min(items.length, 4) * 12.5}%)`, maxWidth: '50%' }}>
+        <div className="hidden lg:grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
           {items.map(({ type, items: typeItems }, idx) => {
             const top = typeItems[0];
             const media = top.media_item;
             const meta = TYPE_META[type];
             const isGoat = idx === 0;
             return (
-              <div key={type} className="min-w-0" style={{ width: `calc((100% - 24px) / 4)`, maxWidth: `calc((100% - 24px) / 4)` }}>
+              <div key={type} className="min-w-0">
                 <div className={`relative ${isGoat ? '-mt-6' : ''}`}>
                   {isGoat && (
                     <div className="flex justify-center -mb-3 relative z-10">

@@ -336,12 +336,12 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
           )}
         </SectionHeader>
 
-        <div className="hidden gap-2 lg:flex lg:items-end lg:justify-center lg:mx-auto" style={{ width: `calc(${Math.min(displayItems.length, 5) * 10}%)`, maxWidth: '50%' }}>
+        <div className="hidden lg:grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
           {displayItems.map((item, index) => {
             const media = item.media_item || top5Favorites.find(m => m.id === (item as any).media_item_id) as MediaItem | undefined;
             const isGoat = index === 0;
             return (
-              <div key={item.id || index} className="min-w-0 relative" style={{ width: `calc((100% - 32px) / 5)`, maxWidth: `calc((100% - 32px) / 5)` }}>
+              <div key={item.id || index} className="relative min-w-0">
                 {editingTop5 && (
                   <div className="flex justify-center gap-1 mb-1">
                     {index > 0 && (
@@ -386,11 +386,11 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
             );
           })}
         </div>
-        <div className="flex gap-2 lg:hidden">
+        <div className="grid grid-cols-4 gap-2 lg:hidden">
           {displayItems.map((item, index) => {
             const media = item.media_item || top5Favorites.find(m => m.id === (item as any).media_item_id) as MediaItem | undefined;
             return (
-              <div key={item.id || index} className="flex flex-col items-center gap-1 w-20">
+              <div key={item.id || index} className="flex flex-col items-center gap-1 min-w-0">
                 {editingTop5 && (
                   <button onClick={() => removeTop5Item(index)} className="self-end p-0.5 bg-black/60 rounded text-white/60 hover:text-red-400">
                     <Trash2 size={12} />

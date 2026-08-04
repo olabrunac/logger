@@ -180,19 +180,19 @@ function AppInner() {
             <Route
               path="/profile/:username/calendar"
               element={
-                user ? <CalendarPage user={user} /> : <Navigate to="/login" />
+                user ? <CalendarPage currentUser={user} /> : <Navigate to="/login" />
               }
             />
             <Route
               path="/profile/:username/lists"
               element={
-                user ? <ListsPage user={user} /> : <Navigate to="/login" />
+                user ? <ListsPage currentUser={user} /> : <Navigate to="/login" />
               }
             />
             <Route
               path="/profile/:username/diary"
               element={
-                user ? <DiaryPage user={user} /> : <Navigate to="/login" />
+                user ? <DiaryPage currentUser={user} /> : <Navigate to="/login" />
               }
             />
             <Route
@@ -240,7 +240,7 @@ function AppInner() {
             <Route
               path="/profile/:username"
               element={
-                user ? <ProfilePage currentUser={user} /> : <Navigate to="/login" />
+                user ? <ProfilePage currentUser={user} onUserUpdate={handleUserUpdate} /> : <Navigate to="/login" />
               }
             />
             <Route
