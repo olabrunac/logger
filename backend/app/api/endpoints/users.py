@@ -71,10 +71,9 @@ async def upload_image(
 
     ext = file.filename.rsplit(".", 1)[-1] if "." in (file.filename or "") else "png"
     filename = f"{upload_type}_{user_id}_{uuid.uuid4().hex[:8]}.{ext}"
-    filepath = os.path.join(UPLOAD_DIR, filename)
 
-    with open(filepath, "wb") as f:
-        f.write(contents)
+    from app.crud.crud_upload import save_file, delete_file
+    save_file(db, filename=filename, content_type=file.content_type, data=contents, is_gif=file.content_type == "image/gif")
 
     url = f"/uploads/{filename}"
 
@@ -87,10 +86,34 @@ async def upload_image(
 
     if old_url:
         old_path = old_url.lstrip("/")
-        if os.path.exists(old_path):
-            os.remove(old_path)
+        if old_path.startswith("uploads/"):
+            delete_file(db, old_path[len("uploads/"):])
 
     return {"url": url}
+
+
+@router.delete("/{user_id}/upload/{upload_type}", response_model=dict)
+def delete_image(
+    *,
+    db: Session = Depends(deps.get_db),
+    user_id: int,
+    upload_type: str,
+):
+    if upload_type not in ("banner", "avatar"):
+        raise HTTPException(status_code=400, detail="Invalid upload type. Use 'banner' or 'avatar'.")
+
+    user = crud.user.get(db, id=user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    url = user.banner_url if upload_type == "banner" else user.avatar_url
+    if url:
+        path = url.lstrip("/")
+        if os.path.exists(path):
+            os.remove(path)
+
+    crud.user.update(db, db_obj=user, obj_in={f"{upload_type}_url": None})
+    return {"detail": "deleted"}
 
 
 @router.delete("/{user_id}")

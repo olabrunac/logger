@@ -1,4 +1,4 @@
-import csv
+﻿import csv
 import io
 import json
 import time
@@ -275,7 +275,6 @@ async def letterboxd_preview(
 @router.post("/letterboxd/import")
 async def letterboxd_import(
     *,
-    db: Session = Depends(deps.get_db),
     user_id: int = Form(...),
     items_json: str = Form(...),
 ):
@@ -284,18 +283,28 @@ async def letterboxd_import(
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid items JSON.")
 
+    from app.services.import_jobs import start_job
+    job_id = start_job(
+        source="letterboxd",
+        total=len(items),
+        baseline_seconds_per_item=1.0,
+        fn=lambda job, db: _run_letterboxd_import(job, db, user_id, items),
+    )
+    return {"job_id": job_id}
+
+
+def _run_letterboxd_import(job, db, user_id: int, items: list) -> dict:
     created = 0
     skipped = 0
     enriched = 0
-    imported_items = []
-    skipped_items = []
     media_crud = CRUDMediaItem(MediaItem)
 
-    for item in items:
+    for idx, item in enumerate(items):
         title = item.get("title", "").strip()
         if not title:
             skipped += 1
-            skipped_items.append({"title": item.get("title", ""), "reason": "empty_title"})
+            job.add_skipped({"title": item.get("title", ""), "reason": "empty_title"})
+            job.progress(current=idx + 1, created=created, skipped=skipped)
             continue
 
         year = item.get("year")
@@ -327,7 +336,8 @@ async def letterboxd_import(
 
         if not tmdb_id:
             skipped += 1
-            skipped_items.append({"title": title, "reason": "no_api_match"})
+            job.add_skipped({"title": title, "reason": "no_api_match"})
+            job.progress(current=idx + 1, created=created, skipped=skipped)
             continue
 
         media_in = schemas.MediaItemCreate(
@@ -344,7 +354,8 @@ async def letterboxd_import(
 
         if not media_item.cover_image_url:
             skipped += 1
-            skipped_items.append({"title": title, "reason": "no_cover"})
+            job.add_skipped({"title": title, "reason": "no_cover"})
+            job.progress(current=idx + 1, created=created, skipped=skipped)
             continue
 
         existing_log = db.query(LogEntry).filter(
@@ -353,7 +364,8 @@ async def letterboxd_import(
         ).first()
         if existing_log:
             skipped += 1
-            skipped_items.append({"title": title, "reason": "duplicate"})
+            job.add_skipped({"title": title, "reason": "duplicate"})
+            job.progress(current=idx + 1, created=created, skipped=skipped)
             continue
 
         log_date = None
@@ -398,7 +410,7 @@ async def letterboxd_import(
             )
             db.add(review_entry)
         created += 1
-        imported_items.append({"title": title, "action": "created"})
+        job.add_imported({"title": title, "action": "created"})
 
         if tmdb_id:
             try:
@@ -417,6 +429,8 @@ async def letterboxd_import(
             log.hours_spent = round(media_item.runtime / 60, 1)
             db.add(log)
 
+        job.progress(current=idx + 1, created=created, skipped=skipped, enriched=enriched)
+
     db.commit()
 
     try:
@@ -427,7 +441,15 @@ async def letterboxd_import(
     except Exception:
         pass
 
-    return {"created": created, "updated": 0, "skipped": skipped, "enriched": enriched, "total": len(items), "imported_items": imported_items, "skipped_items": skipped_items}
+    return {
+        "created": created,
+        "updated": 0,
+        "skipped": skipped,
+        "enriched": enriched,
+        "total": len(items),
+        "imported_items": job.imported_items,
+        "skipped_items": job.skipped_items,
+    }
 
 
 @router.post("/steam/preview")
@@ -499,7 +521,6 @@ async def steam_preview(
 @router.post("/steam/import")
 async def steam_import(
     *,
-    db: Session = Depends(deps.get_db),
     user_id: int = Form(...),
     steam_id: str = Form(...),
     items_json: str = Form(...),
@@ -511,21 +532,37 @@ async def steam_import(
 
     resolved_steam_id = _resolve_steam_id(steam_id)
     if not resolved_steam_id:
-        raise HTTPException(status_code=400, detail="Steam ID inválido.")
+        raise HTTPException(status_code=400, detail="Steam ID invÃ¡lido.")
 
+    from app.services.import_jobs import start_job
+    job_id = start_job(
+        source="steam",
+        total=len(items),
+        baseline_seconds_per_item=2.5,
+        fn=lambda job, db: _run_steam_import(job, db, user_id, resolved_steam_id, items),
+    )
+    return {"job_id": job_id}
+
+
+def _run_steam_import(job, db, user_id: int, resolved_steam_id: str, items: list) -> dict:
+    from app.models.media import Achievement
     created = 0
     skipped = 0
     media_crud = CRUDMediaItem(MediaItem)
 
-    for item in items:
+    for idx, item in enumerate(items):
         title = item.get("title", "").strip()
         if not title:
             skipped += 1
+            job.add_skipped({"title": title, "reason": "empty_title"})
+            job.progress(current=idx + 1, created=created, skipped=skipped)
             continue
 
         appid = item.get("appid")
         if not appid:
             skipped += 1
+            job.add_skipped({"title": title, "reason": "no_appid"})
+            job.progress(current=idx + 1, created=created, skipped=skipped)
             continue
 
         cover_url = None
@@ -534,6 +571,8 @@ async def steam_import(
             cover_url = _steam_cover_url(appid)
             if not cover_url:
                 skipped += 1
+                job.add_skipped({"title": title, "reason": "no_cover"})
+                job.progress(current=idx + 1, created=created, skipped=skipped)
                 continue
             steam_details = steam_service.get_app_details(appid)
             time.sleep(0.5)
@@ -566,6 +605,8 @@ async def steam_import(
         ).first()
         if existing_log:
             skipped += 1
+            job.add_skipped({"title": title, "reason": "duplicate"})
+            job.progress(current=idx + 1, created=created, skipped=skipped)
             continue
 
         status_str = item.get("status", "completed")
@@ -602,6 +643,7 @@ async def steam_import(
         )
         db.add(review_entry)
         created += 1
+        job.add_imported({"title": title, "action": "created"})
 
         ach_count = 0
         achievements_checked = False
@@ -696,6 +738,8 @@ async def steam_import(
             log.status = LogStatus.LIBRARY
             db.add(log)
 
+        job.progress(current=idx + 1, created=created, skipped=skipped)
+
     db.commit()
 
     try:
@@ -780,7 +824,6 @@ async def trakt_preview(
 @router.post("/trakt/import")
 async def trakt_import(
     *,
-    db: Session = Depends(deps.get_db),
     user_id: int = Form(...),
     items_json: str = Form(...),
 ):
@@ -789,14 +832,26 @@ async def trakt_import(
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid items JSON.")
 
+    from app.services.import_jobs import start_job
+    job_id = start_job(
+        source="trakt",
+        total=len(items),
+        baseline_seconds_per_item=1.0,
+        fn=lambda job, db: _run_trakt_import(job, db, user_id, items),
+    )
+    return {"job_id": job_id}
+
+
+def _run_trakt_import(job, db, user_id: int, items: list) -> dict:
     created = 0
     skipped = 0
     media_crud = CRUDMediaItem(MediaItem)
 
-    for item in items:
+    for idx, item in enumerate(items):
         title = item.get("title", "").strip()
         if not title:
             skipped += 1
+            job.progress(current=idx + 1, created=created, skipped=skipped)
             continue
 
         year = item.get("year")
@@ -822,6 +877,8 @@ async def trakt_import(
 
         if not tmdb_id:
             skipped += 1
+            job.add_skipped({"title": title, "reason": "no_api_match"})
+            job.progress(current=idx + 1, created=created, skipped=skipped)
             continue
 
         media_in = schemas.MediaItemCreate(
@@ -834,6 +891,8 @@ async def trakt_import(
 
         if not media_item.cover_image_url:
             skipped += 1
+            job.add_skipped({"title": title, "reason": "no_cover"})
+            job.progress(current=idx + 1, created=created, skipped=skipped)
             continue
 
         existing_log = db.query(LogEntry).filter(
@@ -842,6 +901,8 @@ async def trakt_import(
         ).first()
         if existing_log:
             skipped += 1
+            job.add_skipped({"title": title, "reason": "duplicate"})
+            job.progress(current=idx + 1, created=created, skipped=skipped)
             continue
 
         rating = item.get("rating")
@@ -876,6 +937,7 @@ async def trakt_import(
         )
         db.add(review_entry)
         created += 1
+        job.add_imported({"title": title, "action": "created"})
 
         if tmdb_id:
             try:
@@ -892,6 +954,8 @@ async def trakt_import(
             log.hours_spent = round((media_item.runtime / 60) * media_item.total_episodes, 1)
             db.add(log)
 
+        job.progress(current=idx + 1, created=created, skipped=skipped)
+
     db.commit()
 
     try:
@@ -902,7 +966,13 @@ async def trakt_import(
     except Exception:
         pass
 
-    return {"created": created, "skipped": skipped, "total": len(items)}
+    return {
+        "created": created,
+        "skipped": skipped,
+        "total": len(items),
+        "imported_items": job.imported_items,
+        "skipped_items": job.skipped_items,
+    }
 
 
 def _parse_tvtime_zip(content: bytes) -> dict:
@@ -1107,7 +1177,6 @@ async def tvtime_preview(
 @router.post("/tvtime/import")
 async def tvtime_import(
     *,
-    db: Session = Depends(deps.get_db),
     user_id: int = Form(...),
     items_json: str = Form(...),
     raw_zip: UploadFile = File(...),
@@ -1122,14 +1191,28 @@ async def tvtime_import(
     zip_content = await raw_zip.read()
     data = _parse_tvtime_zip(zip_content)
 
+    from app.services.import_jobs import start_job
+    job_id = start_job(
+        source="tvtime",
+        total=len(selected_items),
+        baseline_seconds_per_item=1.2,
+        fn=lambda job, db: _run_tvtime_import(job, db, user_id, selected_titles, data),
+    )
+    return {"job_id": job_id}
+
+
+def _run_tvtime_import(job, db, user_id: int, selected_titles: set, data: dict) -> dict:
     created = 0
     skipped = 0
     updated = 0
+    processed = 0
     imported_items = []
     skipped_items = []
     media_crud = CRUDMediaItem(MediaItem)
 
     for show_name, show_data in data["shows"].items():
+        processed += 1
+        job.progress(current=processed, created=created, skipped=skipped, updated=updated)
         if show_name.lower().strip() not in selected_titles:
             skipped += 1
             skipped_items.append({"title": show_name, "reason": "not_selected"})
@@ -1311,6 +1394,8 @@ async def tvtime_import(
             db.add(log)
 
     for movie in data["movies"]:
+        processed += 1
+        job.progress(current=processed, created=created, skipped=skipped, updated=updated)
         if movie["title"].lower().strip() not in selected_titles:
             skipped += 1
             skipped_items.append({"title": movie["title"], "reason": "not_selected"})
@@ -1405,6 +1490,8 @@ async def tvtime_import(
             db.add(log)
 
     for wl_name, wl_data in data.get("wishlist_series", {}).items():
+        processed += 1
+        job.progress(current=processed, created=created, skipped=skipped, updated=updated)
         if wl_name.lower().strip() not in selected_titles:
             skipped += 1
             skipped_items.append({"title": wl_name, "reason": "not_selected"})
@@ -1473,6 +1560,8 @@ async def tvtime_import(
                 pass
 
     for wl_movie in data.get("wishlist_movies", []):
+        processed += 1
+        job.progress(current=processed, created=created, skipped=skipped, updated=updated)
         if wl_movie["title"].lower().strip() not in selected_titles:
             skipped += 1
             skipped_items.append({"title": wl_movie["title"], "reason": "not_selected"})
@@ -1550,11 +1639,22 @@ async def tvtime_import(
     except Exception:
         pass
 
+    job.imported_items = imported_items
+    job.skipped_items = skipped_items
     return {
         "created": created,
         "updated": updated,
         "skipped": skipped,
-        "total": len(selected_items),
+        "total": job.total,
         "imported_items": imported_items,
         "skipped_items": skipped_items,
     }
+
+
+@router.get("/jobs/{job_id}")
+def get_import_job(job_id: str):
+    from app.services.import_jobs import get_job
+    job = get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return job.to_dict()

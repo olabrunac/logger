@@ -15,6 +15,10 @@ export const uploadFile = (url: string, formData: FormData) => {
   return uploadApi.post(url, formData);
 };
 
+export const deleteUpload = (userId: number, uploadType: 'banner' | 'avatar') => {
+  return api.delete(`/users/${userId}/upload/${uploadType}`);
+};
+
 // Top List API
 export const getTopList = (userId: number) => {
   return api.get(`/media/users/${userId}/top-list`);
@@ -119,6 +123,10 @@ export const markAllNotificationsRead = (userId: number) => {
 };
 
 // Import API
+export const getImportJob = (jobId: string) => {
+  return api.get(`/import/jobs/${jobId}`);
+};
+
 export const letterboxdPreview = (formData: FormData) => {
   return uploadApi.post('/import/letterboxd/preview', formData);
 };
