@@ -44,6 +44,14 @@ def init_db() -> None:
     except Exception:
         pass
     try:
+        db.execute(text("ALTER TABLE mediaitem ADD COLUMN time_to_beat TEXT"))
+    except Exception:
+        pass
+    try:
+        db.execute(text("ALTER TABLE mediaitem ADD COLUMN similar_games TEXT"))
+    except Exception:
+        pass
+    try:
         db.execute(text("ALTER TABLE user ADD COLUMN trophy_showcase TEXT DEFAULT '[]'"))
     except Exception:
         pass

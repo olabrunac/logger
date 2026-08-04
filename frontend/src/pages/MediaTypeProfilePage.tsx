@@ -336,7 +336,7 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
           )}
         </SectionHeader>
 
-        <div className="hidden gap-2 lg:flex lg:items-end lg:justify-center">
+        <div className="hidden gap-2 lg:flex lg:items-end lg:justify-center lg:mx-auto" style={{ width: `calc(${Math.min(displayItems.length, 5) * 10}%)`, maxWidth: '50%' }}>
           {displayItems.map((item, index) => {
             const media = item.media_item || top5Favorites.find(m => m.id === (item as any).media_item_id) as MediaItem | undefined;
             const isGoat = index === 0;
