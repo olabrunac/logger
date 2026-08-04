@@ -50,6 +50,34 @@ def search_games(query: str):
     return _igdb_post("games", f'search "{query}"; fields name, cover.url, first_release_date, summary; limit 20;')
 
 
+def get_game_extra_data(igdb_id: int) -> dict:
+    """Fetch time_to_beat and similar_games (with covers) for a game."""
+    time_to_beat = {"hastily": None, "normally": None, "completely": None}
+    ttb = _igdb_post(
+        "game_time_to_beats",
+        f"fields hastily, normally, completely; where game_id = {igdb_id}; limit 1;",
+    )
+    if ttb:
+        time_to_beat = {
+            "hastily": ttb[0].get("hastily"),
+            "normally": ttb[0].get("normally"),
+            "completely": ttb[0].get("completely"),
+        }
+    similar = []
+    results = _igdb_post(
+        "games",
+        f"fields similar_games.name, similar_games.cover.url; where id = {igdb_id}; limit 1;",
+    )
+    if results:
+        for g in results[0].get("similar_games", []):
+            cover = None
+            if g.get("cover") and g["cover"].get("url"):
+                cover = g["cover"]["url"].replace("t_thumb", "t_cover_big").lstrip("/")
+                cover = f"https://{cover}"
+            similar.append({"id": g.get("id"), "name": g.get("name"), "cover_image_url": cover})
+    return {"time_to_beat": time_to_beat, "similar_games": similar}
+
+
 def get_game_by_id(igdb_id: int) -> dict | None:
     results = _igdb_post("games", f"fields name, cover.url, first_release_date, summary, genres.name, platforms.name; where id = {igdb_id}; limit 1;")
     if not results:
@@ -67,7 +95,7 @@ def get_game_by_id(igdb_id: int) -> dict | None:
         cover_url = item["cover"]["url"].replace("t_thumb", "t_cover_big").lstrip("/")
         cover_url = f"https://{cover_url}"
     genres = ", ".join(g.get("name", "") for g in item.get("genres", []))
-    return {
+    result = {
         "title": item.get("name"),
         "cover_image_url": cover_url,
         "release_date": release_date,
@@ -75,6 +103,8 @@ def get_game_by_id(igdb_id: int) -> dict | None:
         "genres": genres,
         "igdb_id": igdb_id,
     }
+    result.update(get_game_extra_data(igdb_id))
+    return result
 
 
 def get_steam_appid(igdb_id: int) -> int | None:
@@ -83,6 +113,14 @@ def get_steam_appid(igdb_id: int) -> int | None:
     if results and len(results) > 0:
         uid = results[0].get("uid")
         return int(uid) if uid else None
+    return None
+
+
+def get_igdb_id_from_steam(steam_appid: int) -> int | None:
+    """Find the IGDB game ID for a Steam AppID via IGDB's external_games endpoint (source 1 = Steam)."""
+    results = _igdb_post("external_games", f'fields game; where external_game_source = 1 & uid = "{steam_appid}"; limit 1;')
+    if results and len(results) > 0:
+        return results[0].get("game")
     return None
 
 

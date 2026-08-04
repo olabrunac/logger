@@ -9,6 +9,7 @@ from app.services import tmdb_service, igdb_service, google_books_service, steam
 from app.services.hours_service import effective_hours
 from app.models.media import MediaType, MediaItem, LogStatus, LogEntry, LogReview, EpisodeWatched, Achievement, TopListItem
 import datetime
+import json
 
 router = APIRouter()
 
@@ -94,6 +95,8 @@ def _create_media_from_api(db: Session, mt: MediaType, api_id: Any) -> Optional[
                 release_date=details.get("release_date"),
                 synopsis=details.get("synopsis"),
                 genres=details.get("genres"),
+                time_to_beat=json.dumps(details["time_to_beat"]) if details.get("time_to_beat") else None,
+                similar_games=json.dumps(details["similar_games"]) if details.get("similar_games") else None,
             )
             try:
                 steam_appid = igdb_service.get_steam_appid(api_id)
@@ -153,17 +156,37 @@ def _enrich_media_item(db: Session, mi: MediaItem) -> None:
                     if value and not getattr(mi, key, None):
                         setattr(mi, key, value)
                 changed = True
-        elif mi.media_type == MediaType.GAME and mi.igdb_id and not mi.steam_appid:
+        elif mi.media_type == MediaType.GAME:
             try:
-                steam_appid = igdb_service.get_steam_appid(mi.igdb_id)
-                if steam_appid:
-                    mi.steam_appid = steam_appid
-                    steam_data = steam_service.get_app_details(steam_appid)
-                    if steam_data:
-                        parsed = steam_service.parse_steam_game_data(steam_data)
-                        for key, value in parsed.items():
-                            if value and not getattr(mi, key, None):
-                                setattr(mi, key, value)
+                changed_game = False
+                if not mi.igdb_id and mi.steam_appid:
+                    igdb_id = igdb_service.get_igdb_id_from_steam(mi.steam_appid)
+                    if igdb_id:
+                        mi.igdb_id = igdb_id
+                        changed_game = True
+                if not mi.steam_appid and mi.igdb_id:
+                    steam_appid = igdb_service.get_steam_appid(mi.igdb_id)
+                    if steam_appid:
+                        mi.steam_appid = steam_appid
+                        steam_data = steam_service.get_app_details(steam_appid)
+                        if steam_data:
+                            parsed = steam_service.parse_steam_game_data(steam_data)
+                            for key, value in parsed.items():
+                                if value and not getattr(mi, key, None):
+                                    setattr(mi, key, value)
+                        changed_game = True
+                if mi.igdb_id and (not mi.time_to_beat or not mi.similar_games):
+                    extra = igdb_service.get_game_extra_data(mi.igdb_id)
+                    if extra:
+                        if not mi.time_to_beat and extra.get("time_to_beat"):
+                            mi.time_to_beat = json.dumps(extra["time_to_beat"])
+                            changed_game = True
+                        if not mi.similar_games and extra.get("similar_games"):
+                            mi.similar_games = json.dumps(extra["similar_games"])
+                            changed_game = True
+                if changed_game:
+                    db.add(mi)
+                    db.commit()
                     changed = True
             except Exception:
                 pass
@@ -579,6 +602,42 @@ def read_media_by_api(*, db: Session = Depends(deps.get_db), media_type: str, ap
             "platform": log.platform,
         })
     data["community_reviews"] = community_reviews
+
+    # Community stats for rating distribution + status breakdown
+    all_logs = db.query(LogEntry).filter(LogEntry.media_item_id == media_item.id).all()
+    status_counts = {}
+    rating_buckets = {}
+    platform_breakdown = {}
+    rating_sum = 0
+    rating_count = 0
+    for log in all_logs:
+        status_counts[log.status.value] = status_counts.get(log.status.value, 0) + 1
+        if log.rating is not None and log.rating > 0:
+            bucket = round(log.rating * 2) / 2
+            key = f"{bucket:.1f}"
+            rating_buckets[key] = rating_buckets.get(key, 0) + 1
+            rating_sum += log.rating
+            rating_count += 1
+            if log.platform:
+                entry = platform_breakdown.setdefault(log.platform, {"count": 0, "rating_sum": 0.0})
+                entry["count"] += 1
+                entry["rating_sum"] += log.rating
+    distribution = [
+        {"value": key, "count": rating_buckets[key]}
+        for key in sorted(rating_buckets.keys(), key=lambda k: -float(k))
+    ]
+    platform_list = [
+        {"platform": name, "average_rating": round(entry["rating_sum"] / entry["count"], 2), "count": entry["count"]}
+        for name, entry in sorted(platform_breakdown.items(), key=lambda kv: -kv[1]["count"])
+    ]
+    data["community_stats"] = {
+        "total_logs": len(all_logs),
+        "rating_count": rating_count,
+        "average_rating": round(rating_sum / rating_count, 2) if rating_count else None,
+        "distribution": distribution,
+        "status_counts": status_counts,
+        "platform_breakdown": platform_list,
+    }
     return data
 
 @router.get("/logs/{log_id}", response_model=schemas.LogEntryWithStats)

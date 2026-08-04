@@ -234,7 +234,7 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
     return (
       <section>
         <SectionHeader title="Favoritos" linkTo={`/profile/${profileUser.username}/${items[0] ? TYPE_META[items[0].type]?.slug : 'games'}`} linkLabel="Ver mais" />
-        <div className="hidden gap-2 lg:flex lg:items-end lg:justify-center">
+        <div className="hidden gap-2 lg:flex lg:items-end lg:justify-center lg:mx-auto" style={{ width: `calc(${Math.min(items.length, 4) * 12.5}%)`, maxWidth: '50%' }}>
           {items.map(({ type, items: typeItems }, idx) => {
             const top = typeItems[0];
             const media = top.media_item;
