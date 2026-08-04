@@ -420,8 +420,8 @@ const ProfilePage = ({ currentUser }: ProfilePageProps) => {
                   {post.images.length > 0 && (
                     <div className="mt-2 flex gap-1">
                       {post.images.slice(0, 3).map(img => (
-                        <div key={img.id} className="w-16 h-16 rounded-lg overflow-hidden">
-                          <img src={IMAGE_URL(img.url)} alt="" className="w-full h-full object-cover" loading="lazy" />
+                        <div key={img.id} className="w-16 h-16 rounded-lg overflow-hidden bg-black/40">
+                          <img src={IMAGE_URL(img.url)} alt="" className="w-full h-full object-contain" loading="lazy" />
                         </div>
                       ))}
                       {post.images.length > 3 && (

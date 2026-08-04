@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, Date
 from sqlalchemy.orm import relationship
 from app.db.base import Base
 import datetime
@@ -11,6 +11,7 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=True)
     password_hash = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    birth_date = Column(Date, nullable=True)
     
     banner_url = Column(String, nullable=True)
     avatar_url = Column(String, nullable=True)

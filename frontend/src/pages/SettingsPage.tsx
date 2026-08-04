@@ -185,6 +185,10 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
 
+  const [birthDate, setBirthDate] = useState(user.birth_date ? String(user.birth_date).slice(0, 10) : '');
+  const [showBirthForm, setShowBirthForm] = useState(false);
+  const [changingBirthDate, setChangingBirthDate] = useState(false);
+
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
@@ -423,6 +427,25 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
       showError(err.response?.data?.detail || 'Erro ao alterar email.');
     } finally {
       setChangingEmail(false);
+    }
+  };
+
+  const handleChangeBirthDate = async () => {
+    if (!birthDate) {
+      showError('Informe a data de nascimento.');
+      return;
+    }
+    setChangingBirthDate(true);
+    setMessage(null);
+    try {
+      const res = await api.put(`/users/${user.id}/profile`, { birth_date: birthDate });
+      onUserUpdate(res.data);
+      setShowBirthForm(false);
+      showSuccess('Data de nascimento atualizada!');
+    } catch (err: any) {
+      showError(err.response?.data?.detail || 'Erro ao salvar data de nascimento.');
+    } finally {
+      setChangingBirthDate(false);
     }
   };
 
@@ -1031,10 +1054,18 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-white">Data de Nascimento</p>
-                <p className="text-xs text-white/40">Sua data de nascimento não pode ser alterada.</p>
+                <p className="text-xs text-white/40">Informe sua data de nascimento.</p>
               </div>
-              <span className="text-sm text-white/60">19/04/1999</span>
+              <button type="button" onClick={() => setShowBirthForm(!showBirthForm)} className="shrink-0 rounded-lg bg-[var(--accent)] px-4 py-1.5 text-xs font-medium text-white transition-colors hover:opacity-80">{showBirthForm ? 'Cancelar' : 'Alterar'}</button>
             </div>
+            {showBirthForm ? (
+              <div className="mt-3 pt-3 border-t border-white/10 space-y-2.5">
+                <input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} className="w-full rounded-lg border border-white/10 bg-[var(--mdf-surface)] px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/20 [color-scheme:dark]" />
+                <button className="w-full rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-medium text-white transition-colors hover:opacity-90 disabled:opacity-50" onClick={handleChangeBirthDate} disabled={changingBirthDate || !birthDate}>{changingBirthDate ? 'Salvando...' : 'Salvar data'}</button>
+              </div>
+            ) : (
+              <span className="text-sm text-white/60">{birthDate ? new Date(birthDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'Não informada'}</span>
+            )}
           </div>
         </div>
       </div>
