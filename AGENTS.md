@@ -39,14 +39,14 @@
 - **Wishlist**: Fetch separado via `/media/wishlist` (merge manual com logs nas páginas de perfil).
 
 ## 📋 Pendências (TODO) — ordenadas da mais fácil para a mais complexa
-1. **Retirar badge de primeiro log**: Remover a badge de "primeiro log" do sistema de badges.
-2. **Data de nascimento no Settings → Geral**: Mostrar a data de nascimento num bloco e permitir trocá-la **1 única vez** (caso o usuário tenha preenchido errado inicialmente).
-3. **Importação de achievements dos jogos**: Ajustar/corrigir a importação de conquistas (achievements) dos jogos.
-4. **Jogos do Family Share na importação Steam**: Importar também os jogos compartilhados pela família (não comprados). O endpoint `IFamilyGroupsService/GetSharedLibraryApps` exige **login OAuth com a conta Steam** (access token de curta duração + refresh) para listar os jogos e `GetPlaytimeSummary` para os tempos — fluxo de login novo no app.
-5. **Ajustar site para mobile**: Revisar layout responsivo (sidebar, grids, modais) para telas pequenas.
-6. **Publicação (#10)**: Publicar o site, avaliar ferramentas de hosting do GitHub Students
+1. **Importação de achievements dos jogos**: Ajustar/corrigir a importação de conquistas (achievements) dos jogos.
+2. **Jogos do Family Share na importação Steam**: Importar também os jogos compartilhados pela família (não comprados). O endpoint `IFamilyGroupsService/GetSharedLibraryApps` exige **login OAuth com a conta Steam** (access token de curta duração + refresh) para listar os jogos e `GetPlaytimeSummary` para os tempos — fluxo de login novo no app.
+3. **Ajustar site para mobile**: Revisar layout responsivo (sidebar, grids, modais) para telas pequenas.
+4. **Publicação (#10)**: Publicar o site, avaliar ferramentas de hosting do GitHub Students
 
 ## ✅ Implementado
+- **Badge de primeiro log removida**: Definição `first_log` removida de `BADGE_DEFS`; checks de unlock (`check_and_unlock`) e milestone (`get_user_badges_with_progress`) em `crud_user_badge.py` atualizados; `init_db.py` apaga registros `user_badge` antigos (`DELETE FROM user_badge WHERE badge_key = 'first_log'`).
+- **Data de nascimento com troca única (Settings → Geral)**: Bloco já existente agora trava após a 1ª alteração. Backend: coluna `birth_date_updated_at` (model + migration em `init_db.py`), `PUT /{user_id}/profile` grava o timestamp e rejeita (400) trocas subsequentes. Frontend: `birth_date_updated_at` no tipo `User`; `SettingsPage` mostra "Já alterada" e botão "Alterar" some após a troca.
 - **Jogos parados marcados como abandonados (import Steam)**: Na importação, todos os jogos próprios vão para `library` (usuário tem comprado na conta); jogos com **>120 dias** sem atividade (`rtime_last_played`) → `dropped`. Removido o `in_progress` da importação; mantida a regra de `completed` para 100% de achievements.
 - **Import Steam otimizado**: HEAD requests das capas (`_steam_cover_url`) resolvidos em paralelo via `ThreadPoolExecutor` (10 workers) antes do loop — 276 jogos ≈ 5min serial → ~30s. ETA baseline ajustado (2.5 → 1.5s/item).
 - **URL direta de perfil alheio (#17)**: `user` iniciava como `null` (só era lido do localStorage num `useEffect`), então digitar `/profile/:username` no browser (full page load) redirecionava para o próprio perfil (cascata `/login` → `/` → `/profile/{user.username}`). Fix: `App.tsx` inicializa `user` **sincronamente** via `useState` lazy a partir do localStorage — URL direta de qualquer rota agora renderiza o destino direto.
