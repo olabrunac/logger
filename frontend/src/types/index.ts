@@ -17,6 +17,7 @@ export interface User {
   bio?: string;
   trophy_showcase?: string;
   birth_date?: string;
+  birth_date_updated_at?: string;
   followers_count?: number;
   following_count?: number;
 }

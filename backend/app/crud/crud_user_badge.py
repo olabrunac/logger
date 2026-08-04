@@ -202,7 +202,6 @@ def check_and_unlock(db: Session, user_id: int) -> List[dict]:
 
     checks = []
     checks.append(("first_post", has_post))
-    checks.append(("first_log", total >= 1))
     checks.append(("omnivoro", all_types))
 
     for key, condition in checks:
@@ -319,7 +318,7 @@ def get_user_badges_with_progress(db: Session, user_id: int) -> dict:
     _handle_group([(f"hours_{t}", t) for t in [10, 25, 50, 100, 250, 500, 1000, 2500, 5000]], int(total_hours))
     _handle_group([("first_follower", 1), ("10_followers", 10), ("50_followers", 50), ("100_followers", 100), ("250_followers", 250), ("500_followers", 500)], follower_count)
 
-    for key in ["first_post", "first_log", "omnivoro"]:
+    for key in ["first_post", "omnivoro"]:
         if key not in unlocked_keys and key in BADGE_DEFS:
             defn = BADGE_DEFS[key]
             if key == "omnivoro":

@@ -1,6 +1,6 @@
 from pydantic import BaseModel, model_validator, EmailStr, field_validator
 from typing import Optional
-from datetime import date
+from datetime import date, datetime
 
 # Shared properties
 class UserBase(BaseModel):
@@ -73,6 +73,7 @@ class User(UserBase):
     bio: Optional[str] = None
     trophy_showcase: Optional[str] = '[]'
     birth_date: Optional[date] = None
+    birth_date_updated_at: Optional[datetime] = None
     followers_count: int = 0
     following_count: int = 0
 

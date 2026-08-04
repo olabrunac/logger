@@ -50,8 +50,6 @@ _reg(BadgeDef("250_followers", "Social", "250 seguidores", "Users", "social", 25
 _reg(BadgeDef("500_followers", "Ícone", "500 seguidores", "Users", "social", 500, rarity="imortal"))
 _reg(BadgeDef("first_post", "Post", "Primeiro post na timeline", "MessageCircle", "social", 1, rarity="celestial"))
 
-_reg(BadgeDef("first_log", "Log", "Primeiro log criado", "Target", "general", 1, rarity="celestial"))
-
 for t in [10, 25, 50, 100, 250, 500, 1000, 2500, 5000]:
     _reg(BadgeDef(f"logs_{t}", "Logs", f"{t} logs no total", "Award", "general", t, rarity={10: "bronze", 25: "prata", 50: "ouro", 100: "diamante", 250: "lendario", 500: "imortal", 1000: "arcano", 2500: "celestial", 5000: "cosmico"}[t]))
 

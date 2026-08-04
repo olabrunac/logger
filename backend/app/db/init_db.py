@@ -33,6 +33,10 @@ def init_db() -> None:
     _migrate('ALTER TABLE mediaitem ADD COLUMN similar_games TEXT')
     _migrate('ALTER TABLE "user" ADD COLUMN trophy_showcase TEXT DEFAULT \'[]\'')
     _migrate('ALTER TABLE "user" ADD COLUMN birth_date DATE')
+    _migrate('ALTER TABLE "user" ADD COLUMN birth_date_updated_at TIMESTAMP')
+
+    # Badge de primeiro log removida do sistema de badges
+    _migrate("DELETE FROM user_badge WHERE badge_key = 'first_log'")
 
     # Seed admin user
     admin = crud.user.get_by_username(db, username="admin")

@@ -130,6 +130,7 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
   const [birthDate, setBirthDate] = useState(user.birth_date ? String(user.birth_date).slice(0, 10) : '');
   const [showBirthForm, setShowBirthForm] = useState(false);
   const [changingBirthDate, setChangingBirthDate] = useState(false);
+  const birthDateLocked = !!user.birth_date_updated_at;
 
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -387,6 +388,10 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
   };
 
   const handleChangeBirthDate = async () => {
+    if (birthDateLocked) {
+      showError('Sua data de nascimento já foi alterada. Só é permitido alterar uma única vez.');
+      return;
+    }
     if (!birthDate) {
       showError('Informe a data de nascimento.');
       return;
@@ -828,9 +833,13 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-white">Data de Nascimento</p>
-                <p className="text-xs text-white/40">Informe sua data de nascimento.</p>
+                <p className="text-xs text-white/40">{birthDateLocked ? 'Data de nascimento já definida. Só é possível alterar uma única vez.' : 'Informe sua data de nascimento. Só é permitido alterar uma única vez.'}</p>
               </div>
-              <button type="button" onClick={() => setShowBirthForm(!showBirthForm)} className="shrink-0 rounded-lg bg-[var(--accent)] px-4 py-1.5 text-xs font-medium text-white transition-colors hover:opacity-80">{showBirthForm ? 'Cancelar' : 'Alterar'}</button>
+              {!birthDateLocked ? (
+                <button type="button" onClick={() => setShowBirthForm(!showBirthForm)} className="shrink-0 rounded-lg bg-[var(--accent)] px-4 py-1.5 text-xs font-medium text-white transition-colors hover:opacity-80">{showBirthForm ? 'Cancelar' : 'Alterar'}</button>
+              ) : (
+                <span className="shrink-0 rounded-lg bg-white/5 px-4 py-1.5 text-xs font-medium text-white/40">Já alterada</span>
+              )}
             </div>
             {showBirthForm ? (
               <div className="mt-3 pt-3 border-t border-white/10 space-y-2.5">
