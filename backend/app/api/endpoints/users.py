@@ -1,6 +1,7 @@
 import os
 import uuid
 import json
+import datetime
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session, joinedload
 from app import crud, schemas
@@ -32,7 +33,19 @@ def update_user_profile(
     user = crud.user.get(db, id=user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    user = crud.user.update(db, db_obj=user, obj_in=user_in)
+    update_data = user_in.model_dump(exclude_unset=True)
+    birth_date_in = update_data.pop("birth_date", None)
+    if birth_date_in is not None:
+        if user.birth_date_updated_at is not None:
+            raise HTTPException(status_code=400, detail="Sua data de nascimento já foi alterada. Só é permitido alterar uma única vez.")
+        user.birth_date = birth_date_in
+        user.birth_date_updated_at = datetime.datetime.utcnow()
+    if update_data:
+        user = crud.user.update(db, db_obj=user, obj_in=update_data)
+    else:
+        db.add(user)
+        db.commit()
+        db.refresh(user)
     from app.crud import crud_follow
     data = schemas.User.model_validate(user).model_dump()
     data["followers_count"] = crud_follow.get_follower_count(db, user.id)
