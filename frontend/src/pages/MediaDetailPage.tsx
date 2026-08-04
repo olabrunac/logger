@@ -19,16 +19,6 @@ const STATUS_LABELS: Record<string, string> = {
   library: 'Biblioteca',
 };
 
-const STATUS_TEXT_COLORS: Record<string, string> = {
-  completed: '#22c55e',
-  in_progress: '#3b82f6',
-  dropped: '#ef4444',
-  wishlist: '#a855f7',
-  soon: '#a855f7',
-  platinated: '#fbbf24',
-  library: '#818cf8',
-};
-
 interface WatchedEpisode {
   id?: number;
   season_number: number;
@@ -560,7 +550,7 @@ const MediaDetailPage = () => {
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-[3px] h-5 rounded-r-full" style={{ background: 'var(--accent)' }} />
                 <h3 className="font-display text-lg font-bold">Meu log</h3>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider" style={{ background: STATUS_COLORS[log.status] || 'rgba(255,255,255,0.1)', color: STATUS_TEXT_COLORS[log.status] || '#fff' }}>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider" style={{ background: STATUS_COLORS[log.status] || 'rgba(255,255,255,0.1)', color: '#fff' }}>
                   {STATUS_LABELS[log.status] || log.status}
                 </span>
                 {log.is_favorite && <span className="text-xs text-red-400">♥</span>}

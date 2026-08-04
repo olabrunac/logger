@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import api from '../services/api';
-import type { LogEntry, MediaType } from '../types';
+import type { LogEntry, MediaType, User } from '../types';
 import { ChevronLeft, ChevronRight, Gamepad2, Film, Tv, Book } from 'lucide-react';
 import { startOfMonth, addMonths, subMonths, isSameMonth, isSameDay, format, startOfWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { getLogUrl } from '../utils';
 
 interface CalendarPageProps {
-  user: { id: number; username: string };
+  currentUser: User;
 }
 
 const ICONS: Record<MediaType, typeof Film> = { game: Gamepad2, movie: Film, series: Tv, book: Book };
@@ -20,7 +20,8 @@ const TYPE_COLORS: Record<MediaType, string> = {
   book: '#4ade80',
 };
 
-const CalendarPage = ({ user }: CalendarPageProps) => {
+const CalendarPage = ({ currentUser }: CalendarPageProps) => {
+  const { username } = useParams<{ username: string }>();
   const [current, setCurrent] = useState(new Date());
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [selected, setSelected] = useState<Date | null>(null);
@@ -36,12 +37,17 @@ const CalendarPage = ({ user }: CalendarPageProps) => {
 
   const fetchLogs = useCallback(async () => {
     try {
-      const response = await api.get('/media/logs', { params: { user_id: user.id, limit: 500 } });
+      let targetUser = currentUser;
+      if (username && username !== currentUser.username) {
+        const userRes = await api.get('/login/by-username/' + encodeURIComponent(username));
+        targetUser = userRes.data;
+      }
+      const response = await api.get('/media/logs', { params: { user_id: targetUser.id, limit: 500 } });
       setLogs(response.data || []);
     } catch (err) {
       console.error('Failed to fetch logs', err);
     }
-  }, [user.id]);
+  }, [username, currentUser]);
 
   useEffect(() => { fetchLogs(); }, [fetchLogs]);
 

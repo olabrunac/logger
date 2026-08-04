@@ -5,6 +5,7 @@ import type { User } from '../types';
 import type { MediaItem } from '../types/media';
 import { getStars, TYPE_META, STATUS_COLORS } from '../constants/designSystem';
 import StatusIcon from '../components/StatusIcon';
+import { PostImages } from '../components/PostImages';
 import { Send, Image as ImageIcon, X, MessageCircle, Trash2, Clock, Heart, ThumbsUp } from 'lucide-react';
 import { imageUrl, getLogUrl } from '../utils';
 
@@ -178,13 +179,7 @@ const PostCard = ({ post, currentUser, onReply, onDelete, onLike }: {
       </div>
 
       {post.images.length > 0 && (
-        <div className={post.images.length === 1 ? '' : 'grid grid-cols-2 gap-0.5'}>
-          {post.images.map(img => (
-            <div key={img.id} className={post.images.length === 1 ? 'max-h-96 overflow-hidden bg-black/40' : 'aspect-square overflow-hidden bg-black/40'}>
-              <img src={IMAGE_URL(img.url)} alt="" className="w-full h-full object-contain" loading="lazy" />
-            </div>
-          ))}
-        </div>
+        <PostImages images={post.images} />
       )}
 
       <div className="px-4 py-2 flex items-center gap-4 border-t" style={{ borderColor: 'var(--border)' }}>
