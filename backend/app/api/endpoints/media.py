@@ -483,23 +483,56 @@ def create_log_entry(*, db: Session = Depends(deps.get_db), payload: schemas.Log
 
 @router.get("/logs", response_model=List[schemas.LogEntryWithStats])
 def read_logs(*, db: Session = Depends(deps.get_db), user_id: int, skip: int = 0, limit: int = 100) -> Any:
+    from sqlalchemy import func as sa_func
     logs = crud.log_entry.get_multi_by_user(db, user_id=user_id, skip=skip, limit=limit)
+    log_ids = [log.id for log in logs]
+    series_ids = [log.id for log in logs if log.media_item.media_type == MediaType.SERIES]
+    game_ids = [log.id for log in logs if log.media_item.media_type == MediaType.GAME]
+
+    watched_counts: dict[int, int] = {}
+    if series_ids:
+        rows = (
+            db.query(EpisodeWatched.log_id, sa_func.count())
+            .filter(
+                EpisodeWatched.log_id.in_(series_ids),
+                EpisodeWatched.watched == True,
+                EpisodeWatched.season_number > 0,
+            )
+            .group_by(EpisodeWatched.log_id)
+            .all()
+        )
+        watched_counts = {log_id: count for log_id, count in rows}
+
+    unlocked_counts: dict[int, int] = {}
+    total_achievement_counts: dict[int, int] = {}
+    if game_ids:
+        rows_unlocked = (
+            db.query(Achievement.log_id, sa_func.count())
+            .filter(Achievement.log_id.in_(game_ids), Achievement.unlocked == True)
+            .group_by(Achievement.log_id)
+            .all()
+        )
+        unlocked_counts = {log_id: count for log_id, count in rows_unlocked}
+        rows_total = (
+            db.query(Achievement.log_id, sa_func.count())
+            .filter(Achievement.log_id.in_(game_ids))
+            .group_by(Achievement.log_id)
+            .all()
+        )
+        total_achievement_counts = {log_id: count for log_id, count in rows_total}
+
     results = []
     for log in logs:
         stats = {"watched_episodes": None, "total_episodes": None, "unlocked_achievements": None, "total_achievements": None}
         if log.media_item.media_type == MediaType.SERIES:
-            watched = db.query(EpisodeWatched).filter(EpisodeWatched.log_id == log.id, EpisodeWatched.watched == True, EpisodeWatched.season_number > 0).count()
-            total = log.media_item.total_episodes
-            stats["watched_episodes"] = watched
-            stats["total_episodes"] = total
+            stats["watched_episodes"] = watched_counts.get(log.id, 0)
+            stats["total_episodes"] = log.media_item.total_episodes
         elif log.media_item.media_type == MediaType.GAME:
-            unlocked = db.query(Achievement).filter(Achievement.log_id == log.id, Achievement.unlocked == True).count()
-            total = db.query(Achievement).filter(Achievement.log_id == log.id).count()
-            stats["unlocked_achievements"] = unlocked
-            stats["total_achievements"] = total
+            stats["unlocked_achievements"] = unlocked_counts.get(log.id, 0)
+            stats["total_achievements"] = total_achievement_counts.get(log.id, 0)
         log_dict = schemas.LogEntryInDB.model_validate(log).model_dump()
         log_dict.update(stats)
-        log_dict["hours_spent"] = effective_hours(db, log)
+        log_dict["hours_spent"] = effective_hours(db, log, watched_counts.get(log.id))
         results.append(schemas.LogEntryWithStats(**log_dict))
     return results
 

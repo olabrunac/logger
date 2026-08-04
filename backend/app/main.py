@@ -1,16 +1,15 @@
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 from starlette.requests import Request
-from starlette.responses import Response
 from sqlalchemy import func
 from app.core.config import settings
 from app.api.v1_router import api_router
-from app.db.session import engine
+from app.db.session import engine, SessionLocal
 from app.db.base import Base
 from app.db.init_db import init_db
 from app.models.media import LogEntry, LogStatus, LogReview
@@ -66,8 +65,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+def serve_upload(filename: str):
+    db = SessionLocal()
+    try:
+        from app.crud.crud_upload import get_file
+        record = get_file(db, filename)
+        if record:
+            return Response(content=bytes(record.data), media_type=record.content_type)
+    finally:
+        db.close()
+
+    filepath = os.path.join("uploads", filename)
+    if os.path.isfile(filepath):
+        return FileResponse(filepath)
+
+    raise HTTPException(status_code=404, detail="File not found")
+
+
 os.makedirs("uploads", exist_ok=True)
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+app.get("/uploads/{filename}")(serve_upload)
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
 

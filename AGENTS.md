@@ -39,25 +39,22 @@
 - **Wishlist**: Fetch separado via `/media/wishlist` (merge manual com logs nas páginas de perfil).
 
 ## 📋 Pendências (TODO) — ordenadas da mais fácil para a mais complexa
-1. **Cor da pílula de status no bloco "Meu Log"**: Na página da mídia, o bloco "Meu Log" (avaliação, review, etc.) mostra a pílula de status com cor ilegível — deixar a cor da letra branca.
-2. **Tamanho da imagem na timeline**: A imagem dos posts deve exibir num tamanho específico/fixo (estilo Twitter), não variando com a proporção da imagem.
-3. **Tamanho do poster tile no favoritos**: O tamanho do poster tile na seção Favoritos deve ser fixo.
-4. **Validação de banner/avatar**: Avisar o usuário quando tentar enviar banner/avatar que não atende as especificações (dimensões/tamanho).
-5. **Zona de perigo nas configurações**: Mover os botões perigosos só para a área de segurança e exigir confirmação antes de excluir/apagar dados.
-6. **Tags de jogos parados**: Na importação de jogos, adicionar tags corretas quando o jogo está há mais de 120 dias sem ser jogado.
-7. **Import otimizado**: O HEAD request por jogo no import da Steam adiciona ~1s por app (276 jogos ≈ 5min). Considerar batch ou paralelizar no futuro.
-8. **Enquadramento de banner/avatar**: Permitir mover o enquadramento da imagem enviada (pan/zoom) para ajuste pelo usuário.
-9. **Ajustar site para mobile**: Revisar layout responsivo (sidebar, grids, modais) para telas pequenas.
-10. **Publicação (#10)**: Publicar o site, avaliar ferramentas de hosting do GitHub Students
+1. **Tags de jogos parados**: Na importação de jogos, adicionar tags corretas quando o jogo está há mais de 120 dias sem ser jogado.
+2. **Import otimizado**: O HEAD request por jogo no import da Steam adiciona ~1s por app (276 jogos ≈ 5min). Considerar batch ou paralelizar no futuro.
+3. **Retirar badge de primeiro log**: Remover a badge de "primeiro log" do sistema de badges.
+4. **Importação de achievements dos jogos**: Ajustar/corrigir a importação de conquistas (achievements) dos jogos.
+5. **Ajustar site para mobile**: Revisar layout responsivo (sidebar, grids, modais) para telas pequenas.
+6. **Publicação (#10)**: Publicar o site, avaliar ferramentas de hosting do GitHub Students
 
 ## ✅ Implementado
+- **Pílula branca no "Meu Log"**: Pílula de status no bloco "Meu Log" da página de mídia usa `color: '#fff'` fixa — `STATUS_TEXT_COLORS` removido de `MediaDetailPage.tsx`.
+- **Grid de imagens estilo Twitter (#2)**: `PostImages.tsx` (grid 1/2/3/4 + lightbox fullscreen com setas/Escape/contador) integrado ao `TimelinePage`.
+- **Poster tiles fixos (#3)**: Favoritos (`ProfilePage`) e Top 5 (`MediaTypeProfilePage`) usam a mesma grid fixa da Atividade recente (`grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2`).
+- **Validação de banner/avatar + enquadramento (#4 e #8)**: `validateImageFile` no `SettingsPage` (banner largura ≥800 e proporção 2.5–8; avatar ≥256×256 e 1:1; máx 5MB) + `ImageFramingModal.tsx` com pan/zoom via canvas salvando JPEG (banner 1400×300, avatar 512×512). GIF ignora o enquadramento.
+- **Zona de perigo (#5)**: Botões perigosos movidos só para a aba Segurança com confirmação; wipe preserva badges com `special=True` (`BADGE_DEFS` em `users.py`); botão LGPD morto removido.
+- **Contadores de follow locais**: `ProfilePage` atualiza `followers_count`/`following_count` localmente após follow/unfollow via `onUserUpdate`.
+- **Ver outras contas**: `DiaryPage`, `CalendarPage`, `ReviewsPage` e `ListsPage` resolvem `:username` da URL via `/login/by-username/` (antes usavam o usuário logado); `ListsPage` com gating `isOwnProfile`.
 - **CDN da Steam com fallback**: `_steam_cover_url` (`import_data.py`) tenta o CDN legado (`cdn.akamai.steamstatic.com`) e cai para o novo (`shared.akamai.steamstatic.com/store_item_assets/`) se o HEAD falhar — import Steam não quebra na migração.
-- **Data de nascimento no cadastro**: Novo campo opcional `birth_date` no `User` (model + migration em `init_db.py` + schemas) — formulário de registro (`LoginPage.tsx`) envia a data e o `SettingsPage` exibe/permite alterar (antes era hardcoded "19/04/1999").
-- **Imagens na timeline sem corte**: Posts no `TimelinePage` e `ProfilePage` usam `object-contain` com fundo escuro (letterbox estilo Twitter) — imagem inteira visível, sem crop.
-- **Bug das 5 estrelas**: Estrelas do `LogForm` agora preenchem o botão (`size={40}` + `w-full h-full`) — antes o ícone de 36px ficava desalinhado num botão de 40px, fazendo o eixo de "metade da estrela" mostrar 4.5 no hover e dificultando o 5.
-- **Ver perfil de outros usuários**: `MediaTypeRedirect` (`App.tsx`) usava `user.username` (o usuário logado) em vez do `:username` da URL — links tipo `/profile/:username/games` agora redirecionam para o perfil correto.
-- **Busca global (#22)**: Página dedicada `/search` (`SearchPage.tsx`) substituiu o `GlobalSearchModal` (removido) — NavLink "Buscar" na `LeftSidebar`. `App.tsx` esconde a `RightSidebar` global nas rotas `/media/*` (a página usa sidebar própria estilo YGP). `/log/*` redireciona para `/media/*`.
-- **Busca de log por ISBN (#22)**: `google_books_service.search_books` detecta ISBN (via `_looks_like_isbn`, aceita ISBN-10/13 com/sem hífens) digitado no campo de título e constrói `isbn:<valor>`. Antes montava `intitle:<isbn>` → 0 resultados.
 - **Popout do log**: Modal "Novo Log" (`FloatingLogButton.tsx`) fecha apenas no **X** — removido `onClick={handleClose}` do overlay.
 - **Horas de episódios de série verificadas**: Marcando episódios na UI, `_update_series_status` grava `hours_spent = runtime/60 × assistidos` e `effective_hours` (no GET) cobre o caso sem horas manuais. Validado ponta-a-ponta (3 eps × 25min = 1.2h).
 - **Railway — fixes deployados**: `UniqueViolation` no import Steam (sobrescrevia `steam_appid`) e `NameError: datetime` no `tmdb_service.get_tv_details` corrigidos e funcionando em produção.

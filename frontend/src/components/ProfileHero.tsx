@@ -1,7 +1,21 @@
 import { Link } from 'react-router-dom';
-import { Globe, Settings2 } from 'lucide-react';
+import { Settings2 } from 'lucide-react';
 import type { User, LogEntry } from '../types';
 import { imageUrl } from '../utils';
+
+const COUNTRY_NAMES: Record<string, string> = {
+  BR: 'Brasil',
+  US: 'Estados Unidos',
+  PT: 'Portugal',
+  ES: 'Espanha',
+  FR: 'França',
+  DE: 'Alemanha',
+  IT: 'Itália',
+  JP: 'Japão',
+  AR: 'Argentina',
+  MX: 'México',
+  CA: 'Canadá',
+};
 
 interface ProfileHeroProps {
   profileUser: User;
@@ -17,19 +31,8 @@ interface ProfileHeroProps {
   onEditLayout?: () => void;
 }
 
-const PLATFORM_CONFIG: Record<string, { label: string; icon: string }> = {
-  x: { label: 'X', icon: '𝕏' },
-  instagram: { label: 'Instagram', icon: '📷' },
-  discord: { label: 'Discord', icon: '💬' },
-  youtube: { label: 'YouTube', icon: '▶️' },
-  twitch: { label: 'Twitch', icon: '🔴' },
-  kick: { label: 'Kick', icon: '👟' },
-  spotify: { label: 'Spotify', icon: '🎵' },
-};
-
 const ProfileHero = ({
   profileUser,
-  currentUser,
   logs,
   isOwnProfile,
   isFollowing,
@@ -43,17 +46,14 @@ const ProfileHero = ({
   const bannerUrl = imageUrl(profileUser.banner_url);
   const avatarUrl = imageUrl(profileUser.avatar_url);
 
-  let socialData: { platforms?: Record<string, string>; spotify?: string; custom?: Array<{ label: string; url: string }> } = {};
-  try { socialData = JSON.parse(profileUser.social_links || '{}'); } catch {}
-
-  const platformLinks = socialData.platforms || {};
-  const customLinks = socialData.custom || [];
-  const spotifyUrl = socialData.spotify || '';
-
-  const activePlatforms = Object.entries(platformLinks).filter(([, v]) => v);
-
   const displayName = profileUser.display_name || profileUser.username;
   const bio = profileUser.bio || '';
+
+  const countryCode = profileUser.country || '';
+  const countryName = countryCode ? COUNTRY_NAMES[countryCode] : '';
+  const stateCode = profileUser.state || '';
+  const showLocation = Boolean(countryCode || stateCode);
+  const locationText = [countryName, stateCode].filter(Boolean).join(' - ');
 
   const totalLogs = logs.length;
   const finishedCount = logs.filter(l => l.status === 'completed').length;
@@ -98,7 +98,7 @@ const tabs = [
         <div className="flex flex-col md:flex-row md:items-end gap-4 md:gap-6">
           <div className="flex-shrink-0 self-center md:self-end">
             <div
-              className="w-24 h-24 md:w-28 md:h-28 rounded-full overflow-hidden border-4 flex-shrink-0 ring-2"
+              className="w-48 h-48 md:w-56 md:h-56 rounded-full overflow-hidden border-4 flex-shrink-0 ring-2"
               style={{
                 borderColor: 'var(--mdf-bg)',
                 background: avatarUrl ? 'transparent' : `linear-gradient(135deg, ${accentColor}, #a855f7)`,
@@ -108,7 +108,7 @@ const tabs = [
               {avatarUrl ? (
                 <img src={avatarUrl} alt={profileUser.username} className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center font-display text-3xl font-black text-white/60">
+                <div className="w-full h-full flex items-center justify-center font-display text-6xl font-black text-white/60">
                   {profileUser.username.charAt(0).toUpperCase()}
                 </div>
               )}
@@ -127,29 +127,6 @@ const tabs = [
               </div>
 
               <div className="flex items-center justify-center md:justify-end gap-2">
-                <div className="flex items-center gap-1 mr-1">
-                  {activePlatforms.map(([key, url]) => (
-                    <a key={key} href={url} target="_blank" rel="noopener noreferrer"
-                      className="w-8 h-8 flex items-center justify-center rounded-full transition-colors hover:bg-white/10"
-                      style={{ color: 'var(--text-muted)' }} title={PLATFORM_CONFIG[key]?.label || key}>
-                      <span className="text-sm">{PLATFORM_CONFIG[key]?.icon || '🔗'}</span>
-                    </a>
-                  ))}
-                  {spotifyUrl && (
-                    <a href={spotifyUrl} target="_blank" rel="noopener noreferrer"
-                      className="w-8 h-8 flex items-center justify-center rounded-full transition-colors hover:bg-white/10"
-                      style={{ color: 'var(--text-muted)' }} title="Spotify">
-                      <span className="text-sm">🎵</span>
-                    </a>
-                  )}
-                  {customLinks.map((link, i) => (
-                    <a key={i} href={link.url} target="_blank" rel="noopener noreferrer"
-                      className="w-8 h-8 flex items-center justify-center rounded-full transition-colors hover:bg-white/10"
-                      style={{ color: 'var(--text-muted)' }} title={link.label}>
-                      <Globe size={14} />
-                    </a>
-                  ))}
-                </div>
                 {isOwnProfile ? (
                   <Link to="/settings" className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition-all"
                     style={{ background: `${accentColor}22`, color: accentColor, border: `1px solid ${accentColor}44` }}>
@@ -179,8 +156,24 @@ const tabs = [
               </div>
             </div>
 
-            {bio && (
-              <p className="text-sm text-white/60 mt-3 max-w-2xl leading-relaxed">{bio}</p>
+            {(bio || showLocation) && (
+              <div className="flex items-start gap-3 mt-3 max-w-2xl">
+                {showLocation && (
+                  <span className="flex items-center gap-1.5 text-sm text-white/50 shrink-0">
+                    {countryCode && (
+                      <img
+                        src={`https://flagcdn.com/w40/${countryCode.toLowerCase()}.png`}
+                        alt={countryName}
+                        loading="lazy"
+                        className="h-2 w-auto shrink-0 rounded-[1px] shadow-sm"
+                      />
+                    )}
+                    {locationText}
+                  </span>
+                )}
+                {bio && showLocation && <div className="w-px self-stretch bg-white/10" />}
+                {bio && <p className="text-sm text-white/60 leading-relaxed flex-1">{bio}</p>}
+              </div>
             )}
 
             <div className="flex items-center justify-center md:justify-start gap-3 mt-4 text-center md:text-left">
@@ -189,7 +182,6 @@ const tabs = [
                 <span className="font-display text-lg md:text-xl font-black text-white">{profileUser.following_count ?? 0}</span>
                 <span className="text-[10px] uppercase tracking-[0.2em] text-white/40 group-hover:text-white/60 transition-colors">Seguindo</span>
               </Link>
-              <div className="w-px h-10 bg-white/10" />
               <Link to={`/profile/${profileUser.username}`}
                 className="flex flex-col items-center md:items-start group min-w-[50px]">
                 <span className="font-display text-lg md:text-xl font-black text-white">{profileUser.followers_count ?? 0}</span>
