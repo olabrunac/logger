@@ -5,61 +5,34 @@ from app.db.session import SessionLocal
 def init_db() -> None:
     db = SessionLocal()
 
-    # Migrate existing DB: add new columns if missing
+    # Migrate existing DB: add new columns if missing.
+    # NOTE: `user` is a reserved keyword in PostgreSQL, so the table name must be
+    # quoted ("user") or these ALTERs fail with a syntax error and the column is
+    # never added. Each statement runs in its own transaction so a failure does
+    # not abort the rest, and the error is logged instead of silently swallowed.
     from sqlalchemy import text
-    try:
-        db.execute(text("ALTER TABLE user ADD COLUMN email VARCHAR"))
-    except Exception:
-        pass
-    try:
-        db.execute(text("ALTER TABLE user ADD COLUMN password_hash VARCHAR"))
-    except Exception:
-        pass
-    try:
-        db.execute(text("ALTER TABLE user ADD COLUMN password_reset_token VARCHAR"))
-    except Exception:
-        pass
-    try:
-        db.execute(text("ALTER TABLE user ADD COLUMN password_reset_expires DATETIME"))
-    except Exception:
-        pass
-    try:
-        db.execute(text("ALTER TABLE user ADD COLUMN social_links TEXT"))
-    except Exception:
-        pass
-    try:
-        db.execute(text("ALTER TABLE mediaitem ADD COLUMN total_episodes INTEGER"))
-    except Exception:
-        pass
-    try:
-        db.execute(text("ALTER TABLE episodewatched ADD COLUMN review_text TEXT"))
-    except Exception:
-        pass
-    try:
-        db.execute(text("ALTER TABLE episodewatched ADD COLUMN rating FLOAT"))
-    except Exception:
-        pass
-    try:
-        db.execute(text("ALTER TABLE episodewatched ADD COLUMN air_date VARCHAR"))
-    except Exception:
-        pass
-    try:
-        db.execute(text("ALTER TABLE mediaitem ADD COLUMN time_to_beat TEXT"))
-    except Exception:
-        pass
-    try:
-        db.execute(text("ALTER TABLE mediaitem ADD COLUMN similar_games TEXT"))
-    except Exception:
-        pass
-    try:
-        db.execute(text("ALTER TABLE user ADD COLUMN trophy_showcase TEXT DEFAULT '[]'"))
-    except Exception:
-        pass
-    try:
-        db.execute(text("ALTER TABLE user ADD COLUMN birth_date DATE"))
-    except Exception:
-        pass
-    db.commit()
+
+    def _migrate(sql: str) -> None:
+        try:
+            db.execute(text(sql))
+            db.commit()
+        except Exception as exc:
+            db.rollback()
+            print(f"[init_db] skipped: {sql} -> {exc}")
+
+    _migrate('ALTER TABLE "user" ADD COLUMN email VARCHAR')
+    _migrate('ALTER TABLE "user" ADD COLUMN password_hash VARCHAR')
+    _migrate('ALTER TABLE "user" ADD COLUMN password_reset_token VARCHAR')
+    _migrate('ALTER TABLE "user" ADD COLUMN password_reset_expires TIMESTAMP')
+    _migrate('ALTER TABLE "user" ADD COLUMN social_links TEXT')
+    _migrate('ALTER TABLE mediaitem ADD COLUMN total_episodes INTEGER')
+    _migrate('ALTER TABLE episodewatched ADD COLUMN review_text TEXT')
+    _migrate('ALTER TABLE episodewatched ADD COLUMN rating FLOAT')
+    _migrate('ALTER TABLE episodewatched ADD COLUMN air_date VARCHAR')
+    _migrate('ALTER TABLE mediaitem ADD COLUMN time_to_beat TEXT')
+    _migrate('ALTER TABLE mediaitem ADD COLUMN similar_games TEXT')
+    _migrate('ALTER TABLE "user" ADD COLUMN trophy_showcase TEXT DEFAULT \'[]\'')
+    _migrate('ALTER TABLE "user" ADD COLUMN birth_date DATE')
 
     # Seed admin user
     admin = crud.user.get_by_username(db, username="admin")
