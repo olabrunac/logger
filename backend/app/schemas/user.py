@@ -1,5 +1,6 @@
 from pydantic import BaseModel, model_validator, EmailStr
 from typing import Optional
+from datetime import date
 
 # Shared properties
 class UserBase(BaseModel):
@@ -9,6 +10,7 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     email: str
     password: str
+    birth_date: Optional[date] = None
 
 # Properties to receive on user update
 class UserUpdate(BaseModel):
@@ -23,6 +25,7 @@ class UserUpdate(BaseModel):
     display_name: Optional[str] = None
     bio: Optional[str] = None
     trophy_showcase: Optional[str] = None
+    birth_date: Optional[date] = None
 
 # Login request
 class LoginRequest(BaseModel):
@@ -62,6 +65,7 @@ class User(UserBase):
     display_name: Optional[str] = None
     bio: Optional[str] = None
     trophy_showcase: Optional[str] = '[]'
+    birth_date: Optional[date] = None
     followers_count: int = 0
     following_count: int = 0
 

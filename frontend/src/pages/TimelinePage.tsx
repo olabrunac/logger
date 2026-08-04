@@ -180,8 +180,8 @@ const PostCard = ({ post, currentUser, onReply, onDelete, onLike }: {
       {post.images.length > 0 && (
         <div className={post.images.length === 1 ? '' : 'grid grid-cols-2 gap-0.5'}>
           {post.images.map(img => (
-            <div key={img.id} className={post.images.length === 1 ? 'max-h-96 overflow-hidden' : 'aspect-square overflow-hidden'}>
-              <img src={IMAGE_URL(img.url)} alt="" className="w-full h-full object-cover" loading="lazy" />
+            <div key={img.id} className={post.images.length === 1 ? 'max-h-96 overflow-hidden bg-black/40' : 'aspect-square overflow-hidden bg-black/40'}>
+              <img src={IMAGE_URL(img.url)} alt="" className="w-full h-full object-contain" loading="lazy" />
             </div>
           ))}
         </div>

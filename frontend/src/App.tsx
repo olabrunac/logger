@@ -20,8 +20,8 @@ import RightSidebar from './components/RightSidebar';
 import FloatingLogButton from './components/FloatingLogButton';
 import type { User } from './types';
 
-function MediaTypeRedirect({ username }: { username: string }) {
-  const { mediaType } = useParams<{ mediaType: string }>();
+function MediaTypeRedirect() {
+  const { username, mediaType } = useParams<{ username: string; mediaType: string }>();
   return <Navigate to={`/profile/${username}?view=${mediaType}`} replace />;
 }
 
@@ -234,7 +234,7 @@ function AppInner() {
             <Route
               path="/profile/:username/:mediaType"
               element={
-                user ? <MediaTypeRedirect username={user.username} /> : <Navigate to="/login" />
+                user ? <MediaTypeRedirect /> : <Navigate to="/login" />
               }
             />
             <Route

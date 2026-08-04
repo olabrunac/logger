@@ -55,6 +55,10 @@ def init_db() -> None:
         db.execute(text("ALTER TABLE user ADD COLUMN trophy_showcase TEXT DEFAULT '[]'"))
     except Exception:
         pass
+    try:
+        db.execute(text("ALTER TABLE user ADD COLUMN birth_date DATE"))
+    except Exception:
+        pass
     db.commit()
 
     # Seed admin user

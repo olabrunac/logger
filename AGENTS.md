@@ -39,20 +39,23 @@
 - **Wishlist**: Fetch separado via `/media/wishlist` (merge manual com logs nas páginas de perfil).
 
 ## 📋 Pendências (TODO) — ordenadas da mais fácil para a mais complexa
-1. **CDN da Steam mudou**: Steam migrou de `cdn.akamai.steamstatic.com` para `shared.akamai.steamstatic.com/store_item_assets/`. `library_600x900.jpg` ainda funciona no CDN antigo, mas monitorar se quebrará.
-2. **Data de nascimento no cadastro**: Ao criar conta nova, a data de nascimento vem pré-cadastrada e o usuário não consegue definir a própria.
-3. **Imagens na timeline**: Posts com imagem devem exibir a imagem totalmente visível num tamanho específico (estilo Twitter), sem corte.
-4. **Bug das 5 estrelas**: Dar nota 5 é difícil — visualmente mostra 4.5 e parece ter delay ao selecionar. Revisar interação das estrelas.
-5. **Ver perfil de outros usuários**: Não é possível visualizar outros perfis, nem pelo link direto do perfil.
-6. **Validação de banner/avatar**: Avisar o usuário quando tentar enviar banner/avatar que não atende as especificações (dimensões/tamanho).
-7. **Zona de perigo nas configurações**: Mover os botões perigosos só para a área de segurança e exigir confirmação antes de excluir/apagar dados.
-8. **Tags de jogos parados**: Na importação de jogos, adicionar tags corretas quando o jogo está há mais de 120 dias sem ser jogado.
-9. **Import otimizado**: O HEAD request por jogo no import da Steam adiciona ~1s por app (276 jogos ≈ 5min). Considerar batch ou paralelizar no futuro.
-10. **Enquadramento de banner/avatar**: Permitir mover o enquadramento da imagem enviada (pan/zoom) para ajuste pelo usuário.
-11. **Ajustar site para mobile**: Revisar layout responsivo (sidebar, grids, modais) para telas pequenas.
-12. **Publicação (#10)**: Publicar o site, avaliar ferramentas de hosting do GitHub Students
+1. **Cor da pílula de status no bloco "Meu Log"**: Na página da mídia, o bloco "Meu Log" (avaliação, review, etc.) mostra a pílula de status com cor ilegível — deixar a cor da letra branca.
+2. **Tamanho da imagem na timeline**: A imagem dos posts deve exibir num tamanho específico/fixo (estilo Twitter), não variando com a proporção da imagem.
+3. **Tamanho do poster tile no favoritos**: O tamanho do poster tile na seção Favoritos deve ser fixo.
+4. **Validação de banner/avatar**: Avisar o usuário quando tentar enviar banner/avatar que não atende as especificações (dimensões/tamanho).
+5. **Zona de perigo nas configurações**: Mover os botões perigosos só para a área de segurança e exigir confirmação antes de excluir/apagar dados.
+6. **Tags de jogos parados**: Na importação de jogos, adicionar tags corretas quando o jogo está há mais de 120 dias sem ser jogado.
+7. **Import otimizado**: O HEAD request por jogo no import da Steam adiciona ~1s por app (276 jogos ≈ 5min). Considerar batch ou paralelizar no futuro.
+8. **Enquadramento de banner/avatar**: Permitir mover o enquadramento da imagem enviada (pan/zoom) para ajuste pelo usuário.
+9. **Ajustar site para mobile**: Revisar layout responsivo (sidebar, grids, modais) para telas pequenas.
+10. **Publicação (#10)**: Publicar o site, avaliar ferramentas de hosting do GitHub Students
 
 ## ✅ Implementado
+- **CDN da Steam com fallback**: `_steam_cover_url` (`import_data.py`) tenta o CDN legado (`cdn.akamai.steamstatic.com`) e cai para o novo (`shared.akamai.steamstatic.com/store_item_assets/`) se o HEAD falhar — import Steam não quebra na migração.
+- **Data de nascimento no cadastro**: Novo campo opcional `birth_date` no `User` (model + migration em `init_db.py` + schemas) — formulário de registro (`LoginPage.tsx`) envia a data e o `SettingsPage` exibe/permite alterar (antes era hardcoded "19/04/1999").
+- **Imagens na timeline sem corte**: Posts no `TimelinePage` e `ProfilePage` usam `object-contain` com fundo escuro (letterbox estilo Twitter) — imagem inteira visível, sem crop.
+- **Bug das 5 estrelas**: Estrelas do `LogForm` agora preenchem o botão (`size={40}` + `w-full h-full`) — antes o ícone de 36px ficava desalinhado num botão de 40px, fazendo o eixo de "metade da estrela" mostrar 4.5 no hover e dificultando o 5.
+- **Ver perfil de outros usuários**: `MediaTypeRedirect` (`App.tsx`) usava `user.username` (o usuário logado) em vez do `:username` da URL — links tipo `/profile/:username/games` agora redirecionam para o perfil correto.
 - **Busca global (#22)**: Página dedicada `/search` (`SearchPage.tsx`) substituiu o `GlobalSearchModal` (removido) — NavLink "Buscar" na `LeftSidebar`. `App.tsx` esconde a `RightSidebar` global nas rotas `/media/*` (a página usa sidebar própria estilo YGP). `/log/*` redireciona para `/media/*`.
 - **Busca de log por ISBN (#22)**: `google_books_service.search_books` detecta ISBN (via `_looks_like_isbn`, aceita ISBN-10/13 com/sem hífens) digitado no campo de título e constrói `isbn:<valor>`. Antes montava `intitle:<isbn>` → 0 resultados.
 - **Popout do log**: Modal "Novo Log" (`FloatingLogButton.tsx`) fecha apenas no **X** — removido `onClick={handleClose}` do overlay.

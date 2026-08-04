@@ -29,6 +29,18 @@ def _cover_exists(url: str) -> bool:
         return False
 
 
+def _steam_cover_url(appid: int) -> Optional[str]:
+    """Resolve a working Steam cover URL, trying the legacy CDN first with fallback to the new one."""
+    urls = [
+        f"https://cdn.akamai.steamstatic.com/steam/apps/{appid}/library_600x900.jpg",
+        f"https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/{appid}/library_600x900.jpg",
+    ]
+    for url in urls:
+        if _cover_exists(url):
+            return url
+    return None
+
+
 class ImportItem(BaseModel):
     title: str
     year: Optional[int] = None
@@ -519,8 +531,8 @@ async def steam_import(
         cover_url = None
         steam_details = None
         if appid:
-            cover_url = f"https://cdn.akamai.steamstatic.com/steam/apps/{appid}/library_600x900.jpg"
-            if not _cover_exists(cover_url):
+            cover_url = _steam_cover_url(appid)
+            if not cover_url:
                 skipped += 1
                 continue
             steam_details = steam_service.get_app_details(appid)
