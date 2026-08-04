@@ -39,15 +39,16 @@
 - **Wishlist**: Fetch separado via `/media/wishlist` (merge manual com logs nas páginas de perfil).
 
 ## 📋 Pendências (TODO) — ordenadas da mais fácil para a mais complexa
-1. **Tags de jogos parados**: Na importação de jogos, adicionar tags corretas quando o jogo está há mais de 120 dias sem ser jogado.
-2. **Import otimizado**: O HEAD request por jogo no import da Steam adiciona ~1s por app (276 jogos ≈ 5min). Considerar batch ou paralelizar no futuro.
-3. **Retirar badge de primeiro log**: Remover a badge de "primeiro log" do sistema de badges.
-4. **Data de nascimento no Settings → Geral**: Mostrar a data de nascimento num bloco e permitir trocá-la **1 única vez** (caso o usuário tenha preenchido errado inicialmente).
-5. **Importação de achievements dos jogos**: Ajustar/corrigir a importação de conquistas (achievements) dos jogos.
-6. **Ajustar site para mobile**: Revisar layout responsivo (sidebar, grids, modais) para telas pequenas.
-7. **Publicação (#10)**: Publicar o site, avaliar ferramentas de hosting do GitHub Students
+1. **Retirar badge de primeiro log**: Remover a badge de "primeiro log" do sistema de badges.
+2. **Data de nascimento no Settings → Geral**: Mostrar a data de nascimento num bloco e permitir trocá-la **1 única vez** (caso o usuário tenha preenchido errado inicialmente).
+3. **Importação de achievements dos jogos**: Ajustar/corrigir a importação de conquistas (achievements) dos jogos.
+4. **Jogos do Family Share na importação Steam**: Importar também os jogos compartilhados pela família (não comprados). O endpoint `IFamilyGroupsService/GetSharedLibraryApps` exige **login OAuth com a conta Steam** (access token de curta duração + refresh) para listar os jogos e `GetPlaytimeSummary` para os tempos — fluxo de login novo no app.
+5. **Ajustar site para mobile**: Revisar layout responsivo (sidebar, grids, modais) para telas pequenas.
+6. **Publicação (#10)**: Publicar o site, avaliar ferramentas de hosting do GitHub Students
 
 ## ✅ Implementado
+- **Jogos parados marcados como abandonados (import Steam)**: Na importação, todos os jogos próprios vão para `library` (usuário tem comprado na conta); jogos com **>120 dias** sem atividade (`rtime_last_played`) → `dropped`. Removido o `in_progress` da importação; mantida a regra de `completed` para 100% de achievements.
+- **Import Steam otimizado**: HEAD requests das capas (`_steam_cover_url`) resolvidos em paralelo via `ThreadPoolExecutor` (10 workers) antes do loop — 276 jogos ≈ 5min serial → ~30s. ETA baseline ajustado (2.5 → 1.5s/item).
 - **URL direta de perfil alheio (#17)**: `user` iniciava como `null` (só era lido do localStorage num `useEffect`), então digitar `/profile/:username` no browser (full page load) redirecionava para o próprio perfil (cascata `/login` → `/` → `/profile/{user.username}`). Fix: `App.tsx` inicializa `user` **sincronamente** via `useState` lazy a partir do localStorage — URL direta de qualquer rota agora renderiza o destino direto.
 - **Railway — crash do Postgres corrigido (#16)**: `init_db.py` usava `ALTER TABLE user ...` (sem aspas, `user` é palavra reservada) com `except: pass` engolindo o erro → crash de startup (`column user.birth_date does not exist`). Fix: `_migrate()` cita `"user"`, roda cada statement em transação própria com `commit`/`rollback` e loga o erro.
 - **Pílula branca no "Meu Log"**: Pílula de status no bloco "Meu Log" da página de mídia usa `color: '#fff'` fixa — `STATUS_TEXT_COLORS` removido de `MediaDetailPage.tsx`.
