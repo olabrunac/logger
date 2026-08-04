@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import api, { getUserWishlist, getUserCustomLists, createCustomList, updateCustomList, deleteCustomList, addCustomListItem, removeCustomListItem } from '../services/api';
-import type { LogEntry, MediaType, CustomList, CustomListItem } from '../types';
+import type { LogEntry, MediaType, CustomList, CustomListItem, User } from '../types';
 import type { MediaItem } from '../types/media';
 import { Gamepad2, Film, Tv, Book, Pencil, Trash2, Plus, ChevronDown, ChevronRight, X, Search } from 'lucide-react';
 import { createPortal } from 'react-dom';
@@ -9,7 +9,7 @@ import { TYPE_META } from '../constants/designSystem';
 import YgpCard from '../components/sections/YgpCard';
 
 interface ListsPageProps {
-  user: { id: number; username: string };
+  currentUser: User;
 }
 
 const TYPES: { key: MediaType | 'all'; label: string; icon: typeof Film; color: string }[] = [
@@ -162,8 +162,10 @@ const AddMediaModal = ({ open, onClose, userId, listId, onAdded }: {
   );
 };
 
-const ListsPage = ({ user }: ListsPageProps) => {
+const ListsPage = ({ currentUser }: ListsPageProps) => {
+  const { username } = useParams<{ username: string }>();
   const [tab, setTab] = useState<MediaType | 'all'>('all');
+  const [targetUser, setTargetUser] = useState<{ id: number; username: string }>(currentUser);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [wishlist, setWishlist] = useState<(LogEntry & { media_item: MediaItem })[]>([]);
   const [customLists, setCustomLists] = useState<CustomList[]>([]);
@@ -173,26 +175,39 @@ const ListsPage = ({ user }: ListsPageProps) => {
   const [addMediaListId, setAddMediaListId] = useState<number | null>(null);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
 
+  const displayUsername = username || currentUser.username;
+  const isOwnProfile = displayUsername === currentUser.username;
+
+  useEffect(() => {
+    if (username && username !== currentUser.username) {
+      api.get('/login/by-username/' + encodeURIComponent(username))
+        .then(res => setTargetUser(res.data))
+        .catch(() => setTargetUser(currentUser));
+    } else {
+      setTargetUser(currentUser);
+    }
+  }, [username, currentUser]);
+
   const fetchLogs = useCallback(async () => {
     try {
-      const response = await api.get('/media/logs', { params: { user_id: user.id, limit: 500 } });
+      const response = await api.get('/media/logs', { params: { user_id: targetUser.id, limit: 500 } });
       setLogs(response.data || []);
     } catch (err) { console.error('Failed to fetch logs', err); }
-  }, [user.id]);
+  }, [targetUser.id]);
 
   const fetchWishlist = useCallback(async () => {
     try {
-      const response = await getUserWishlist(user.id);
+      const response = await getUserWishlist(targetUser.id);
       setWishlist(response.data || []);
     } catch (err) { console.error('Failed to fetch wishlist', err); }
-  }, [user.id]);
+  }, [targetUser.id]);
 
   const fetchCustomLists = useCallback(async () => {
     try {
-      const response = await getUserCustomLists(user.id);
+      const response = await getUserCustomLists(targetUser.id);
       setCustomLists(response.data || []);
     } catch (err) { console.error('Failed to fetch custom lists', err); }
-  }, [user.id]);
+  }, [targetUser.id]);
 
   useEffect(() => { fetchLogs(); fetchWishlist(); fetchCustomLists(); }, [fetchLogs, fetchWishlist, fetchCustomLists]);
 
@@ -206,10 +221,10 @@ const ListsPage = ({ user }: ListsPageProps) => {
   const handleSaveList = async (name: string, description: string) => {
     try {
       if (editingList) {
-        const res = await updateCustomList(user.id, editingList.id, { name, description });
+        const res = await updateCustomList(targetUser.id, editingList.id, { name, description });
         setCustomLists(prev => prev.map(l => l.id === editingList.id ? res.data : l));
       } else {
-        const res = await createCustomList(user.id, { name, description });
+        const res = await createCustomList(targetUser.id, { name, description });
         setCustomLists(prev => [res.data, ...prev]);
       }
     } catch (err) { console.error('Failed to save list', err); }
@@ -219,14 +234,14 @@ const ListsPage = ({ user }: ListsPageProps) => {
 
   const handleDeleteList = async (listId: number) => {
     try {
-      await deleteCustomList(user.id, listId);
+      await deleteCustomList(targetUser.id, listId);
       setCustomLists(prev => prev.filter(l => l.id !== listId));
     } catch (err) { console.error('Failed to delete list', err); }
   };
 
   const handleRemoveItem = async (listId: number, itemId: number) => {
     try {
-      await removeCustomListItem(user.id, listId, itemId);
+      await removeCustomListItem(targetUser.id, listId, itemId);
       setCustomLists(prev => prev.map(l => {
         if (l.id !== listId) return l;
         return { ...l, items: l.items.filter(i => i.id !== itemId) };
@@ -341,6 +356,7 @@ const ListsPage = ({ user }: ListsPageProps) => {
               <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
                 {visibleWishlist.map(l => (
                   <YgpCard key={l.id} log={l} actions={
+                    isOwnProfile ? (
                     <>
                       <Link to={`/new-log?edit=${l.id}`} onClick={(e) => e.stopPropagation()}
                         className="w-6 h-6 rounded flex items-center justify-center bg-black/70 text-white/70 hover:text-white backdrop-blur-sm transition-colors" title="Editar">
@@ -351,6 +367,7 @@ const ListsPage = ({ user }: ListsPageProps) => {
                         <Trash2 size={12} />
                       </button>
                     </>
+                    ) : undefined
                   } />
                 ))}
               </div>
@@ -364,11 +381,13 @@ const ListsPage = ({ user }: ListsPageProps) => {
       <section>
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-display text-xl font-bold">Listas Personalizadas</h2>
-          <button onClick={() => { setEditingList(null); setShowListForm(true); }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-black transition-colors hover:opacity-90"
-            style={{ background: 'var(--mdf-green)' }}>
-            <Plus size={14} /> Nova Lista
-          </button>
+          {isOwnProfile && (
+            <button onClick={() => { setEditingList(null); setShowListForm(true); }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-black transition-colors hover:opacity-90"
+              style={{ background: 'var(--mdf-green)' }}>
+              <Plus size={14} /> Nova Lista
+            </button>
+          )}
         </div>
 
         {customLists.length === 0 && (
@@ -399,18 +418,24 @@ const ListsPage = ({ user }: ListsPageProps) => {
                       <ChevronRight size={14} className={`transition-transform ${expandedSections[`list-${cl.id}`] === true ? 'rotate-90' : ''}`} />
                     </button>
                   </div>
-                  <button onClick={(e) => { e.stopPropagation(); setAddMediaListId(cl.id); }}
-                    className="p-1.5 rounded-md hover:bg-white/10 text-white/40 hover:text-white transition-colors">
-                    <Plus size={16} />
-                  </button>
-                  <button onClick={(e) => { e.stopPropagation(); setEditingList({ id: cl.id, name: cl.name, description: cl.description || '' }); setShowListForm(true); }}
-                    className="p-1.5 rounded-md hover:bg-white/10 text-white/40 hover:text-white transition-colors">
-                    <Pencil size={14} />
-                  </button>
-                  <button onClick={(e) => { e.stopPropagation(); if (confirm('Excluir esta lista?')) handleDeleteList(cl.id); }}
-                    className="p-1.5 rounded-md hover:bg-white/10 text-white/40 hover:text-red-400 transition-colors">
-                    <Trash2 size={14} />
-                  </button>
+                  {isOwnProfile && (
+                    <button onClick={(e) => { e.stopPropagation(); setAddMediaListId(cl.id); }}
+                      className="p-1.5 rounded-md hover:bg-white/10 text-white/40 hover:text-white transition-colors">
+                      <Plus size={16} />
+                    </button>
+                  )}
+                  {isOwnProfile && (
+                    <button onClick={(e) => { e.stopPropagation(); setEditingList({ id: cl.id, name: cl.name, description: cl.description || '' }); setShowListForm(true); }}
+                      className="p-1.5 rounded-md hover:bg-white/10 text-white/40 hover:text-white transition-colors">
+                      <Pencil size={14} />
+                    </button>
+                  )}
+                  {isOwnProfile && (
+                    <button onClick={(e) => { e.stopPropagation(); if (confirm('Excluir esta lista?')) handleDeleteList(cl.id); }}
+                      className="p-1.5 rounded-md hover:bg-white/10 text-white/40 hover:text-red-400 transition-colors">
+                      <Trash2 size={14} />
+                    </button>
+                  )}
                 </div>
 
                 {isExpanded && (
@@ -424,10 +449,12 @@ const ListsPage = ({ user }: ListsPageProps) => {
                           if (!item.media_item) return null;
                           return (
                             <YgpCard key={item.id} log={{ id: item.id, media_item: item.media_item }} actions={
+                              isOwnProfile ? (
                               <button onClick={(e) => { e.stopPropagation(); handleRemoveItem(cl.id, item.id); }}
                                 className="w-6 h-6 rounded flex items-center justify-center bg-black/70 text-white/70 hover:text-red-400 backdrop-blur-sm transition-colors" title="Remover da lista">
                                 <X size={12} />
                               </button>
+                              ) : undefined
                             } />
                           );
                         })}
@@ -445,7 +472,7 @@ const ListsPage = ({ user }: ListsPageProps) => {
       <ListFormModal open={showListForm} onClose={() => { setShowListForm(false); setEditingList(null); }} onSave={handleSaveList}
         initial={editingList || undefined} />
       {addMediaListId && (
-        <AddMediaModal open={true} onClose={() => setAddMediaListId(null)} userId={user.id} listId={addMediaListId}
+        <AddMediaModal open={true} onClose={() => setAddMediaListId(null)} userId={targetUser.id} listId={addMediaListId}
           onAdded={(item) => handleItemAdded(addMediaListId, item)} />
       )}
     </div>

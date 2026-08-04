@@ -44,6 +44,8 @@ class MediaItemInDB(MediaItemBase):
     book_categories: Optional[str] = None
     book_language: Optional[str] = None
     book_rating: Optional[float] = None
+    time_to_beat: Optional[str] = None
+    similar_games: Optional[str] = None
     class Config:
         from_attributes = True
 

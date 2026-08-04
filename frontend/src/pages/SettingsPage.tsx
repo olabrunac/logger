@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import api, { uploadFile, deleteUpload } from '../services/api';
 import ImportPage from './ImportPage';
+import { ImageFramingModal } from '../components/ImageFramingModal';
 import type { User } from '../types';
 import { imageUrl } from '../utils';
 import {
@@ -106,6 +107,8 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
   const [accentColor, setAccentColor] = useState(user.accent_color || '#ff6b35');
   const [uploading, setUploading] = useState<'banner' | 'avatar' | null>(null);
+  const [framingTarget, setFramingTarget] = useState<'banner' | 'avatar' | null>(null);
+  const [framingUrl, setFramingUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -123,6 +126,10 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
   const [changingPassword, setChangingPassword] = useState(false);
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
+
+  const [birthDate, setBirthDate] = useState(user.birth_date ? String(user.birth_date).slice(0, 10) : '');
+  const [showBirthForm, setShowBirthForm] = useState(false);
+  const [changingBirthDate, setChangingBirthDate] = useState(false);
 
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -247,9 +254,73 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, uploadType: 'banner' | 'avatar') => {
+  const MAX_UPLOAD_SIZE = 5 * 1024 * 1024;
+
+  const validateImageFile = (file: File, uploadType: 'banner' | 'avatar'): Promise<{ valid: boolean; error?: string }> => {
+    if (file.size > MAX_UPLOAD_SIZE) {
+      return Promise.resolve({ valid: false, error: 'Arquivo muito grande. Tamanho máximo: 5MB.' });
+    }
+    return new Promise(resolve => {
+      const url = URL.createObjectURL(file);
+      const img = new window.Image();
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const w = img.naturalWidth;
+        const h = img.naturalHeight;
+        if (uploadType === 'banner') {
+          if (w < 800) {
+            resolve({ valid: false, error: 'Banner muito pequeno. A largura mínima é 800px (ideal: 1400x300).' });
+            return;
+          }
+          const ratio = w / h;
+          if (ratio < 2.5 || ratio > 8) {
+            resolve({ valid: false, error: 'Banner com proporção inadequada. Use uma imagem larga (ideal 1400x300).' });
+            return;
+          }
+        } else {
+          if (w < 256 || h < 256) {
+            resolve({ valid: false, error: 'Avatar muito pequeno. Use pelo menos 256x256px.' });
+            return;
+          }
+          const ratio = w / h;
+          if (ratio < 0.9 || ratio > 1.1) {
+            resolve({ valid: false, error: 'Avatar deve ser uma imagem quadrada (1:1).' });
+            return;
+          }
+        }
+        resolve({ valid: true });
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve({ valid: false, error: 'Não foi possível ler a imagem.' });
+      };
+      img.src = url;
+    });
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, uploadType: 'banner' | 'avatar') => {
     const file = e.target.files?.[0];
-    if (file) handleFileUpload(file, uploadType);
+    e.target.value = '';
+    if (!file) return;
+    const check = await validateImageFile(file, uploadType);
+    if (!check.valid) {
+      showError(check.error || 'Imagem inválida.');
+      return;
+    }
+    if (file.type === 'image/gif') {
+      handleFileUpload(file, uploadType);
+      return;
+    }
+    setFramingUrl(URL.createObjectURL(file));
+    setFramingTarget(uploadType);
+  };
+
+  const handleFramingConfirm = async (blob: Blob) => {
+    if (!framingTarget) return;
+    const file = new File([blob], `${framingTarget}.jpg`, { type: 'image/jpeg' });
+    setFramingUrl(null);
+    setFramingTarget(null);
+    await handleFileUpload(file, framingTarget);
   };
 
   const handleSaveProfile = async () => {
@@ -312,6 +383,25 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
       showError(err.response?.data?.detail || 'Erro ao alterar email.');
     } finally {
       setChangingEmail(false);
+    }
+  };
+
+  const handleChangeBirthDate = async () => {
+    if (!birthDate) {
+      showError('Informe a data de nascimento.');
+      return;
+    }
+    setChangingBirthDate(true);
+    setMessage(null);
+    try {
+      const res = await api.put(`/users/${user.id}/profile`, { birth_date: birthDate });
+      onUserUpdate(res.data);
+      setShowBirthForm(false);
+      showSuccess('Data de nascimento atualizada!');
+    } catch (err: any) {
+      showError(err.response?.data?.detail || 'Erro ao salvar data de nascimento.');
+    } finally {
+      setChangingBirthDate(false);
     }
   };
 
@@ -738,9 +828,51 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-white">Data de Nascimento</p>
-                <p className="text-xs text-white/40">Sua data de nascimento não pode ser alterada.</p>
+                <p className="text-xs text-white/40">Informe sua data de nascimento.</p>
               </div>
-              <span className="text-sm text-white/60">19/04/1999</span>
+              <button type="button" onClick={() => setShowBirthForm(!showBirthForm)} className="shrink-0 rounded-lg bg-[var(--accent)] px-4 py-1.5 text-xs font-medium text-white transition-colors hover:opacity-80">{showBirthForm ? 'Cancelar' : 'Alterar'}</button>
+            </div>
+            {showBirthForm ? (
+              <div className="mt-3 pt-3 border-t border-white/10 space-y-2.5">
+                <input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} className="w-full rounded-lg border border-white/10 bg-[var(--mdf-surface)] px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/20 [color-scheme:dark]" />
+                <button className="w-full rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-medium text-white transition-colors hover:opacity-90 disabled:opacity-50" onClick={handleChangeBirthDate} disabled={changingBirthDate || !birthDate}>{changingBirthDate ? 'Salvando...' : 'Salvar data'}</button>
+              </div>
+            ) : (
+              <span className="text-sm text-white/60">{birthDate ? new Date(birthDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'Não informada'}</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-white/5 bg-[var(--mdf-surface)] p-4 lg:p-6">
+        <h2 className="text-sm lg:text-lg font-semibold" style={{ color: '#f87171' }}>Zona de Perigo</h2>
+        <p className="mt-0.5 lg:mt-1 text-xs lg:text-sm text-white/50">Ações irreversíveis. Requerem confirmação.</p>
+        <div className="mt-3 lg:mt-5 space-y-3">
+          <div className="rounded-xl border border-white/10 bg-[var(--mdf-bg)] p-3 lg:p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-white">Limpar Dados</p>
+                <p className="mt-1 text-xs text-white/40">Apaga logs, reviews, posts e badges. Mantém avatar, banner, cor e badges especiais.</p>
+              </div>
+              <button type="button" onClick={() => setShowWipeConfirm(true)} disabled={wiping}
+                className="shrink-0 rounded-lg px-4 py-1.5 text-xs font-bold transition-colors disabled:opacity-50"
+                style={{ background: 'rgba(250,204,21,0.1)', color: '#eab308', border: '1px solid rgba(250,204,21,0.3)' }}>
+                {wiping ? 'Limpando...' : 'Limpar'}
+              </button>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-white/10 bg-[var(--mdf-bg)] p-3 lg:p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-white">Excluir Conta</p>
+                <p className="mt-1 text-xs text-white/40">Apaga permanentemente sua conta e todos os seus dados.</p>
+              </div>
+              <button type="button" onClick={() => setShowDeleteConfirm(true)} disabled={deleting}
+                className="shrink-0 rounded-lg px-4 py-1.5 text-xs font-bold transition-colors disabled:opacity-50"
+                style={{ background: 'rgba(248, 113, 113, 0.1)', color: '#f87171', border: '1px solid rgba(248, 113, 113, 0.3)' }}>
+                Excluir
+              </button>
             </div>
           </div>
         </div>
@@ -818,10 +950,6 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
           <button className="w-full flex items-center justify-between rounded-xl border border-white/10 bg-[var(--mdf-bg)] p-3 text-left text-white transition-colors hover:border-white/20">
             <span>Baixar meus dados</span>
             <Download className="h-4 w-4 text-white/40" />
-          </button>
-          <button className="w-full flex items-center justify-between rounded-xl border border-white/10 bg-[var(--mdf-bg)] p-3 text-left text-white/70 transition-colors hover:border-white/20 hover:text-white">
-            <span>Excluir meus dados (LGPD)</span>
-            <Trash2 className="h-4 w-4 text-white/40" />
           </button>
           <button className="w-full flex items-center justify-between rounded-xl border border-white/10 bg-[var(--mdf-bg)] p-3 text-left text-white/70 transition-colors hover:border-white/20 hover:text-white">
             <span>Gerenciar cookies</span>
@@ -923,19 +1051,6 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
         </button>
       </div>
 
-      <div className="pt-6 border-t" style={{ borderColor: 'rgba(248, 113, 113, 0.2)' }}>
-        <h2 className="font-display text-lg font-bold mb-1" style={{ color: '#f87171' }}>Zona de Perigo</h2>
-        <p className="text-sm mb-4 text-white/50">Excluir sua conta apagará todos os seus logs permanentemente.</p>
-        <div className="space-y-3">
-          <button onClick={() => setShowWipeConfirm(true)} disabled={wiping} className="w-full text-center py-3 rounded-xl text-sm font-bold transition-colors" style={{ background: 'rgba(250,204,21,0.1)', color: '#eab308', border: '1px solid rgba(250,204,21,0.3)' }}>
-            {wiping ? 'Limpando...' : 'Limpar Dados (manter avatar, banner, cor)'}
-          </button>
-          <button className="w-full text-center py-3 rounded-xl text-sm font-bold transition-colors" style={{ background: 'rgba(248, 113, 113, 0.1)', color: '#f87171', border: '1px solid rgba(248, 113, 113, 0.3)' }} onClick={() => setShowDeleteConfirm(true)}>
-            Excluir Conta
-          </button>
-        </div>
-      </div>
-
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => !deleting && setShowDeleteConfirm(false)}>
           <div className="w-full max-w-md rounded-2xl bg-[var(--mdf-surface)] border border-white/10 p-5" onClick={e => e.stopPropagation()}>
@@ -964,7 +1079,7 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
             </div>
             <div className="space-y-2 text-white/70">
               <p>Tem certeza que deseja limpar todos os dados de <strong className="text-white">{user.username}</strong>?</p>
-              <p className="text-sm" style={{ color: '#eab308' }}>Logs, reviews, conquistas, notificações e badges serão apagados. Avatar, banner, cor de destaque e badge dev serão mantidos.</p>
+              <p className="text-sm" style={{ color: '#eab308' }}>Logs, reviews, conquistas, notificações e badges serão apagados. Avatar, banner, cor de destaque e badges especiais serão mantidos.</p>
             </div>
             <div className="mt-6 flex gap-3">
               <button onClick={() => setShowWipeConfirm(false)} className="flex-1 rounded-xl border border-white/10 bg-transparent px-4 py-2.5 text-sm font-medium text-white/70 transition-colors hover:border-white/20 hover:text-white" disabled={wiping}>Cancelar</button>
@@ -973,6 +1088,16 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
           </div>
         </div>
       )}
+      <ImageFramingModal
+        open={framingTarget !== null && framingUrl !== null}
+        sourceUrl={framingUrl || ''}
+        aspectRatio={framingTarget === 'avatar' ? 1 : 14 / 3}
+        outputWidth={framingTarget === 'avatar' ? 512 : 1400}
+        outputHeight={framingTarget === 'avatar' ? 512 : 300}
+        title={framingTarget === 'avatar' ? 'Ajustar avatar' : 'Ajustar banner'}
+        onCancel={() => { if (framingUrl) URL.revokeObjectURL(framingUrl); setFramingUrl(null); setFramingTarget(null); }}
+        onConfirm={handleFramingConfirm}
+      />
     </div>
   );
 };

@@ -183,5 +183,4 @@ const RightSidebar = ({ user, isCollapsed, onToggleCollapse }: RightSidebarProps
     </aside>
   );
 };
-
 export default RightSidebar;

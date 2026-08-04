@@ -5,7 +5,8 @@ import LoginPage from './pages/LoginPage';
 import NewLogPage from './pages/NewLogPage';
 import CalendarPage from './pages/CalendarPage';
 import ProfilePage from './pages/ProfilePage';
-import LogDetailPage from './pages/LogDetailPage';
+import MediaDetailPage from './pages/MediaDetailPage';
+import SearchPage from './pages/SearchPage';
 import SettingsPage from './pages/SettingsPage';
 import ListsPage from './pages/ListsPage';
 import DiaryPage from './pages/DiaryPage';
@@ -19,9 +20,14 @@ import RightSidebar from './components/RightSidebar';
 import FloatingLogButton from './components/FloatingLogButton';
 import type { User } from './types';
 
-function MediaTypeRedirect({ username }: { username: string }) {
-  const { mediaType } = useParams<{ mediaType: string }>();
+function MediaTypeRedirect() {
+  const { username, mediaType } = useParams<{ username: string; mediaType: string }>();
   return <Navigate to={`/profile/${username}?view=${mediaType}`} replace />;
+}
+
+function LogRedirect() {
+  const { mediaType, apiId } = useParams<{ mediaType: string; apiId: string }>();
+  return <Navigate to={`/media/${mediaType}/${apiId}`} replace />;
 }
 
 function App() {
@@ -120,15 +126,17 @@ function AppInner() {
     root.style.setProperty('--mdf-green-hover', accentHex);
   }, [accentHex]);
 
-  // Fixed sidebar widths - content area stays this width always
+  // Fixed sidebar widths - content area stays this width always.
+  // On /media pages the global RightSidebar is replaced by the page's own YGP sidebar.
+  const isMediaDetailRoute = /^\/media\//.test(location.pathname);
   const fixedSidebarWidths = user
-    ? { left: 203, right: 324 }
+    ? { left: 203, right: isMediaDetailRoute ? 0 : 324 }
     : { left: 203, right: 0 };
 
   return (
     <div style={accentStyle} className="min-h-screen flex">
         <LeftSidebar user={user} onLogout={handleLogout} refreshUnreadTrigger={unreadTrigger} />
-        {user && (
+        {user && !isMediaDetailRoute && (
           <RightSidebar
             user={viewedUser || user}
             isCollapsed={isSidebarCollapsed}
@@ -158,6 +166,12 @@ function AppInner() {
               }
             />
             <Route
+              path="/search"
+              element={
+                user ? <SearchPage /> : <Navigate to="/login" />
+              }
+            />
+            <Route
               path="/settings"
               element={
                 user ? <SettingsPage user={user} onUserUpdate={handleUserUpdate} onDeleteAccount={handleLogout} /> : <Navigate to="/login" />
@@ -166,19 +180,19 @@ function AppInner() {
             <Route
               path="/profile/:username/calendar"
               element={
-                user ? <CalendarPage user={user} /> : <Navigate to="/login" />
+                user ? <CalendarPage currentUser={user} /> : <Navigate to="/login" />
               }
             />
             <Route
               path="/profile/:username/lists"
               element={
-                user ? <ListsPage user={user} /> : <Navigate to="/login" />
+                user ? <ListsPage currentUser={user} /> : <Navigate to="/login" />
               }
             />
             <Route
               path="/profile/:username/diary"
               element={
-                user ? <DiaryPage user={user} /> : <Navigate to="/login" />
+                user ? <DiaryPage currentUser={user} /> : <Navigate to="/login" />
               }
             />
             <Route
@@ -220,19 +234,25 @@ function AppInner() {
             <Route
               path="/profile/:username/:mediaType"
               element={
-                user ? <MediaTypeRedirect username={user.username} /> : <Navigate to="/login" />
+                user ? <MediaTypeRedirect /> : <Navigate to="/login" />
               }
             />
             <Route
               path="/profile/:username"
               element={
-                user ? <ProfilePage currentUser={user} /> : <Navigate to="/login" />
+                user ? <ProfilePage currentUser={user} onUserUpdate={handleUserUpdate} /> : <Navigate to="/login" />
               }
             />
             <Route
               path="/log/:mediaType/:apiId"
               element={
-                user ? <LogDetailPage /> : <Navigate to="/login" />
+                user ? <LogRedirect /> : <Navigate to="/login" />
+              }
+            />
+            <Route
+              path="/media/:mediaType/:apiId"
+              element={
+                user ? <MediaDetailPage /> : <Navigate to="/login" />
               }
             />
           </Routes>

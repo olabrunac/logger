@@ -1,5 +1,5 @@
 import { NavLink, Link, useLocation } from 'react-router-dom';
-import { Home, Calendar, List, BookOpen, Settings, MessageSquare, Clock, LogOut, LogIn, Bell } from 'lucide-react';
+import { Home, Calendar, List, BookOpen, Settings, MessageSquare, Clock, LogOut, LogIn, Bell, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { getUnreadCount } from '../services/api';
 import type { User as UserType } from '../types';
@@ -121,6 +121,22 @@ const LeftSidebar = ({ user, onLogout, refreshUnreadTrigger }: LeftSidebarProps)
         <span className="text-white/20 mx-1">·</span>
         <span className="font-bold" style={{ color: 'var(--accent)' }}>{followersCount}</span>
         <span className="text-white/40">Seguidores</span>
+      </div>
+
+      {/* Search */}
+      <div className="px-3 pt-2.5 flex-shrink-0">
+        <NavLink
+          to="/search"
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+              isActive ? 'text-white bg-white/5' : 'text-white/50 hover:text-white/80 hover:bg-white/5'
+            }`
+          }
+          title="Buscar mídias e perfis"
+        >
+          <Search size={18} style={{ color: 'var(--accent)' }} />
+          <span>Buscar</span>
+        </NavLink>
       </div>
 
       {/* Nav */}

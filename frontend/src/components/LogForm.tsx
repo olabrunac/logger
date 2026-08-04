@@ -153,10 +153,10 @@ const LogForm: React.FC<LogFormProps> = ({ onSubmit, onCancel, initialData, medi
               className="relative w-10 h-10 transition-transform hover:scale-110"
               aria-label={`${starValue} estrelas`}
             >
-              <Star size={36} className="absolute inset-0" style={{ color: 'rgba(255,255,255,0.1)' }} />
+              <Star size={40} className="absolute inset-0 w-full h-full" style={{ color: 'rgba(255,255,255,0.1)' }} />
               {fillPercent > 0 && (
                 <div className="absolute inset-0 overflow-hidden" style={{ width: `${fillPercent}%` }}>
-                  <Star size={36} fill="#F5C518" style={{ color: '#F5C518' }} />
+                  <Star size={40} className="w-full h-full" fill="#F5C518" style={{ color: '#F5C518' }} />
                 </div>
               )}
             </button>

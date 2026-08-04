@@ -4,7 +4,7 @@ import type { User, LogEntry } from '../types';
 import SearchMedia from '../components/SearchMedia';
 import LogForm from '../components/LogForm';
 import api from '../services/api';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation, Link } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { getLogUrl } from '../utils';
 
@@ -14,6 +14,7 @@ const NewLogPage: React.FC = () => {
   const [editingLog, setEditingLog] = useState<LogEntry | null>(null);
   const [loadingEdit, setLoadingEdit] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const editId = searchParams.get('edit');
 
@@ -23,6 +24,13 @@ const NewLogPage: React.FC = () => {
       setUser(JSON.parse(storedUser));
     }
   }, []);
+
+  useEffect(() => {
+    const stateMedia = (location.state as { media?: MediaItem } | null)?.media;
+    if (stateMedia) {
+      setSelectedMedia(stateMedia);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     if (editId) {
