@@ -14,6 +14,8 @@ class MediaItemBase(BaseModel):
     cover_image_url: Optional[str] = None
     release_date: Optional[date] = None
     synopsis: Optional[str] = None
+    authors: Optional[List[str]] = None
+    popularity: Optional[float] = None
 
 class MediaItemCreate(MediaItemBase):
     pass

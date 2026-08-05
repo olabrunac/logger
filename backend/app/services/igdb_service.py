@@ -47,7 +47,7 @@ def _igdb_post(endpoint: str, query: str):
 
 
 def search_games(query: str):
-    return _igdb_post("games", f'search "{query}"; fields name, cover.url, first_release_date, summary; limit 20;')
+    return _igdb_post("games", f'search "{query}"; fields name, cover.url, first_release_date, summary, rating_count; limit 20;')
 
 
 def get_game_extra_data(igdb_id: int) -> dict:
