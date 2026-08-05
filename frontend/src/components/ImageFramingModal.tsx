@@ -9,6 +9,7 @@ interface ImageFramingModalProps {
   outputWidth: number;
   outputHeight: number;
   title: string;
+  stretch?: boolean;
   onCancel: () => void;
   onConfirm: (blob: Blob) => void;
 }
@@ -22,10 +23,18 @@ function drawCrop(
   img: HTMLImageElement,
   zoom: number,
   pan: { x: number; y: number },
+  stretch = false,
 ) {
-  const base = Math.max(W / img.naturalWidth, H / img.naturalHeight) * zoom;
-  const drawW = img.naturalWidth * base;
-  const drawH = img.naturalHeight * base;
+  let drawW: number;
+  let drawH: number;
+  if (stretch) {
+    drawW = W * zoom;
+    drawH = H * zoom;
+  } else {
+    const base = Math.max(W / img.naturalWidth, H / img.naturalHeight) * zoom;
+    drawW = img.naturalWidth * base;
+    drawH = img.naturalHeight * base;
+  }
   const maxPanX = Math.max(0, (drawW - W) / (2 * W));
   const maxPanY = Math.max(0, (drawH - H) / (2 * H));
   const px = clamp(pan.x, -maxPanX, maxPanX);
@@ -36,7 +45,7 @@ function drawCrop(
   ctx.drawImage(img, cx - drawW / 2, cy - drawH / 2, drawW, drawH);
 }
 
-export function ImageFramingModal({ open, sourceUrl, aspectRatio, outputWidth, outputHeight, title, onCancel, onConfirm }: ImageFramingModalProps) {
+export function ImageFramingModal({ open, sourceUrl, aspectRatio, outputWidth, outputHeight, title, stretch = false, onCancel, onConfirm }: ImageFramingModalProps) {
   const [img, setImg] = useState<HTMLImageElement | null>(null);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -69,8 +78,8 @@ export function ImageFramingModal({ open, sourceUrl, aspectRatio, outputWidth, o
     if (!canvas || !img) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    drawCrop(ctx, outputWidth, outputHeight, img, zoom, pan);
-  }, [img, zoom, pan, outputWidth, outputHeight]);
+    drawCrop(ctx, outputWidth, outputHeight, img, zoom, pan, stretch);
+  }, [img, zoom, pan, outputWidth, outputHeight, stretch]);
 
   useEffect(() => {
     if (!open) return;
@@ -87,9 +96,16 @@ export function ImageFramingModal({ open, sourceUrl, aspectRatio, outputWidth, o
 
   const clampPanFor = (next: { x: number; y: number }) => {
     if (!img) return next;
-    const base = Math.max(outputWidth / img.naturalWidth, outputHeight / img.naturalHeight) * zoom;
-    const drawW = img.naturalWidth * base;
-    const drawH = img.naturalHeight * base;
+    let drawW: number;
+    let drawH: number;
+    if (stretch) {
+      drawW = outputWidth * zoom;
+      drawH = outputHeight * zoom;
+    } else {
+      const base = Math.max(outputWidth / img.naturalWidth, outputHeight / img.naturalHeight) * zoom;
+      drawW = img.naturalWidth * base;
+      drawH = img.naturalHeight * base;
+    }
     const maxPanX = Math.max(0, (drawW - outputWidth) / (2 * outputWidth));
     const maxPanY = Math.max(0, (drawH - outputHeight) / (2 * outputHeight));
     return { x: clamp(next.x, -maxPanX, maxPanX), y: clamp(next.y, -maxPanY, maxPanY) };
@@ -123,7 +139,7 @@ export function ImageFramingModal({ open, sourceUrl, aspectRatio, outputWidth, o
       canvas.height = outputHeight;
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
-      drawCrop(ctx, outputWidth, outputHeight, img, zoom, pan);
+      drawCrop(ctx, outputWidth, outputHeight, img, zoom, pan, stretch);
       canvas.toBlob(blob => {
         setSaving(false);
         if (blob) onConfirm(blob);
