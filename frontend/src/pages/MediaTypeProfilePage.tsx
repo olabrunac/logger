@@ -7,7 +7,7 @@ import YgpCard from '../components/sections/YgpCard';
 import SectionHeader from '../components/sections/SectionHeader';
 import LayoutEditorModal from '../components/sections/LayoutEditorModal';
 import { TYPE_META, getStars } from '../constants/designSystem';
-import { getLogUrl } from '../utils';
+import { getLogUrl, findBestLogForMedia } from '../utils';
 import { Heart, Clock, Star, Target, CheckCircle, BookOpen, X, Layers, Menu, ChevronUp, ChevronDown, Trash2 } from 'lucide-react';
 
 interface MediaTypeProfilePageProps {
@@ -370,7 +370,7 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
                   )}
                   {media ? (
                     <YgpCard
-                      log={{ id: index, media_item: media }}
+                      log={findBestLogForMedia(item.media_item_id, filteredLogs) || { id: item.id || index, media_item: media }}
                       rank={`#${index + 1}`}
                       className={isGoat && !editingTop5 ? 'outline outline-2' : undefined}
                       style={{ outlineColor: isGoat && !editingTop5 ? '#F59E0B' : 'transparent', outlineOffset: 0 }}
@@ -397,7 +397,7 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
                   </button>
                 )}
                 {media ? (
-                  <YgpCard log={{ id: index, media_item: media }} rank={`#${index + 1}`} />
+                  <YgpCard log={findBestLogForMedia(item.media_item_id, filteredLogs) || { id: item.id || index, media_item: media }} rank={`#${index + 1}`} />
                 ) : (
                   <div className="group relative flex flex-col overflow-hidden rounded-lg w-full" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderBottom: `3px solid ${meta.color}`, aspectRatio: '3/4' }}>
                     <div className="w-full h-full flex items-center justify-center text-white/20 text-xs" style={{ background: meta.color + '11' }}>{meta.emoji}</div>
