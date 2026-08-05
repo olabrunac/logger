@@ -12,6 +12,7 @@ class User(Base):
     password_hash = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     birth_date = Column(Date, nullable=True)
+    birth_date_updated_at = Column(DateTime, nullable=True)
     
     banner_url = Column(String, nullable=True)
     avatar_url = Column(String, nullable=True)
