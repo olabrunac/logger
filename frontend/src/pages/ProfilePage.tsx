@@ -6,6 +6,7 @@ import ProfileHero from '../components/ProfileHero';
 import MediaTypeProfilePage from './MediaTypeProfilePage';
 import YgpCard from '../components/sections/YgpCard';
 import SectionHeader from '../components/sections/SectionHeader';
+import BadgesSection from '../components/sections/BadgesSection';
 import LayoutEditorModal from '../components/sections/LayoutEditorModal';
 import PostCard from '../components/PostCard';
 import { TYPE_META, getStars } from '../constants/designSystem';
@@ -838,6 +839,9 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
 
       {!view ? (
         <>
+          <div className="lg:hidden">
+            <BadgesSection userId={profileUser.id} title="Conquistas e Medalhas" />
+          </div>
           {effectiveSections.map(section => {
             if (!section.visible) return null;
             const renderer = sectionRenderers[section.id];

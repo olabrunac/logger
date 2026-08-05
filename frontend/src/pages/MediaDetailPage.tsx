@@ -449,19 +449,19 @@ const MediaDetailPage = () => {
         Voltar
       </Link>
 
-      <div className="grid grid-cols-[1fr_340px] gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start">
         {/* Main column */}
         <div className="min-w-0 space-y-6">
           {/* Header */}
           <div className="mdf-card overflow-hidden">
             {backdrop && (
-              <div className="relative h-56 overflow-hidden" style={{ background: 'var(--bg-elevated)' }}>
+              <div className="relative h-44 sm:h-56 overflow-hidden" style={{ background: 'var(--bg-elevated)' }}>
                 <img src={backdrop} alt="" className="w-full h-full object-cover object-top" loading="lazy" />
                 <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, var(--bg-elevated) 0%, transparent 60%)' }} />
               </div>
             )}
-            <div className="flex gap-6 p-6" style={{ paddingTop: backdrop ? '-2rem' : undefined }}>
-              <div className="flex-shrink-0 w-[200px]">
+            <div className="flex flex-col sm:flex-row gap-5 sm:gap-6 p-4 sm:p-6" style={{ paddingTop: backdrop ? '-2rem' : undefined }}>
+              <div className="flex-shrink-0 w-28 sm:w-[200px] self-center sm:self-start">
                 {md.cover_image_url ? (
                   <img src={md.cover_image_url} alt={md.title} className="w-full h-auto object-cover rounded-xl" style={{ aspectRatio: '2/3', boxShadow: '0 8px 30px rgba(0,0,0,0.5)' }} />
                 ) : (
@@ -523,7 +523,7 @@ const MediaDetailPage = () => {
 
                 {md.synopsis && <p className="text-sm text-white/60 leading-relaxed mb-4">{md.synopsis}</p>}
 
-                <div className="flex items-center gap-3 pt-2">
+                <div className="flex items-center gap-3 pt-2 flex-wrap">
                   {log ? (
                     <>
                       <button onClick={() => setShowEditModal(true)} className="mdf-btn-primary text-sm inline-flex items-center gap-2">
