@@ -6,9 +6,11 @@ import {
 } from 'lucide-react';
 import { getUserBadges } from '../../services/api';
 import type { UserBadge, BadgeResponse } from '../../types';
+import SectionHeader from './SectionHeader';
 
 interface BadgesSectionProps {
   userId: number;
+  title?: string;
 }
 
 const ICON_MAP: Record<string, ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
@@ -146,7 +148,7 @@ const BadgeItem = ({ icon, title, rarity, description, isUnlocked, badgeCount, p
   );
 };
 
-const BadgesSection = ({ userId }: BadgesSectionProps) => {
+const BadgesSection = ({ userId, title }: BadgesSectionProps) => {
   const location = useLocation();
   const [data, setData] = useState<BadgeResponse | null>(null);
 
@@ -204,7 +206,7 @@ const BadgesSection = ({ userId }: BadgesSectionProps) => {
     return (RARITY_ORDER[b.rarity] ?? 0) - (RARITY_ORDER[a.rarity] ?? 0);
   });
 
-  return (
+  const content = (
     <div className="grid grid-cols-5 gap-1.5">
       {items.map((item) => (
         <BadgeItem
@@ -220,6 +222,15 @@ const BadgesSection = ({ userId }: BadgesSectionProps) => {
         />
       ))}
     </div>
+  );
+
+  if (!title) return content;
+
+  return (
+    <section>
+      <SectionHeader title={title} />
+      <div className="mdf-card rounded-xl p-3">{content}</div>
+    </section>
   );
 };
 
