@@ -46,6 +46,16 @@ def get_post(db: Session, post_id: int) -> Optional[Post]:
     return db.query(Post).filter(Post.id == post_id).first()
 
 
+def update_post(db: Session, post_id: int, user_id: int, content: str) -> Optional[Post]:
+    post = db.query(Post).filter(Post.id == post_id, Post.user_id == user_id).first()
+    if not post:
+        return None
+    post.content = content
+    db.commit()
+    db.refresh(post)
+    return post
+
+
 def add_reply(db: Session, post_id: int, user_id: int, content: str) -> PostReply:
     reply = PostReply(post_id=post_id, user_id=user_id, content=content)
     db.add(reply)
