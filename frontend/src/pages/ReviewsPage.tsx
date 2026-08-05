@@ -95,7 +95,7 @@ const ReviewsPage = ({ currentUser }: ReviewsPageProps) => {
   return (
     <div className="space-y-6 max-w-[1844px] mx-auto">
       <div className="flex items-center justify-between gap-4">
-        <div>
+        <div className="hidden lg:block">
           <h1 className="font-display text-3xl font-black tracking-tight">Reviews</h1>
           <div className="text-white/50 text-sm mt-1">@{displayUsername} · {allReviewEntries.length} review{allReviewEntries.length !== 1 ? 's' : ''}</div>
         </div>

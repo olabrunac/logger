@@ -52,7 +52,7 @@ const YgpCard = ({ log, accentColor, showStatus = true, actions, rank, className
         </div>
       )}
 
-      <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
+      <div className="hidden lg:block absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
 
       {(log.is_favorite || isPlatinated) && (
         <div className="absolute top-2 left-2 flex items-center gap-1">
@@ -78,7 +78,7 @@ const YgpCard = ({ log, accentColor, showStatus = true, actions, rank, className
         </span>
       )}
 
-      <div className="absolute bottom-0 left-0 flex flex-col items-start gap-1 p-2.5">
+      <div className="hidden lg:flex absolute bottom-0 left-0 flex-col items-start gap-1 p-2.5">
         {rank && (
           <div className="flex h-5 items-center rounded bg-black/50 px-1.5 text-[10px] font-bold text-white/80 tabular-nums backdrop-blur-sm">
             {rank}
@@ -105,7 +105,7 @@ const YgpCard = ({ log, accentColor, showStatus = true, actions, rank, className
       </div>
 
       {hasHours && (
-        <div className="absolute bottom-2.5 right-2.5 flex h-5 items-center rounded bg-black/50 px-1.5 text-[10px] text-white/70 tabular-nums backdrop-blur-sm">
+        <div className="hidden lg:flex absolute bottom-2.5 right-2.5 h-5 items-center rounded bg-black/50 px-1.5 text-[10px] text-white/70 tabular-nums backdrop-blur-sm">
           {log.hours_spent}h
         </div>
       )}
