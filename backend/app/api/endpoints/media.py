@@ -1046,6 +1046,23 @@ def delete_log_entry(*, db: Session = Depends(deps.get_db), log_id: int) -> Any:
     crud.log_entry.remove(db, id=log_id)
     return {"detail": "Log deleted successfully"}
 
+@router.delete("/logs/{log_id}/review", response_model=schemas.LogEntryInDB)
+def delete_log_review(*, db: Session = Depends(deps.get_db), log_id: int) -> Any:
+    log = crud.log_entry.get(db, id=log_id)
+    if not log:
+        raise HTTPException(status_code=404, detail="Log not found")
+    log.review = None
+    db.query(LogReview).filter(LogReview.log_id == log_id).delete(synchronize_session=False)
+    db.add(log)
+    db.commit()
+    db.refresh(log)
+    try:
+        from app.crud.crud_user_badge import check_and_unlock
+        check_and_unlock(db, log.user_id)
+    except Exception:
+        pass
+    return log
+
 @router.get("/stats")
 def get_user_stats(*, db: Session = Depends(deps.get_db), user_id: int) -> Any:
     non_log = ['wishlist', 'soon']
