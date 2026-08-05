@@ -65,7 +65,7 @@ const CalendarPage = ({ currentUser }: CalendarPageProps) => {
   return (
     <div className="space-y-6 max-w-[1844px] mx-auto">
       <div className="flex items-center justify-between">
-        <h1 className="font-display text-3xl font-black tracking-tight capitalize">
+        <h1 className="hidden lg:block font-display text-3xl font-black tracking-tight capitalize">
           {format(current, "MMMM 'de' yyyy", { locale: ptBR })}
         </h1>
         <div className="flex items-center gap-2">

@@ -27,7 +27,7 @@ const LeftSidebar = ({ user, onLogout, refreshUnreadTrigger }: LeftSidebarProps)
   if (!user) {
     return (
       <aside
-        className="fixed top-0 left-0 h-screen w-[203px] flex flex-col z-40 border-r"
+        className="hidden lg:flex fixed top-0 left-0 h-screen w-[203px] flex-col z-40 border-r"
         style={{ background: 'var(--mdf-bg)', borderColor: 'var(--border)' }}
       >
         <Link to="/" className="flex items-center px-5 h-12 flex-shrink-0 border-b transition-colors hover:bg-white/[0.03]"
@@ -70,7 +70,7 @@ const LeftSidebar = ({ user, onLogout, refreshUnreadTrigger }: LeftSidebarProps)
 
   return (
     <aside
-      className="fixed top-0 left-0 h-screen w-[203px] flex flex-col z-40 border-r"
+      className="hidden lg:flex fixed top-0 left-0 h-screen w-[203px] flex-col z-40 border-r"
       style={{ background: 'var(--mdf-bg)', borderColor: 'var(--border)' }}
     >
       {/* Logo */}

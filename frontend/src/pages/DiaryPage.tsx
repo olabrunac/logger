@@ -59,7 +59,7 @@ const DiaryPage = ({ currentUser }: DiaryPageProps) => {
   return (
     <div className="space-y-6 max-w-[1844px] mx-auto">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="font-display text-3xl font-black tracking-tight">Diário</h1>
+        <h1 className="hidden lg:block font-display text-3xl font-black tracking-tight">Diário</h1>
         <div className="flex items-center gap-1 flex-wrap">
           {FILTERS.map(t => (
             <button key={t.key} onClick={() => setFilter(t.key)}
