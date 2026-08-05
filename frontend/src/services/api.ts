@@ -101,6 +101,14 @@ export const globalSearch = (query: string, userId?: number) => {
   return api.get('/search', { params: { q: query, user_id: userId } });
 };
 
+export const getPopularSearches = () => {
+  return api.get('/search/popular');
+};
+
+export const trackSearch = (query: string) => {
+  return api.post('/search/track', { query });
+};
+
 export const getMediaByApi = (mediaType: string, apiId: string, userId?: number) => {
   return api.get('/media/items/by-api', { params: { media_type: mediaType, api_id: apiId, user_id: userId } });
 };

@@ -1,10 +1,13 @@
 from typing import Any, Dict, List, Optional, Set
 from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from app import schemas
 from app.api import deps
 from app.models.media import MediaType, MediaItem, LogEntry
 from app.models.user import User
+from app.models.search_term import SearchTerm
 from app.services import tmdb_service, igdb_service, google_books_service
 import datetime
 
@@ -283,3 +286,34 @@ def global_search(
         user_results = user_results[:8]
 
     return {"media": media_results, "users": user_results}
+
+
+class TrackSearchRequest(BaseModel):
+    query: str
+
+
+@router.get("/popular")
+def popular_searches(*, db: Session = Depends(deps.get_db)) -> List[str]:
+    terms = (
+        db.query(SearchTerm.term)
+        .filter(func.length(SearchTerm.term) >= 3)
+        .order_by(SearchTerm.count.desc(), SearchTerm.last_searched_at.desc())
+        .limit(10)
+        .all()
+    )
+    return [t[0] for t in terms]
+
+
+@router.post("/track")
+def track_search(*, db: Session = Depends(deps.get_db), payload: TrackSearchRequest) -> dict:
+    q = payload.query.strip()
+    if len(q) < 2:
+        return {"ok": True}
+    term = db.query(SearchTerm).filter(SearchTerm.term == q).first()
+    if term:
+        term.count += 1
+        term.last_searched_at = datetime.datetime.utcnow()
+    else:
+        db.add(SearchTerm(term=q, count=1))
+    db.commit()
+    return {"ok": True}

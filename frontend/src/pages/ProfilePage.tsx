@@ -533,9 +533,12 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
     );
   });
 
-  const renderStatusAll = (status: string, label: string) => perTypeBlocks((type, typeLogs) => {
-    const sectionLogs = typeLogs.filter(l => l.status === status);
+  const renderStatusAll = (status: string, label: string, sortByTitle = false) => perTypeBlocks((type, typeLogs) => {
+    let sectionLogs = typeLogs.filter(l => l.status === status);
     if (sectionLogs.length === 0) return null;
+    if (sortByTitle) {
+      sectionLogs = [...sectionLogs].sort((a, b) => (a.media_item?.title || '').localeCompare(b.media_item?.title || '', 'pt-BR', { sensitivity: 'base', numeric: true }));
+    }
     const meta = TYPE_META[type];
     return (
       <section>
@@ -549,11 +552,12 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
 
   const renderAllItemsAll = () => perTypeBlocks((type, typeLogs) => {
     const meta = TYPE_META[type];
+    const sorted = [...typeLogs].sort((a, b) => (a.media_item?.title || '').localeCompare(b.media_item?.title || '', 'pt-BR', { sensitivity: 'base', numeric: true }));
     return (
       <section>
         <SectionHeader title={`Todos · ${meta?.label}`} count={typeLogs.length} />
         <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
-          {typeLogs.slice(0, 12).map(log => <YgpCard key={log.id} log={log} accentColor={accentColor} />)}
+          {sorted.slice(0, 12).map(log => <YgpCard key={log.id} log={log} accentColor={accentColor} />)}
         </div>
       </section>
     );
@@ -636,7 +640,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
     in_progress: () => renderStatusAll('in_progress', 'Em Progresso'),
     completed: () => renderStatusAll('completed', 'Finalizados'),
     wishlist: () => renderStatusAll('wishlist', 'Lista de Desejos'),
-    library: () => renderStatusAll('library', 'Biblioteca'),
+    library: () => renderStatusAll('library', 'Biblioteca', true),
     dropped: () => renderStatusAll('dropped', 'Abandonados'),
     all_items: renderAllItemsAll,
     custom_lists: renderCustomListsAll,
