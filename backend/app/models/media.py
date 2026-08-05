@@ -1,5 +1,5 @@
 import enum
-from sqlalchemy import Column, Integer, String, DateTime, Float, Boolean, ForeignKey, Enum, Text, Date
+from sqlalchemy import Column, Integer, String, DateTime, Float, Boolean, ForeignKey, Enum, Text, Date, UniqueConstraint
 from sqlalchemy.orm import relationship
 from app.db.base import Base
 import datetime
@@ -78,6 +78,28 @@ class LogEntry(Base):
     episodes = relationship("EpisodeWatched", back_populates="log", cascade="all, delete-orphan")
     achievements = relationship("Achievement", back_populates="log", cascade="all, delete-orphan")
     reviews = relationship("LogReview", back_populates="log", cascade="all, delete-orphan")
+    replies = relationship("LogReply", back_populates="log", cascade="all, delete-orphan")
+    likes = relationship("LogLike", back_populates="log", cascade="all, delete-orphan")
+
+class LogReply(Base):
+    __tablename__ = "logreply"
+    id = Column(Integer, primary_key=True, index=True)
+    log_id = Column(Integer, ForeignKey("logentry.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("user.id"), nullable=False, index=True)
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    log = relationship("LogEntry", back_populates="replies")
+    user = relationship("User")
+
+class LogLike(Base):
+    __tablename__ = "loglike"
+    id = Column(Integer, primary_key=True, index=True)
+    log_id = Column(Integer, ForeignKey("logentry.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("user.id"), nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    log = relationship("LogEntry", back_populates="likes")
+    user = relationship("User")
+    __table_args__ = (UniqueConstraint("log_id", "user_id", name="uq_loglike_log_user"),)
 
 class EpisodeWatched(Base):
     id = Column(Integer, primary_key=True, index=True)

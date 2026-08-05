@@ -5,17 +5,50 @@ from app.core.config import settings
 
 BASE_URL = "https://www.googleapis.com/books/v1/volumes"
 
-def _looks_like_isbn(value: str) -> bool:
+def _normalize_isbn(value: str) -> str | None:
     digits = re.sub(r"[\- ]", "", (value or "").strip())
-    if len(digits) == 10 and (digits.isdigit() or (digits[:9].isdigit() and digits[-1] in "Xx")):
-        return True
-    return len(digits) == 13 and digits.isdigit()
+    if len(digits) == 10 and digits[:9].isdigit() and digits[-1] in "Xx0123456789":
+        return digits[:-1] + digits[-1].upper()
+    if len(digits) == 13 and digits.isdigit():
+        return digits
+    return None
+
+
+def _looks_like_isbn(value: str) -> bool:
+    return _normalize_isbn(value) is not None
+
+
+def _extract_isbns(vi: dict) -> tuple:
+    isbn_13 = None
+    isbn_10 = None
+    for ident in vi.get("industryIdentifiers", []):
+        ident_type = ident.get("type")
+        if ident_type == "ISBN_13":
+            isbn_13 = ident.get("identifier")
+        elif ident_type == "ISBN_10":
+            isbn_10 = ident.get("identifier")
+    return isbn_13, isbn_10
+
+
+def _cover_url(vi: dict) -> str | None:
+    """Capa do Google Books; sem capa, cai para Open Library (por ISBN)."""
+    image_links = vi.get("imageLinks", {})
+    cover = image_links.get("thumbnail") or image_links.get("smallThumbnail")
+    if cover:
+        if cover.startswith("http://"):
+            cover = "https://" + cover[7:]
+        return cover
+    isbn_13, isbn_10 = _extract_isbns(vi)
+    isbn = isbn_13 or isbn_10
+    if isbn:
+        return f"https://covers.openlibrary.org/b/isbn/{_normalize_isbn(isbn)}-L.jpg"
+    return None
 
 
 def search_books(query: str, author: str = None, year: int = None, isbn: str = None, use_intitle: bool = True):
     if not settings.GOOGLE_BOOKS_API_KEY:
         return []
-    isbn = isbn or (query if _looks_like_isbn(query) else None)
+    isbn = _normalize_isbn(isbn) if isbn else (_normalize_isbn(query) if _looks_like_isbn(query) else None)
     if isbn:
         q_str = f"isbn:{isbn}"
     else:
@@ -89,7 +122,7 @@ def get_book_by_id(volume_id: str) -> dict | None:
                 except ValueError:
                     release_date = None
         image_links = vi.get("imageLinks", {})
-        cover_url = image_links.get("thumbnail") or image_links.get("smallThumbnail")
+        cover_url = _cover_url(vi)
         return {
             "title": vi.get("title", "Sem título"),
             "cover_image_url": cover_url,
