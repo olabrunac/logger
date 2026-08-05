@@ -39,11 +39,26 @@
 - **Contador de stats**: `completed + in_progress + dropped` (exclui wishlist).
 - **Wishlist**: Fetch separado via `/media/wishlist` (merge manual com logs nas páginas de perfil).
 
-## 📋 Pendências (TODO) — ordenadas da mais fácil para a mais complexa
-1. **Importação de achievements dos jogos**: Ajustar/corrigir a importação de conquistas (achievements) dos jogos.
-2. **Jogos do Family Share na importação Steam**: Importar também os jogos compartilhados pela família (não comprados). O endpoint `IFamilyGroupsService/GetSharedLibraryApps` exige **login OAuth com a conta Steam** (access token de curta duração + refresh) para listar os jogos e `GetPlaytimeSummary` para os tempos — fluxo de login novo no app.
-3. **Ajustar site para mobile**: Revisar layout responsivo (sidebar, grids, modais) para telas pequenas.
-4. **Publicação (#10)**: Publicar o site, avaliar ferramentas de hosting do GitHub Students
+## 📋 Pendências (TODO) — agrupadas em ondas por afinidade (fácil → complexo)
+### Onda 1 — Layout & CSS
+1. **Retirar a barra lateral esquerda na página de login**: Página de login não deve mostrar a sidebar esquerda (layout só com o card central).
+2. **Manter a barra lateral direita apenas no perfil**: Sidebar direita (Atividades recentes etc.) deve aparecer só no perfil, não nas outras páginas.
+3. **Top 5 e Favoritos com itens desalinhados do primeiro**: Nos 5 itens, os tiles a partir do segundo ficam desalinhados em relação ao primeiro (grid/flex do bloco).
+### Onda 2 — Busca & APIs
+4. **Verificar importação das APIs**: API retornando tipo errado de mídia — ex: o jogo *Clair Obscur: Expedition 33* aparece também na tag de séries (revisar match do global_search/APIs externas).
+5. **Busca de livros retornando só o título**: A busca por livros não retorna as informações além do título (faltando capa/autor/ano etc.).
+### Onda 3 — Timeline
+6. **Log na timeline redirecionando para a página errada da mídia**: Clicar em um log na timeline leva para a página errada da mídia (fix de rota).
+7. **Colapsar post de log na timeline**: Colapsar o post de log na timeline quando as adições tiverem mais de 2 linhas ("ver mais").
+8. **Responder post na timeline bugado**: Responder um post na timeline está bugado e a resposta some (não persiste/renderiza).
+9. **Editar post da timeline**: Permitir editar um post da timeline.
+10. **Responder e curtir logs na timeline e na aba Posts do perfil**: Permitir responder e curtir logs (não só posts) nesses dois lugares.
+### Onda 4 — Logs/Reviews
+11. **Marcar temporada da série como vista com delay**: Marcar temporada como vista tem delay e muitas vezes não marca (state/optimistic update).
+12. **Apagar review**: Permitir que o usuário apague um review (backend + botão na UI).
+### Onda 5 — Grandes
+13. **Jogos do Family Share na importação Steam + ajuste mobile**: Importar também os jogos compartilhados pela família (não comprados). O endpoint `IFamilyGroupsService/GetSharedLibraryApps` exige **login OAuth com a conta Steam** (access token de curta duração + refresh) para listar os jogos e `GetPlaytimeSummary` para os tempos — fluxo de login novo no app. Juntamente com a revisão do layout responsivo (sidebar, grids, modais) para telas pequenas.
+14. **Publicação (#10)**: Publicar o site, avaliar ferramentas de hosting do GitHub Students
 
 ## ✅ Implementado
 - **Buscas recentes e populares (#23)**: `SearchPage` mostra chips de "Buscas recentes" (localStorage, chave `recent_searches`, máx 8, limpar individual/geral) e "Buscas populares" (globais) no estado vazio. Backend: modelo `SearchTerm` (`searchterm`), `POST /search/track` (incrementa contagem; ignora termos <2 chars) e `GET /search/popular` (top 10, termos ≥3 chars) em `search.py`.
