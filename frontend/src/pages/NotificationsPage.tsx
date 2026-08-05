@@ -114,7 +114,7 @@ const NotificationsPage = ({ user, onNotificationsRead }: NotificationsPageProps
 
   return (
     <div className="space-y-4 max-w-[1844px] mx-auto">
-      <div className="flex items-center justify-between">
+      <div className="hidden lg:flex items-center justify-between">
         <div className="flex items-center gap-3">
           <h1 className="font-display text-2xl font-black tracking-tight">Notificacoes</h1>
           {unreadCount > 0 && (

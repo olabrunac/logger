@@ -209,11 +209,36 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
       {recentLogs.length === 0 ? (
         <div className="mdf-card p-8 text-center text-white/50">Nenhum log ainda.</div>
       ) : (
-        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
-          {recentLogs.slice(0, 11).map(log => (
-            <YgpCard key={log.id} log={log} accentColor={accentColor} />
-          ))}
-        </div>
+        <>
+          <div className="hidden lg:grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
+            {recentLogs.slice(0, 11).map(log => (
+              <YgpCard key={log.id} log={log} accentColor={accentColor} />
+            ))}
+          </div>
+          <div className="scrollbar-hide -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 lg:hidden">
+            {recentLogs.slice(0, 12).map(log => {
+              const meta = TYPE_META[log.media_item.media_type];
+              return (
+                <Link key={log.id} to={getLogUrl(log.media_item)} className="w-[28%] shrink-0">
+                  {log.media_item.cover_image_url ? (
+                    <img src={log.media_item.cover_image_url} alt={log.media_item.title} className="w-full rounded-md object-cover" style={{ aspectRatio: '3/4', border: '1px solid var(--border)', background: 'var(--bg-card)' }} loading="lazy" />
+                  ) : (
+                    <div className="w-full rounded-md flex items-center justify-center text-2xl" style={{ aspectRatio: '3/4', background: (meta?.color || '#666') + '22', border: '1px solid var(--border)' }}>{meta?.emoji || '📄'}</div>
+                  )}
+                  <div className="mt-1.5 flex items-center justify-between gap-2">
+                    {log.rating != null && log.rating > 0 ? (
+                      <span className="flex items-center gap-1 text-[11px] font-medium tabular-nums" style={{ color: accentColor }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="var(--mdf-yellow)" stroke="var(--mdf-yellow)" strokeWidth="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+                        {log.rating}
+                      </span>
+                    ) : <span />}
+                    <span className="text-[11px] tabular-nums text-white/30">{new Date(log.log_date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </>
       )}
     </section>
   );
@@ -318,7 +343,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
     return (
       <section>
         <SectionHeader title="Reviews" linkTo={`/profile/${profileUser.username}/reviews`} count={reviewEntries.length} />
-        <div className="scrollbar-hide -mx-5 flex gap-3 overflow-x-auto px-5 lg:hidden">
+        <div className="scrollbar-hide -mx-4 flex gap-3 overflow-x-auto px-4 lg:hidden">
           {reviewEntries.slice(0, 10).map(e => {
             const meta = TYPE_META[e.log.media_item.media_type];
             return (
@@ -519,9 +544,9 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
             );
           })}
         </div>
-        <div className="flex gap-2 lg:hidden">
+        <div className="flex items-start gap-1.5 lg:hidden">
           {typeTop.map((item, index) => (
-            <div key={item.id} className="flex flex-col items-center gap-1 w-20">
+            <div key={item.id} className="flex flex-col items-center gap-1 min-w-0" style={{ width: 'calc(20% - 4.8px)' }}>
               {item.media_item ? (
                 <YgpCard log={{ id: item.id, media_item: item.media_item }} rank={`#${index + 1}`} />
               ) : (
@@ -793,9 +818,10 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
   const isMediaTypeView = view && ['games', 'movies', 'tvshows', 'books'].includes(view);
 
   return (
-    <div className="space-y-10">
+    <div className="flex flex-col gap-4 lg:gap-10">
       {!isMediaTypeView && (
-        <ProfileHero
+        <div className="-mx-4 lg:mx-0">
+          <ProfileHero
           profileUser={profileUser}
           currentUser={currentUser}
           logs={logs}
@@ -807,6 +833,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
           activeTab={getActiveTab()}
           onEditLayout={isOwnProfile ? () => setEditingLayout(true) : undefined}
         />
+        </div>
       )}
 
       {!view ? (

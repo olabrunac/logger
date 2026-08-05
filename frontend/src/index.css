@@ -307,3 +307,36 @@ ul {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* Mobile app shell */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Main content: no side margins on mobile (sidebars are hidden),
+   fixed margins on desktop via inline CSS vars set by App.tsx */
+.app-main {
+  margin-left: 0;
+  margin-right: 0;
+  width: 100%;
+}
+@media (min-width: 1024px) {
+  .app-main {
+    margin-left: var(--app-margin-left, 0px);
+    margin-right: var(--app-margin-right, 0px);
+  }
+}
+
+/* Body scroll lock when a mobile drawer is open */
+body.drawer-open {
+  overflow: hidden;
+  touch-action: none;
+}
+
+/* Disable pinch-zoom / double-tap zoom on touch screens */
+html, body {
+  touch-action: manipulation;
+}

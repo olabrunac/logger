@@ -17,6 +17,7 @@ import ImportPage from './pages/ImportPage';
 import ErrorBoundary from './components/ErrorBoundary';
 import LeftSidebar from './components/LeftSidebar';
 import RightSidebar from './components/RightSidebar';
+import MobileNav from './components/MobileNav';
 import FloatingLogButton from './components/FloatingLogButton';
 import type { User } from './types';
 
@@ -145,6 +146,7 @@ function AppInner() {
 
   return (
     <div style={accentStyle} className="min-h-screen flex">
+        {!isLoginRoute && <MobileNav user={user} onLogout={handleLogout} refreshUnreadTrigger={unreadTrigger} />}
         {!isLoginRoute && <LeftSidebar user={user} onLogout={handleLogout} refreshUnreadTrigger={unreadTrigger} />}
         {user && isMainProfileRoute && !isMediaDetailRoute && (
           <RightSidebar
@@ -153,7 +155,13 @@ function AppInner() {
             onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           />
         )}
-        <main className="flex-1 min-w-0 overflow-y-auto p-8 transition-all" style={{ marginLeft: fixedSidebarWidths.left, marginRight: fixedSidebarWidths.right }}>
+        <main
+          className={`flex-1 min-w-0 overflow-y-auto transition-all app-main px-4 lg:px-8 ${isLoginRoute ? '' : 'pt-[calc(3rem+env(safe-area-inset-top,0px))] lg:pt-8'} pb-24 lg:pb-8`}
+          style={{
+            ['--app-margin-left' as string]: `${fixedSidebarWidths.left}px`,
+            ['--app-margin-right' as string]: `${fixedSidebarWidths.right}px`,
+          }}
+        >
           {user && <FloatingLogButton user={user} />}
           <ErrorBoundary>
           <Routes>

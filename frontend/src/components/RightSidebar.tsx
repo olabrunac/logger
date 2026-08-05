@@ -82,7 +82,7 @@ const RightSidebar = ({ user, isCollapsed, onToggleCollapse }: RightSidebarProps
 
   if (isCollapsed) {
     return (
-      <aside className="fixed top-0 right-0 h-screen w-14 border-l flex flex-col items-center py-4 z-40"
+      <aside className="hidden lg:flex fixed top-0 right-0 h-screen w-14 border-l flex-col items-center py-4 z-40"
         style={{ background: 'var(--mdf-bg)', borderColor: 'var(--border)' }}>
         <button
           onClick={onToggleCollapse}
@@ -153,7 +153,7 @@ const RightSidebar = ({ user, isCollapsed, onToggleCollapse }: RightSidebarProps
   };
 
   return (
-    <aside className="fixed top-0 right-0 h-screen w-[324px] p-4 border-l flex flex-col z-40 overflow-y-auto space-y-3 right-sidebar"
+    <aside className="hidden lg:flex fixed top-0 right-0 h-screen w-[324px] p-4 border-l flex-col z-40 overflow-y-auto space-y-3 right-sidebar"
       style={{ background: 'var(--mdf-bg)', borderColor: 'var(--border)' }}>
 
       <div className="flex items-center justify-between mb-1 pt-1">

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Settings2 } from 'lucide-react';
+import { Settings2, Library, CheckCircle2, Star, Heart, Clock } from 'lucide-react';
 import type { User, LogEntry } from '../types';
 import { imageUrl } from '../utils';
 
@@ -82,7 +82,7 @@ const tabs = [
   return (
     <div className="relative">
       <div
-        className="h-36 md:h-72 rounded-b-2xl overflow-hidden relative border-b border-white/5"
+        className="h-[140px] md:h-72 rounded-b-2xl overflow-hidden relative border-b border-white/5"
         style={bannerUrl ? {
           backgroundImage: `url(${bannerUrl})`,
           backgroundSize: 'cover',
@@ -98,7 +98,7 @@ const tabs = [
         <div className="flex flex-col md:flex-row md:items-end gap-4 md:gap-6">
           <div className="flex-shrink-0 self-center md:self-end">
             <div
-              className="w-48 h-48 md:w-56 md:h-56 rounded-full overflow-hidden border-4 flex-shrink-0 ring-2"
+              className="w-[88px] h-[88px] md:w-56 md:h-56 rounded-full overflow-hidden border-4 flex-shrink-0 ring-2"
               style={{
                 borderColor: 'var(--mdf-bg)',
                 background: avatarUrl ? 'transparent' : `linear-gradient(135deg, ${accentColor}, #a855f7)`,
@@ -108,7 +108,7 @@ const tabs = [
               {avatarUrl ? (
                 <img src={avatarUrl} alt={profileUser.username} className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center font-display text-6xl font-black text-white/60">
+                <div className="w-full h-full flex items-center justify-center font-display text-2xl md:text-6xl font-black text-white/60">
                   {profileUser.username.charAt(0).toUpperCase()}
                 </div>
               )}
@@ -176,7 +176,22 @@ const tabs = [
               </div>
             )}
 
-            <div className="flex items-center justify-center md:justify-start gap-3 mt-4 text-center md:text-left">
+            <div className="flex items-center justify-center md:justify-start gap-5 mt-4 text-xs text-white/50 lg:hidden">
+              <span className="flex items-center gap-1.5">
+                <span className="font-bold text-white tabular-nums">{activeMediaTypes.length}</span>
+                Títulos
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="font-bold text-white tabular-nums">{profileUser.following_count ?? 0}</span>
+                Seguindo
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="font-bold text-white tabular-nums">{profileUser.followers_count ?? 0}</span>
+                Seguidores
+              </span>
+            </div>
+
+            <div className="hidden lg:flex items-center justify-center md:justify-start gap-3 mt-4 text-center md:text-left">
               <Link to={`/profile/${profileUser.username}`}
                 className="flex flex-col items-center md:items-start group min-w-[50px]">
                 <span className="font-display text-lg md:text-xl font-black text-white">{profileUser.following_count ?? 0}</span>
@@ -212,6 +227,30 @@ const tabs = [
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="flex justify-around px-4 py-3 border-t border-white/5 lg:hidden">
+        {[
+          { icon: <Library size={14} />, value: activeMediaTypes.length, label: 'Títulos', href: `/profile/${profileUser.username}?view=games` },
+          { icon: <CheckCircle2 size={14} />, value: finishedCount, label: 'Finalizados' },
+          { icon: <Star size={14} />, value: ratedCount, label: 'Avaliados' },
+          { icon: <Heart size={14} />, value: favoriteCount, label: 'Favoritos' },
+          { icon: <Clock size={14} />, value: Math.round(totalHours), label: 'Horas', suffix: 'h' },
+        ].map(s => (
+          s.href ? (
+            <Link key={s.label} to={s.href} className="flex flex-col items-center gap-0.5">
+              <span style={{ color: accentColor }}>{s.icon}</span>
+              <span className="text-sm font-bold tabular-nums text-white">{s.value}{s.suffix || ''}</span>
+              <span className="text-[9px] uppercase tracking-widest text-white/40">{s.label}</span>
+            </Link>
+          ) : (
+            <div key={s.label} className="flex flex-col items-center gap-0.5">
+              <span style={{ color: accentColor }}>{s.icon}</span>
+              <span className="text-sm font-bold tabular-nums text-white">{s.value}{s.suffix || ''}</span>
+              <span className="text-[9px] uppercase tracking-widest text-white/40">{s.label}</span>
+            </div>
+          )
+        ))}
       </div>
 
       <div className="flex items-center overflow-x-auto gap-1 px-6 pt-0 border-b border-white/5">
