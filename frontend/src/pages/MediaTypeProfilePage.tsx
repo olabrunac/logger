@@ -511,7 +511,7 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
     return (
       <section>
         <SectionHeader title="Reviews" linkTo={`/profile/${profileUser?.username}/reviews`} count={reviewEntries.length} />
-        <div className="scrollbar-hide -mx-5 flex gap-3 overflow-x-auto px-5 lg:hidden">
+        <div className="scrollbar-hide -mx-4 flex gap-3 overflow-x-auto px-4 lg:hidden">
           {reviewEntries.slice(0, 10).map(e => {
             const m = TYPE_META[e.log.media_item.media_type];
             return (
