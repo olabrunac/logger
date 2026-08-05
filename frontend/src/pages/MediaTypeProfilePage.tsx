@@ -667,19 +667,21 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
   };
 
   return (
-    <div className="space-y-10">
-      <ProfileHero
-        profileUser={profileUser}
-        currentUser={currentUser}
-        logs={logs}
-        isOwnProfile={isOwnProfile}
-        isFollowing={false}
-        followLoading={false}
-        onFollowToggle={() => {}}
-        accentColor={accentColor}
-        activeMediaType={mediaType}
-        onEditLayout={isOwnProfile ? () => setEditingLayout(true) : undefined}
-      />
+    <div className="flex flex-col gap-4 lg:gap-10">
+      <div className="-mx-4 lg:mx-0">
+        <ProfileHero
+          profileUser={profileUser}
+          currentUser={currentUser}
+          logs={logs}
+          isOwnProfile={isOwnProfile}
+          isFollowing={false}
+          followLoading={false}
+          onFollowToggle={() => {}}
+          accentColor={accentColor}
+          activeMediaType={mediaType}
+          onEditLayout={isOwnProfile ? () => setEditingLayout(true) : undefined}
+        />
+      </div>
 
       {effectiveSections.map(section => {
         if (!section.visible) return null;
