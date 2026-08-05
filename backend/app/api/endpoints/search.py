@@ -182,10 +182,7 @@ def _book_to_media(item: dict) -> dict:
                 release_date = datetime.datetime.strptime(vi["publishedDate"][:4], '%Y').date().isoformat()
             except ValueError:
                 release_date = None
-    image_links = vi.get("imageLinks", {})
-    cover_url = image_links.get("thumbnail") or image_links.get("smallThumbnail")
-    if cover_url and cover_url.startswith("http://"):
-        cover_url = "https://" + cover_url[7:]
+    cover_url = google_books_service._cover_url(vi)
     return {
         "id": None,
         "title": vi.get("title", "Sem título"),

@@ -7,25 +7,14 @@ import MediaTypeProfilePage from './MediaTypeProfilePage';
 import YgpCard from '../components/sections/YgpCard';
 import SectionHeader from '../components/sections/SectionHeader';
 import LayoutEditorModal from '../components/sections/LayoutEditorModal';
+import PostCard from '../components/PostCard';
 import { TYPE_META, getStars } from '../constants/designSystem';
+import type { Post } from '../types/feed';
 import { imageUrl, getLogUrl } from '../utils';
 
 interface ProfilePageProps {
   currentUser: User;
   onUserUpdate?: (updatedUser: User) => void;
-}
-
-interface Post {
-  id: number;
-  user_id: number;
-  username: string;
-  avatar_url?: string;
-  content: string;
-  images: { id: number; url: string; is_gif: boolean }[];
-  replies_count: number;
-  likes_count: number;
-  is_liked: boolean;
-  created_at: string;
 }
 
 const IMAGE_URL = (url: string) => imageUrl(url) || '';
@@ -82,7 +71,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
 
       try {
         const postsRes = await api.get(`/posts/posts/user/${targetUser.id}`, { params: { current_user_id: currentUser.id, limit: 20 } });
-        setPosts(postsRes.data || []);
+        setPosts((postsRes.data || []).map((p: Post) => ({ ...p, _type: 'post' as const })));
       } catch {}
 
       if (!isOwnProfile) {
@@ -412,47 +401,75 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
         </section>
       );
     }
+
+    const handleReply = async (postId: number, content: string) => {
+      try {
+        await api.post(`/posts/posts/${postId}/reply`, null, {
+          params: { user_id: currentUser.id, content },
+        });
+        setPosts(prev => prev.map(p => p.id === postId ? { ...p, replies_count: p.replies_count + 1 } : p));
+      } catch {}
+    };
+
+    const handleLike = async (postId: number) => {
+      const post = posts.find(p => p.id === postId);
+      if (!post) return;
+      const wasLiked = post.is_liked;
+      const me = { username: currentUser.username, avatar_url: currentUser.avatar_url };
+      setPosts(prev => prev.map(p => p.id === postId ? {
+        ...p,
+        is_liked: !wasLiked,
+        likes_count: wasLiked ? p.likes_count - 1 : p.likes_count + 1,
+        liked_by: wasLiked
+          ? (p.liked_by || []).filter(l => l.username !== currentUser.username)
+          : [me, ...(p.liked_by || [])].slice(0, 5),
+      } : p));
+      try {
+        if (wasLiked) {
+          await api.delete(`/posts/posts/${postId}/like`, { params: { user_id: currentUser.id } });
+        } else {
+          await api.post(`/posts/posts/${postId}/like`, null, { params: { user_id: currentUser.id } });
+        }
+      } catch {
+        setPosts(prev => prev.map(p => p.id === postId ? {
+          ...p,
+          is_liked: wasLiked,
+          likes_count: wasLiked ? p.likes_count + 1 : p.likes_count - 1,
+        } : p));
+      }
+    };
+
+    const handleDelete = async (postId: number) => {
+      try {
+        await api.delete(`/posts/posts/${postId}`, { params: { user_id: currentUser.id } });
+        setPosts(prev => prev.filter(p => p.id !== postId));
+      } catch {}
+    };
+
+    const handleEdit = async (postId: number, content: string) => {
+      try {
+        const res = await api.put(`/posts/posts/${postId}`, null, {
+          params: { user_id: currentUser.id, content },
+        });
+        const updated = res.data as Post;
+        setPosts(prev => prev.map(p => p.id === postId ? { ...updated, _type: 'post' as const } : p));
+      } catch {}
+    };
+
     return (
       <section>
         <SectionHeader title="Posts" linkTo="/timeline" count={posts.length} />
         <div className="space-y-2">
-          {posts.slice(0, 4).map(post => (
-            <div key={post.id} className="mdf-card rounded-xl p-4">
-              <div className="flex items-start gap-3">
-                <Link to={`/profile/${post.username}`} className="flex-shrink-0">
-                  <div className="w-9 h-9 rounded-full overflow-hidden border-2" style={{ borderColor: 'var(--accent)' }}>
-                    {post.avatar_url ? (
-                      <img src={IMAGE_URL(post.avatar_url)} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-xs font-bold" style={{ background: 'var(--accent)', color: '#000' }}>
-                        {post.username.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                  </div>
-                </Link>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-white/80 whitespace-pre-wrap break-words line-clamp-3">{post.content}</p>
-                  {post.images.length > 0 && (
-                    <div className="mt-2 flex gap-1">
-                      {post.images.slice(0, 3).map(img => (
-                        <div key={img.id} className="w-16 h-16 rounded-lg overflow-hidden bg-black/40">
-                          <img src={IMAGE_URL(img.url)} alt="" className="w-full h-full object-contain" loading="lazy" />
-                        </div>
-                      ))}
-                      {post.images.length > 3 && (
-                        <div className="w-16 h-16 rounded-lg flex items-center justify-center text-xs text-white/40" style={{ background: 'var(--mdf-surface)' }}>
-                          +{post.images.length - 3}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  <div className="flex items-center gap-3 mt-2 text-[10px] text-white/30">
-                    <span>{post.likes_count} curtida{post.likes_count !== 1 ? 's' : ''}</span>
-                    <span>{post.replies_count} resposta{post.replies_count !== 1 ? 's' : ''}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+          {posts.map(post => (
+            <PostCard
+              key={post.id}
+              post={post}
+              currentUser={currentUser}
+              onReply={handleReply}
+              onDelete={handleDelete}
+              onLike={handleLike}
+              onEdit={handleEdit}
+            />
           ))}
         </div>
       </section>
