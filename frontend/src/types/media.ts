@@ -18,6 +18,8 @@ export interface MediaItem {
   cover_image_url?: string;
   release_date?: string;
   synopsis?: string;
+  authors?: string[];
+  popularity?: number;
   genres?: string;
   header_image?: string;
   metacritic_score?: number;

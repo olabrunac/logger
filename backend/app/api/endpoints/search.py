@@ -10,6 +10,7 @@ from app.models.user import User
 from app.models.search_term import SearchTerm
 from app.services import tmdb_service, igdb_service, google_books_service
 import datetime
+import math
 
 router = APIRouter()
 
@@ -100,6 +101,9 @@ def _serialize_media(item: MediaItem, db: Session, user_id: Optional[int]) -> di
         "release_date": item.release_date.isoformat() if item.release_date else None,
         "synopsis": item.synopsis,
         "has_log": has_log,
+        "is_local": True,
+        "popularity": 0,
+        "authors": None,
     }
 
 
@@ -132,6 +136,9 @@ def _tmdb_to_media(item: dict, media_type: MediaType) -> dict:
         "release_date": release_date,
         "synopsis": item.get("overview"),
         "has_log": False,
+        "is_local": False,
+        "popularity": float(item.get("popularity") or 0),
+        "authors": None,
     }
 
 
@@ -158,6 +165,9 @@ def _igdb_to_media(item: dict) -> dict:
         "release_date": release_date,
         "synopsis": item.get("summary"),
         "has_log": False,
+        "is_local": False,
+        "popularity": float(item.get("rating_count") or 0),
+        "authors": None,
     }
 
 
@@ -174,6 +184,8 @@ def _book_to_media(item: dict) -> dict:
                 release_date = None
     image_links = vi.get("imageLinks", {})
     cover_url = image_links.get("thumbnail") or image_links.get("smallThumbnail")
+    if cover_url and cover_url.startswith("http://"):
+        cover_url = "https://" + cover_url[7:]
     return {
         "id": None,
         "title": vi.get("title", "Sem título"),
@@ -186,6 +198,9 @@ def _book_to_media(item: dict) -> dict:
         "release_date": release_date,
         "synopsis": vi.get("description"),
         "has_log": False,
+        "is_local": False,
+        "popularity": float(vi.get("ratingsCount") or 0),
+        "authors": vi.get("authors") or [],
     }
 
 
@@ -275,7 +290,14 @@ def global_search(
                 by_key[key] = r
 
             media_results = list(by_key.values())
-            media_results.sort(key=lambda r: _fuzzy_score(query, r.get("title") or ""), reverse=True)
+            media_results.sort(
+                key=lambda r: (
+                    _fuzzy_score(query, r.get("title") or ""),
+                    r.get("is_local", False),
+                    math.log1p(float(r.get("popularity") or 0)),
+                ),
+                reverse=True,
+            )
             media_results = media_results[:15]
 
         users = db.query(User).filter(
