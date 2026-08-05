@@ -9,6 +9,7 @@ export function apiBaseUrl(): string {
 }
 
 import type { MediaItem } from './types/media';
+import type { LogEntry } from './types';
 
 export function getApiId(item: MediaItem): string {
   if (item.steam_appid) return String(item.steam_appid);
@@ -16,6 +17,21 @@ export function getApiId(item: MediaItem): string {
   if (item.tmdb_id) return String(item.tmdb_id);
   if (item.google_books_id) return item.google_books_id;
   return String(item.id!);
+}
+
+export function findBestLogForMedia(mediaId: number | undefined, logs: LogEntry[]): LogEntry | undefined {
+  if (!mediaId) return undefined;
+  const mediaLogs = logs.filter(l => l.media_item.id === mediaId);
+  if (mediaLogs.length === 0) return undefined;
+  return [...mediaLogs].sort((a, b) => {
+    const aFav = !!a.is_favorite;
+    const bFav = !!b.is_favorite;
+    if (aFav !== bFav) return aFav ? -1 : 1;
+    const aActive = a.status !== 'wishlist' && a.status !== 'soon';
+    const bActive = b.status !== 'wishlist' && b.status !== 'soon';
+    if (aActive !== bActive) return aActive ? -1 : 1;
+    return b.id - a.id;
+  })[0];
 }
 
 export function getLogUrl(item: MediaItem): string {

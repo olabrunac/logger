@@ -10,7 +10,7 @@ import LayoutEditorModal from '../components/sections/LayoutEditorModal';
 import PostCard from '../components/PostCard';
 import { TYPE_META, getStars } from '../constants/designSystem';
 import type { Post } from '../types/feed';
-import { imageUrl, getLogUrl } from '../utils';
+import { imageUrl, getLogUrl, findBestLogForMedia } from '../utils';
 
 interface ProfilePageProps {
   currentUser: User;
@@ -257,7 +257,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
                   )}
                   {media ? (
                     <YgpCard
-                      log={{ id: top.id, media_item: media }}
+                      log={findBestLogForMedia(top.media_item_id, logs) || { id: top.id, media_item: media }}
                       rank={`#1 · ${meta?.label}`}
                       className={isGoat ? 'outline outline-2' : undefined}
                       style={{ outlineColor: isGoat ? '#F59E0B' : 'transparent', outlineOffset: 0 }}
@@ -285,7 +285,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
               <div key={type} className="min-w-0">
                 {media ? (
                   <YgpCard
-                    log={{ id: top.id, media_item: media }}
+                    log={findBestLogForMedia(top.media_item_id, logs) || { id: top.id, media_item: media }}
                     rank={`#1 · ${meta?.label}`}
                     className={isGoat ? 'outline outline-2' : undefined}
                     style={{ outlineColor: isGoat ? '#F59E0B' : 'transparent', outlineOffset: 0 }}
