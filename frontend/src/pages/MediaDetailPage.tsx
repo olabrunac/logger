@@ -118,6 +118,8 @@ const MediaDetailPage = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showDeleteReviewConfirm, setShowDeleteReviewConfirm] = useState(false);
+  const [deletingReview, setDeletingReview] = useState(false);
   const [activeTab, setActiveTab] = useState('sobre');
 
   const [seasons, setSeasons] = useState<TmdbSeason[]>([]);
@@ -269,6 +271,21 @@ const MediaDetailPage = () => {
     catch { setDeleting(false); setShowDeleteConfirm(false); }
   };
 
+  const handleDeleteReview = async () => {
+    if (!log) return;
+    setDeletingReview(true);
+    try {
+      const { data } = await api.delete(`/media/logs/${log.id}/review`);
+      setLog(data);
+      setReviewHistory([]);
+      setShowDeleteReviewConfirm(false);
+    } catch (err) {
+      console.error('Failed to delete review:', err);
+    } finally {
+      setDeletingReview(false);
+    }
+  };
+
   const loadSeason = async (n: number) => {
     if (episodes[n]) { setOpenSeason(openSeason === n ? null : n); return; }
     if (!log?.media_item.tmdb_id) return;
@@ -329,28 +346,35 @@ const MediaDetailPage = () => {
     const newMap = { ...watchedMap };
     let watchedChange = 0;
     const today = new Date();
+    const requests: Promise<void>[] = [];
     for (const ep of seasonEps) {
       if (markWatched && ep.air_date && new Date(ep.air_date) > today) continue;
       const key = ep.season_number + '-' + ep.episode_number;
       const isCurrentlyWatched = !!newMap[key]?.watched;
-      if (isCurrentlyWatched !== markWatched) {
-         watchedChange += markWatched ? 1 : -1;
-      }
-      try {
-        const { data } = await api.post('/media/logs/' + log.id + '/episodes', {
+      if (isCurrentlyWatched === markWatched) continue;
+      watchedChange += markWatched ? 1 : -1;
+      newMap[key] = {
+        season_number: ep.season_number,
+        episode_number: ep.episode_number,
+        episode_name: ep.name,
+        watched: markWatched,
+      };
+      requests.push(
+        api.post('/media/logs/' + log.id + '/episodes', {
           season_number: ep.season_number, episode_number: ep.episode_number,
           episode_name: ep.name, watched: markWatched, log_date: new Date().toISOString().split('T')[0],
           air_date: ep.air_date,
-        });
-        newMap[key] = data;
-      } catch (err) {
-        console.error('Failed to toggle episode:', err);
-      }
+        }).then(({ data }) => {
+          newMap[key] = data;
+        }).catch((err) => {
+          console.error('Failed to toggle episode:', err);
+        })
+      );
     }
     setWatchedMap(newMap);
-    if (log) {
-      setLog({ ...log, watched_episodes: (log.watched_episodes || 0) + watchedChange });
-    }
+    setLog(prev => prev ? { ...prev, watched_episodes: (prev.watched_episodes || 0) + watchedChange } : prev);
+    await Promise.all(requests);
+    setWatchedMap({ ...newMap });
   };
 
   const toggleAch = async (a: AchievementItem) => {
@@ -570,7 +594,16 @@ const MediaDetailPage = () => {
                 {isBook && <div>Páginas: <span className="text-white/70">{log.pages_read ?? '-'}</span></div>}
               </div>
               {log.review && (
-                <p className="text-sm text-white/70 leading-relaxed whitespace-pre-wrap">{log.review}</p>
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-sm text-white/70 leading-relaxed whitespace-pre-wrap">{log.review}</p>
+                  <button
+                    onClick={() => setShowDeleteReviewConfirm(true)}
+                    className="flex-shrink-0 text-[10px] inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-white/10 text-white/40 hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-400 transition-colors"
+                    title="Apagar review"
+                  >
+                    <Trash2 size={11} /> Apagar review
+                  </button>
+                </div>
               )}
             </div>
           )}
@@ -774,7 +807,8 @@ const MediaDetailPage = () => {
                                   setEpisodes(prev => ({ ...prev, [s.season_number]: data }));
                                   seasonEps = data || [];
                                 }
-                                toggleAllEpisodes(seasonEps, sWatched < released);
+                                const rel = seasonEps.filter(ep => !ep.air_date || new Date(ep.air_date) <= today).length;
+                                toggleAllEpisodes(seasonEps, sWatched < rel);
                               }}
                               className="flex-shrink-0"
                             >
@@ -1153,6 +1187,30 @@ const MediaDetailPage = () => {
               <button onClick={handleDelete} disabled={deleting}
                 className="text-sm py-2 px-4 rounded-xl font-bold" style={{ background: 'var(--error)', color: '#fff' }}>
                 {deleting ? 'Excluindo...' : 'Excluir'}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Delete review modal */}
+      {showDeleteReviewConfirm && log && createPortal(
+        <div className="modal-overlay" onClick={() => !deletingReview && setShowDeleteReviewConfirm(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title">Apagar review</h3>
+              <button className="modal-close" onClick={() => !deletingReview && setShowDeleteReviewConfirm(false)}>&times;</button>
+            </div>
+            <div className="modal-body">
+              <p>Tem certeza que deseja apagar o review de <strong>{md.title}</strong>?</p>
+              <p className="text-sm mt-2" style={{ color: 'var(--text-muted)' }}>O texto do review e o histórico serão removidos.</p>
+            </div>
+            <div className="modal-footer">
+              <button onClick={() => setShowDeleteReviewConfirm(false)} className="mdf-btn-ghost text-sm" disabled={deletingReview}>Cancelar</button>
+              <button onClick={handleDeleteReview} disabled={deletingReview}
+                className="text-sm py-2 px-4 rounded-xl font-bold" style={{ background: 'var(--error)', color: '#fff' }}>
+                {deletingReview ? 'Apagando...' : 'Apagar review'}
               </button>
             </div>
           </div>
