@@ -359,9 +359,9 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
                     </button>
                   </div>
                 )}
-                <div className={`relative ${isGoat && !editingTop5 ? '' : ''}`}>
+                <div className="relative">
                   {isGoat && !editingTop5 && (
-                    <div className="flex justify-center -mb-3 relative z-10">
+                    <div className="absolute -top-4 left-0 right-0 flex justify-center z-10">
                       <svg width="22" height="22" viewBox="0 0 24 24" fill="#F59E0B" stroke="#F59E0B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7z"/>
                         <path d="M12 16v4"/>

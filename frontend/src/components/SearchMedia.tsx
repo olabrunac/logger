@@ -245,6 +245,9 @@ const SearchMedia = ({ onSelectMedia, initialMediaType }: SearchMediaProps) => {
                   {item.release_date && (
                     <span>{new Date(item.release_date).getFullYear()}</span>
                   )}
+                  {item.authors && item.authors.length > 0 && (
+                    <span className="text-[11px] text-white/40 truncate">{item.authors.join(', ')}</span>
+                  )}
                 </div>
                 {item.synopsis && (
                   <p style={{

@@ -135,15 +135,18 @@ function AppInner() {
 
   // Fixed sidebar widths - content area stays this width always.
   // On /media pages the global RightSidebar is replaced by the page's own YGP sidebar.
+  // Left sidebar is hidden on the login page; right sidebar only on the main profile route.
+  const isLoginRoute = location.pathname === '/login';
   const isMediaDetailRoute = /^\/media\//.test(location.pathname);
+  const isMainProfileRoute = /^\/profile\/[^/]+$/.test(location.pathname);
   const fixedSidebarWidths = user
-    ? { left: 203, right: isMediaDetailRoute ? 0 : 324 }
-    : { left: 203, right: 0 };
+    ? { left: 203, right: isMediaDetailRoute ? 0 : isMainProfileRoute ? 324 : 0 }
+    : { left: isLoginRoute ? 0 : 203, right: 0 };
 
   return (
     <div style={accentStyle} className="min-h-screen flex">
-        <LeftSidebar user={user} onLogout={handleLogout} refreshUnreadTrigger={unreadTrigger} />
-        {user && !isMediaDetailRoute && (
+        {!isLoginRoute && <LeftSidebar user={user} onLogout={handleLogout} refreshUnreadTrigger={unreadTrigger} />}
+        {user && isMainProfileRoute && !isMediaDetailRoute && (
           <RightSidebar
             user={viewedUser || user}
             isCollapsed={isSidebarCollapsed}

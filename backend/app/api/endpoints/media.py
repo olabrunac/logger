@@ -10,6 +10,7 @@ from app.services.hours_service import effective_hours
 from app.models.media import MediaType, MediaItem, LogStatus, LogEntry, LogReview, EpisodeWatched, Achievement, TopListItem
 import datetime
 import json
+import math
 
 router = APIRouter()
 
@@ -212,6 +213,8 @@ def transform_tmdb_result(item: dict, media_type: MediaType) -> dict:
         "cover_image_url": f"https://image.tmdb.org/t/p/w500{item.get('poster_path')}" if item.get('poster_path') else None,
         "release_date": release_date,
         "synopsis": item.get("overview"),
+        "popularity": float(item.get("popularity") or 0),
+        "authors": None,
     }
 
 def transform_igdb_result(item: dict) -> dict:
@@ -229,6 +232,8 @@ def transform_igdb_result(item: dict) -> dict:
         "cover_image_url": cover_url,
         "release_date": release_date,
         "synopsis": item.get("summary"),
+        "popularity": float(item.get("rating_count") or 0),
+        "authors": None,
     }
 
 def transform_book_result(item: dict) -> dict:
@@ -244,6 +249,8 @@ def transform_book_result(item: dict) -> dict:
                 release_date = None
     image_links = vi.get("imageLinks", {})
     cover_url = image_links.get("thumbnail") or image_links.get("smallThumbnail")
+    if cover_url and cover_url.startswith("http://"):
+        cover_url = "https://" + cover_url[7:]
     return {
         "title": vi.get("title", "Sem título"),
         "media_type": MediaType.BOOK,
@@ -251,6 +258,8 @@ def transform_book_result(item: dict) -> dict:
         "release_date": release_date,
         "synopsis": vi.get("description"),
         "google_books_id": item.get("id"),
+        "popularity": float(vi.get("ratingsCount") or 0),
+        "authors": vi.get("authors") or [],
     }
 
 @router.get("/search", response_model=List[schemas.MediaItemCreate])
@@ -293,12 +302,22 @@ def search_media(*, db: Session = Depends(deps.get_db), q: str = Query("", min_l
                     "release_date": item.release_date.isoformat() if item.release_date else None,
                     "synopsis": item.synopsis,
                     "id": item.id,
+                    "is_local": True,
+                    "popularity": 0,
+                    "authors": None,
                 })
                 seen_titles.add(item.title.lower())
         results = local_results + results
 
     if q.strip():
-        results.sort(key=lambda r: _fuzzy_score(q, r.get("title", "")), reverse=True)
+        results.sort(
+            key=lambda r: (
+                _fuzzy_score(q, r.get("title", "")),
+                r.get("is_local", False),
+                math.log1p(float(r.get("popularity") or 0)),
+            ),
+            reverse=True,
+        )
 
     return results
 

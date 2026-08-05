@@ -217,6 +217,9 @@ const SearchPage = () => {
                       {meta.singular}
                       {item.release_date && ` · ${new Date(item.release_date).getFullYear()}`}
                     </div>
+                    {item.authors && item.authors.length > 0 && (
+                      <div className="text-xs text-white/40 truncate">{item.authors.join(', ')}</div>
+                    )}
                   </div>
                 </Link>
               );
