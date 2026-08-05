@@ -257,9 +257,9 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
             const isGoat = idx === 0;
             return (
               <div key={type} className="min-w-0">
-                <div className={`relative ${isGoat ? '-mt-6' : ''}`}>
+                <div className="relative">
                   {isGoat && (
-                    <div className="flex justify-center -mb-3 relative z-10">
+                    <div className="absolute -top-4 left-0 right-0 flex justify-center z-10">
                       <svg width="22" height="22" viewBox="0 0 24 24" fill="#F59E0B" stroke="#F59E0B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7z"/>
                         <path d="M12 16v4"/>
@@ -475,14 +475,14 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
     return (
       <section>
         <SectionHeader title={`Top 5 · ${meta?.label}`} />
-        <div className="hidden gap-2 lg:flex lg:items-end lg:justify-center">
+        <div className="hidden gap-2 lg:flex lg:items-start lg:justify-center">
           {typeTop.map((item, index) => {
             const isGoat = index === 0;
             return (
-              <div key={item.id} className="min-w-0" style={{ width: 'calc((100% - 32px) / 5)', maxWidth: 'calc((100% - 32px) / 5)' }}>
+              <div key={item.id} className="min-w-0 shrink-0" style={{ width: 'calc((100% - 32px) / 5)', maxWidth: 'calc((100% - 32px) / 5)' }}>
                 <div className="relative">
                   {isGoat && (
-                    <div className="flex justify-center -mb-3 relative z-10">
+                    <div className="absolute -top-4 left-0 right-0 flex justify-center z-10">
                       <svg width="22" height="22" viewBox="0 0 24 24" fill="#F59E0B" stroke="#F59E0B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7z"/>
                         <path d="M12 16v4"/>
