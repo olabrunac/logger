@@ -390,7 +390,7 @@ def get_timeline(
     user_id: int,
     limit: int = 50,
 ):
-    from app.crud import crud_follow
+    from app.crud import crud_follow, crud_log_interaction
     from app.models.media import LogEntry
 
     following_ids_raw = crud_follow.get_following(db, user_id=user_id)
@@ -404,6 +404,20 @@ def get_timeline(
         .limit(limit * 2)
         .all()
     )
+
+    def _media_ref(mi):
+        if not mi:
+            return None
+        return {
+            "id": mi.id,
+            "title": mi.title,
+            "media_type": mi.media_type.value,
+            "cover_image_url": mi.cover_image_url,
+            "tmdb_id": mi.tmdb_id,
+            "igdb_id": mi.igdb_id,
+            "steam_appid": mi.steam_appid,
+            "google_books_id": mi.google_books_id,
+        }
 
     # Group by (user_id, media_type, log_date without time)
     groups: dict = {}
@@ -428,9 +442,8 @@ def get_timeline(
             }
 
         groups[key]["items"].append({
-            "id": log.id,
-            "title": log.media_item.title if log.media_item else "Unknown",
-            "cover_image_url": log.media_item.cover_image_url if log.media_item else None,
+            "log_id": log.id,
+            "media_item": _media_ref(log.media_item),
             "status": log.status.value if log.status else None,
             "rating": log.rating,
             "review": log.review,
@@ -441,18 +454,14 @@ def get_timeline(
 
     result = []
     for g in groups.values():
-        items = sorted(g["items"], key=lambda x: x["id"], reverse=True)
+        items = sorted(g["items"], key=lambda x: x["log_id"], reverse=True)
         if len(items) == 1:
             item = items[0]
+            mi = item["media_item"]
             result.append({
-                "id": item["id"],
+                "id": item["log_id"],
                 "user": g["user"],
-                "media_item": {
-                    "id": item["id"],
-                    "title": item["title"],
-                    "media_type": g["media_type"],
-                    "cover_image_url": item["cover_image_url"],
-                },
+                "media_item": mi,
                 "status": item["status"],
                 "rating": item["rating"],
                 "review": item["review"],
@@ -460,6 +469,10 @@ def get_timeline(
                 "log_date": g["log_date"],
                 "is_favorite": item["is_favorite"],
                 "hours_spent": item["hours_spent"],
+                "replies_count": crud_log_interaction.get_replies_count(db, item["log_id"]),
+                "likes_count": crud_log_interaction.get_likes_count(db, item["log_id"]),
+                "is_liked": crud_log_interaction.has_liked(db, item["log_id"], user_id),
+                "liked_by": crud_log_interaction.get_likers(db, item["log_id"], limit=5),
             })
         else:
             # Determine the most common status in the group
@@ -468,14 +481,9 @@ def get_timeline(
             group_status = status_counts.most_common(1)[0][0] if status_counts else None
 
             result.append({
-                "id": items[0]["id"],
+                "id": items[0]["log_id"],
                 "user": g["user"],
-                "media_item": {
-                    "id": items[0]["id"],
-                    "title": items[0]["title"],
-                    "media_type": g["media_type"],
-                    "cover_image_url": items[0]["cover_image_url"],
-                },
+                "media_item": items[0]["media_item"],
                 "status": group_status,
                 "rating": None,
                 "platform": None,
@@ -485,9 +493,14 @@ def get_timeline(
                 "hours_spent": None,
                 "group_count": len(items),
                 "group_items": [{
-                    "id": x["id"],
-                    "title": x["title"],
-                    "cover_image_url": x["cover_image_url"],
+                    "id": x["media_item"]["id"] if x["media_item"] else x["log_id"],
+                    "title": x["media_item"]["title"] if x["media_item"] else "Unknown",
+                    "media_type": x["media_item"]["media_type"] if x["media_item"] else g["media_type"],
+                    "cover_image_url": x["media_item"]["cover_image_url"] if x["media_item"] else None,
+                    "tmdb_id": x["media_item"]["tmdb_id"] if x["media_item"] else None,
+                    "igdb_id": x["media_item"]["igdb_id"] if x["media_item"] else None,
+                    "steam_appid": x["media_item"]["steam_appid"] if x["media_item"] else None,
+                    "google_books_id": x["media_item"]["google_books_id"] if x["media_item"] else None,
                     "status": x["status"],
                 } for x in items],
             })

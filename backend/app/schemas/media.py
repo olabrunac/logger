@@ -177,6 +177,10 @@ class LogEntryWithStats(LogEntryInDB):
     total_episodes: Optional[int] = None
     unlocked_achievements: Optional[int] = None
     total_achievements: Optional[int] = None
+    replies_count: Optional[int] = None
+    likes_count: Optional[int] = None
+    is_liked: Optional[bool] = None
+    liked_by: Optional[List[dict]] = None
 
 
 # --- Custom List Schemas ---

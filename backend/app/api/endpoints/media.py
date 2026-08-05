@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from typing import List, Any, Optional
 from app import crud, schemas
-from app.crud import crud_top_list, crud_custom_list
+from app.crud import crud_top_list, crud_custom_list, crud_log_interaction
 from app.api import deps
 from app.services import tmdb_service, igdb_service, google_books_service, steam_service
 from app.services.hours_service import effective_hours
@@ -247,10 +247,7 @@ def transform_book_result(item: dict) -> dict:
                 release_date = datetime.datetime.strptime(vi["publishedDate"][:4], '%Y').date()
             except ValueError:
                 release_date = None
-    image_links = vi.get("imageLinks", {})
-    cover_url = image_links.get("thumbnail") or image_links.get("smallThumbnail")
-    if cover_url and cover_url.startswith("http://"):
-        cover_url = "https://" + cover_url[7:]
+    cover_url = google_books_service._cover_url(vi)
     return {
         "title": vi.get("title", "Sem título"),
         "media_type": MediaType.BOOK,
@@ -501,7 +498,7 @@ def create_log_entry(*, db: Session = Depends(deps.get_db), payload: schemas.Log
     return log
 
 @router.get("/logs", response_model=List[schemas.LogEntryWithStats])
-def read_logs(*, db: Session = Depends(deps.get_db), user_id: int, skip: int = 0, limit: int = 100) -> Any:
+def read_logs(*, db: Session = Depends(deps.get_db), user_id: int, skip: int = 0, limit: int = 100, viewer_id: Optional[int] = None) -> Any:
     from sqlalchemy import func as sa_func
     logs = crud.log_entry.get_multi_by_user(db, user_id=user_id, skip=skip, limit=limit)
     log_ids = [log.id for log in logs]
@@ -552,6 +549,10 @@ def read_logs(*, db: Session = Depends(deps.get_db), user_id: int, skip: int = 0
         log_dict = schemas.LogEntryInDB.model_validate(log).model_dump()
         log_dict.update(stats)
         log_dict["hours_spent"] = effective_hours(db, log, watched_counts.get(log.id))
+        log_dict["replies_count"] = crud_log_interaction.get_replies_count(db, log.id)
+        log_dict["likes_count"] = crud_log_interaction.get_likes_count(db, log.id)
+        log_dict["is_liked"] = crud_log_interaction.has_liked(db, log.id, viewer_id) if viewer_id else False
+        log_dict["liked_by"] = crud_log_interaction.get_likers(db, log.id, limit=5)
         results.append(schemas.LogEntryWithStats(**log_dict))
     return results
 
@@ -756,6 +757,65 @@ def read_logs_reviews_batch(*, db: Session = Depends(deps.get_db), log_ids: List
     for r in reviews:
         result[r.log_id].append(schemas.LogReviewInDB.model_validate(r).model_dump())
     return result
+
+@router.post("/logs/{log_id}/reply")
+def reply_to_log(*, db: Session = Depends(deps.get_db), log_id: int, user_id: int, content: str) -> Any:
+    if len(content) > 280:
+        raise HTTPException(status_code=400, detail="Reply must be 280 characters or less")
+    log = crud.log_entry.get(db, id=log_id)
+    if not log:
+        raise HTTPException(status_code=404, detail="Log not found")
+    if not crud.user.get(db, id=user_id):
+        raise HTTPException(status_code=404, detail="User not found")
+    reply = crud_log_interaction.add_reply(db, log_id=log_id, user_id=user_id, content=content)
+    if log.user_id != user_id:
+        try:
+            from app.crud.crud_notification import create_notification
+            create_notification(db, user_id=log.user_id, type="reply", from_user_id=user_id, log_id=log_id)
+        except Exception:
+            pass
+    return _log_reply_response(reply)
+
+@router.get("/logs/{log_id}/replies")
+def get_log_replies(*, db: Session = Depends(deps.get_db), log_id: int) -> Any:
+    log = crud.log_entry.get(db, id=log_id)
+    if not log:
+        raise HTTPException(status_code=404, detail="Log not found")
+    replies = crud_log_interaction.get_replies(db, log_id=log_id)
+    return [_log_reply_response(r) for r in replies]
+
+@router.post("/logs/{log_id}/like")
+def like_log(*, db: Session = Depends(deps.get_db), log_id: int, user_id: int) -> Any:
+    log = crud.log_entry.get(db, id=log_id)
+    if not log:
+        raise HTTPException(status_code=404, detail="Log not found")
+    crud_log_interaction.like(db, log_id=log_id, user_id=user_id)
+    if log.user_id != user_id:
+        try:
+            from app.crud.crud_notification import create_notification
+            create_notification(db, user_id=log.user_id, type="like", from_user_id=user_id, log_id=log_id)
+        except Exception:
+            pass
+    return {"liked": True, "likes_count": crud_log_interaction.get_likes_count(db, log_id)}
+
+@router.delete("/logs/{log_id}/like")
+def unlike_log(*, db: Session = Depends(deps.get_db), log_id: int, user_id: int) -> Any:
+    log = crud.log_entry.get(db, id=log_id)
+    if not log:
+        raise HTTPException(status_code=404, detail="Log not found")
+    crud_log_interaction.unlike(db, log_id=log_id, user_id=user_id)
+    return {"liked": False, "likes_count": crud_log_interaction.get_likes_count(db, log_id)}
+
+def _log_reply_response(reply) -> dict:
+    return {
+        "id": reply.id,
+        "log_id": reply.log_id,
+        "user_id": reply.user_id,
+        "username": reply.user.username if reply.user else "unknown",
+        "avatar_url": reply.user.avatar_url if reply.user else None,
+        "content": reply.content,
+        "created_at": reply.created_at.isoformat() if reply.created_at else "",
+    }
 
 @router.put("/logs/{log_id}", response_model=schemas.LogEntryInDB)
 def update_log_entry(*, db: Session = Depends(deps.get_db), log_id: int, updates: schemas.LogEntryUpdate) -> Any:

@@ -95,6 +95,22 @@ def get_post_replies(
     return [_reply_response(r) for r in replies]
 
 
+@router.put("/posts/{post_id}")
+def update_post(
+    *,
+    db: Session = Depends(deps.get_db),
+    post_id: int,
+    user_id: int,
+    content: str,
+):
+    if len(content) > 280:
+        raise HTTPException(status_code=400, detail="Post must be 280 characters or less")
+    post = crud_post.update_post(db, post_id=post_id, user_id=user_id, content=content)
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found or not yours")
+    return _post_response(post, db, current_user_id=user_id)
+
+
 @router.delete("/posts/{post_id}")
 def delete_post(
     *,
