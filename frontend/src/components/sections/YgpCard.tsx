@@ -49,7 +49,7 @@ const YgpCard = ({ log, accentColor, showStatus = true, actions, rank, className
         <img
           src={log.media_item.cover_image_url}
           alt={log.media_item.title}
-          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          className="w-full h-full object-cover transition-transform duration-300 pointer-fine:group-hover:scale-105"
           loading="lazy"
         />
       ) : (
