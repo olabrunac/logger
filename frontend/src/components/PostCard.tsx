@@ -5,7 +5,7 @@ import type { User } from '../types';
 import type { Post, PostReply } from '../types/feed';
 import { PostImages } from './PostImages';
 import { Send, Trash2, MessageCircle, ThumbsUp, Pencil, Check, X } from 'lucide-react';
-import { imageUrl } from '../utils';
+import { imageUrl, timeAgo } from '../utils';
 
 interface PostCardProps {
   post: Post;
@@ -17,17 +17,6 @@ interface PostCardProps {
 }
 
 const IMAGE_URL = (url: string) => imageUrl(url) || '';
-
-const timeAgo = (dateStr: string) => {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'agora';
-  if (mins < 60) return `${mins}m`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h`;
-  const days = Math.floor(hours / 24);
-  return `${days}d`;
-};
 
 const PostCard = ({ post, currentUser, onReply, onDelete, onLike, onEdit }: PostCardProps) => {
   const [showReplies, setShowReplies] = useState(false);

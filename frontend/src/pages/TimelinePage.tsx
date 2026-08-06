@@ -6,7 +6,7 @@ import PostCard from '../components/PostCard';
 import LogCard from '../components/LogCard';
 import LogGroupCard from '../components/LogGroupCard';
 import { Clock, Image as ImageIcon, X } from 'lucide-react';
-import { imageUrl } from '../utils';
+import { imageUrl, parseServerDate } from '../utils';
 
 interface TimelinePageProps {
   user: User;
@@ -173,8 +173,8 @@ const TimelinePage = ({ user }: TimelinePageProps) => {
   };
 
   const merged: FeedItem[] = [
-    ...posts.map(p => ({ ...p, _sortDate: new Date(p.created_at).getTime() } as FeedItem & { _sortDate: number })),
-    ...entries.filter(e => e.log_date).map(e => ({ ...e, _sortDate: new Date(e.log_date!).getTime() } as FeedItem & { _sortDate: number })),
+    ...posts.map(p => ({ ...p, _sortDate: parseServerDate(p.created_at).getTime() } as FeedItem & { _sortDate: number })),
+    ...entries.filter(e => e.log_date).map(e => ({ ...e, _sortDate: parseServerDate(e.log_date!).getTime() } as FeedItem & { _sortDate: number })),
   ].sort((a, b) => (b as FeedItem & { _sortDate: number })._sortDate - (a as FeedItem & { _sortDate: number })._sortDate);
 
   return (
