@@ -9,13 +9,22 @@ import GenreChart from './sections/GenreChart';
 import ActivityGraph from './sections/ActivityGraph';
 import HoursPieChart from './sections/HoursPieChart';
 import BadgesSection from './sections/BadgesSection';
-import type { LogEntry, User } from '../types';
+import type { LogEntry, TopListItem, User } from '../types';
 
 interface RightSidebarProps {
   user: User;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
 }
+
+const SIDEBAR_TOP_IDS = ['favorites', 'top_5'];
+const SIDEBAR_BOTTOM_IDS = ['badges'];
+
+const enforceSidebarIds = (ids: string[]): string[] => [
+  ...ids.filter(id => SIDEBAR_TOP_IDS.includes(id)),
+  ...ids.filter(id => !SIDEBAR_TOP_IDS.includes(id) && !SIDEBAR_BOTTOM_IDS.includes(id)),
+  ...ids.filter(id => SIDEBAR_BOTTOM_IDS.includes(id)),
+];
 
 const MEDIA_TYPE_MAP: Record<string, string> = {
   movies: 'movie',
@@ -40,6 +49,7 @@ const MEDIA_COLORS: Record<string, string> = {
 
 const RightSidebar = ({ user, isCollapsed, onToggleCollapse }: RightSidebarProps) => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [topListItems, setTopListItems] = useState<TopListItem[]>([]);
   const location = useLocation();
 
   const pathSegments = location.pathname.split('/');
@@ -53,13 +63,27 @@ const RightSidebar = ({ user, isCollapsed, onToggleCollapse }: RightSidebarProps
       api.get('/media/logs', { params: { user_id: user.id, limit: 9999 } })
         .then((res) => setLogs(res.data || []))
         .catch((err) => console.error('Failed to fetch logs for right sidebar', err));
+      api.get(`/media/users/${user.id}/top-list`)
+        .then((res) => setTopListItems(res.data || []))
+        .catch((err) => console.error('Failed to fetch favorites for right sidebar', err));
     } else {
       setLogs([]);
+      setTopListItems([]);
     }
   }, [user?.id]);
 
+  const orderedTopList = useMemo(() => {
+    const order = ['game', 'movie', 'series', 'book'];
+    return [...topListItems].sort((a, b) => {
+      const ta = order.indexOf(a.media_item?.media_type || '');
+      const tb = order.indexOf(b.media_item?.media_type || '');
+      if (ta !== tb) return ta - tb;
+      return (a.position || 0) - (b.position || 0);
+    });
+  }, [topListItems]);
+
   const sidebarOrder = useMemo(() => {
-    const defaults = ['stats', 'rating_distribution', 'top_genres', 'hours', 'activity_map', 'recent_activity', 'badges'];
+    const defaults = ['favorites', 'top_5', 'stats', 'rating_distribution', 'top_genres', 'hours', 'activity_map', 'recent_activity', 'badges'];
     try {
       const raw = user?.section_order;
       if (raw) {
@@ -70,11 +94,11 @@ const RightSidebar = ({ user, isCollapsed, onToggleCollapse }: RightSidebarProps
           const order = sidebar.map((s: { id: string }) => s.id);
           const ordered = defaults.filter(id => order.includes(id)).sort((a, b) => order.indexOf(a) - order.indexOf(b));
           for (const d of defaults) if (!order.includes(d)) ordered.push(d);
-          return ordered.filter(id => configMap.get(id) !== false);
+          return enforceSidebarIds(ordered.filter(id => configMap.get(id) !== false));
         }
       }
     } catch {}
-    return defaults;
+    return enforceSidebarIds(defaults);
   }, [user?.section_order]);
 
   const accentColor = user.accent_color || '#00e054';
@@ -96,8 +120,51 @@ const RightSidebar = ({ user, isCollapsed, onToggleCollapse }: RightSidebarProps
     );
   }
 
+  const miniPoster = (item: TopListItem, rank?: number) => {
+    const media = item.media_item;
+    if (!media) return null;
+    return (
+      <Link key={item.id} to={getLogUrl(media)} className="w-[44px] h-[60px] rounded-md overflow-hidden flex-shrink-0 relative group border" style={{ borderColor: 'var(--border)', borderBottom: '3px solid ' + (MEDIA_COLORS[media.media_type] || '#666') }} title={media.title}>
+        {media.cover_image_url ? (
+          <img src={media.cover_image_url} alt={media.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-[10px] text-center p-1 bg-white/5">{media.title}</div>
+        )}
+        {rank != null && (
+          <span className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold" style={{ background: 'var(--accent)', color: '#000' }}>{rank}</span>
+        )}
+      </Link>
+    );
+  };
+
   const renderBlock = (id: string) => {
     switch (id) {
+      case 'favorites':
+        return (
+          <>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-2">Favoritos</div>
+            {orderedTopList.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {orderedTopList.slice(0, 10).map(item => miniPoster(item))}
+              </div>
+            ) : (
+              <div className="text-[11px] text-white/40 py-2 text-center">Nenhum favorito</div>
+            )}
+          </>
+        );
+      case 'top_5':
+        return (
+          <>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-2">Top 5</div>
+            {orderedTopList.length > 0 ? (
+              <div className="flex gap-1.5 overflow-x-auto pb-1">
+                {orderedTopList.slice(0, 5).map((item, i) => miniPoster(item, i + 1))}
+              </div>
+            ) : (
+              <div className="text-[11px] text-white/40 py-2 text-center">Nenhum favorito</div>
+            )}
+          </>
+        );
       case 'stats':
         return <StatsSection logs={logs} accentColor={currentMediaColor} mediaType={activeMediaType} />;
       case 'rating_distribution':
