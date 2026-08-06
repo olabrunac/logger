@@ -837,15 +837,16 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
 
       {!view ? (
         <>
-          <div className="lg:hidden">
-            <BadgesSection userId={profileUser.id} title="Conquistas e Medalhas" />
-          </div>
           {effectiveSections.map(section => {
             if (!section.visible) return null;
             const renderer = sectionRenderers[section.id];
             if (!renderer) return null;
             return <div key={section.id}>{renderer()}</div>;
           })}
+
+          <div className="lg:hidden">
+            <BadgesSection userId={profileUser.id} title="Medalhas" />
+          </div>
 
           {editingLayout && (
             <LayoutEditorModal
