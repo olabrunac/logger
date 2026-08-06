@@ -6,6 +6,7 @@ interface SectionDef {
   label: string;
   icon?: React.ReactNode;
   visible?: boolean;
+  group?: string;
 }
 
 interface LayoutEditorModalProps {
@@ -16,20 +17,9 @@ interface LayoutEditorModalProps {
 }
 
 const LayoutEditorModal = ({ sections: initialSections, availableSections, onSave, onClose }: LayoutEditorModalProps) => {
-  const [items, setItems] = useState<SectionDef[]>(() => {
-    const configMap = new Map(initialSections.map(s => [s.id, s.visible ?? true]));
-    const order = initialSections.map(s => s.id);
-    return availableSections
-      .map(s => ({ ...s, visible: configMap.has(s.id) ? configMap.get(s.id)! : (s.visible ?? true) }))
-      .sort((a, b) => {
-        const ia = order.indexOf(a.id);
-        const ib = order.indexOf(b.id);
-        if (ia === -1 && ib === -1) return 0;
-        if (ia === -1) return 1;
-        if (ib === -1) return -1;
-        return ia - ib;
-      });
-  });
+  const [items, setItems] = useState<SectionDef[]>(() =>
+    initialSections.map(s => ({ ...s, visible: s.visible ?? true }))
+  );
   const [saving, setSaving] = useState(false);
 
   const moveItem = (from: number, to: number) => {
@@ -52,6 +42,13 @@ const LayoutEditorModal = ({ sections: initialSections, availableSections, onSav
 
   const visibleIds = items.filter(s => s.visible).map(s => s.id);
   const hiddenAvailables = availableSections.filter(s => !visibleIds.includes(s.id) && !items.some(i => i.id === s.id));
+
+  const groupedAvailables = hiddenAvailables.reduce<Record<string, SectionDef[]>>((acc, s) => {
+    const key = s.group || 'Outros';
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(s);
+    return acc;
+  }, {});
 
   const addSection = (section: SectionDef) => {
     setItems(prev => [...prev, { ...section, visible: true }]);
@@ -108,17 +105,22 @@ const LayoutEditorModal = ({ sections: initialSections, availableSections, onSav
               <Plus size={12} className="text-white/30" />
               <span className="text-xs font-medium text-white/30 uppercase tracking-wider">Adicionar bloco</span>
             </div>
-            <div className="flex flex-wrap gap-1.5">
-              {hiddenAvailables.map(section => (
-                <button key={section.id} onClick={() => addSection(section)}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-white/10 text-white/50 hover:text-white/80"
-                  style={{ background: 'var(--bg-card)', border: '1px dashed var(--border)' }}>
-                  {section.icon && <span className="text-white/40">{section.icon}</span>}
-                  {section.label}
-                  <Plus size={10} className="text-white/30" />
-                </button>
-              ))}
-            </div>
+            {Object.entries(groupedAvailables).map(([group, sections]) => (
+              <div key={group} className="mb-3">
+                <div className="px-1 mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-white/25">{group}</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {sections.map(section => (
+                    <button key={section.id} onClick={() => addSection(section)}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-white/10 text-white/50 hover:text-white/80"
+                      style={{ background: 'var(--bg-card)', border: '1px dashed var(--border)' }}>
+                      {section.icon && <span className="text-white/40">{section.icon}</span>}
+                      {section.label}
+                      <Plus size={10} className="text-white/30" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         )}
 

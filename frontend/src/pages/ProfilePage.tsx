@@ -12,6 +12,7 @@ import PostCard from '../components/PostCard';
 import { TYPE_META, getStars } from '../constants/designSystem';
 import type { Post } from '../types/feed';
 import { imageUrl, getLogUrl, findBestLogForMedia } from '../utils';
+import { Heart, Clock, Star, MessageCircle, Trophy, History, Layers, Menu } from 'lucide-react';
 
 interface ProfilePageProps {
   currentUser: User;
@@ -19,6 +20,18 @@ interface ProfilePageProps {
 }
 
 const IMAGE_URL = (url: string) => imageUrl(url) || '';
+
+const ALL_MEDIA_TYPES = ['game', 'movie', 'series', 'book'] as const;
+
+const STATUS_GROUP_DEFS = [
+  { status: 'in_progress', label: 'Em Progresso' },
+  { status: 'completed', label: 'Finalizados' },
+  { status: 'wishlist', label: 'Lista de Desejos' },
+  { status: 'library', label: 'Biblioteca' },
+  { status: 'dropped', label: 'Abandonados' },
+];
+
+const mediaTypeIcon = (type: string) => <span className="text-xs leading-none">{TYPE_META[type]?.emoji || '📄'}</span>;
 
 const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
   const { username } = useParams<{ username: string }>();
@@ -133,20 +146,17 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
   }, [profileUser?.section_order]);
 
   const effectiveSections = useMemo(() => {
-    const allDefs: Array<{ id: string; visible: boolean; label: string }> = [
-      { id: 'favorite_games', visible: true, label: 'Favoritos' },
-      { id: 'recent_games', visible: true, label: 'Atividade recente' },
-      { id: 'reviews', visible: true, label: 'Reviews' },
-      { id: 'posts', visible: true, label: 'Posts' },
-      { id: 'top_5', visible: false, label: 'Top 5' },
-      { id: 'recent', visible: false, label: 'Recentes' },
-      { id: 'in_progress', visible: false, label: 'Em Progresso' },
-      { id: 'completed', visible: false, label: 'Finalizados' },
-      { id: 'wishlist', visible: false, label: 'Lista de Desejos' },
-      { id: 'library', visible: false, label: 'Biblioteca' },
-      { id: 'dropped', visible: false, label: 'Abandonados' },
-      { id: 'all_items', visible: false, label: 'Todos' },
-      { id: 'custom_lists', visible: false, label: 'Listas Personalizadas' },
+    const allDefs: Array<{ id: string; visible: boolean; label: string; icon?: React.ReactNode }> = [
+      { id: 'favorite_games', visible: true, label: 'Favoritos', icon: <Heart className="h-3.5 w-3.5" /> },
+      { id: 'recent_games', visible: true, label: 'Atividade recente', icon: <Clock className="h-3.5 w-3.5" /> },
+      { id: 'reviews', visible: true, label: 'Reviews', icon: <Star className="h-3.5 w-3.5" /> },
+      { id: 'posts', visible: true, label: 'Posts', icon: <MessageCircle className="h-3.5 w-3.5" /> },
+      { id: 'top_5', visible: false, label: 'Top 5', icon: <Trophy className="h-3.5 w-3.5" /> },
+      { id: 'recent', visible: false, label: 'Recentes', icon: <History className="h-3.5 w-3.5" /> },
+      { id: 'general_all', visible: false, label: 'Geral (todos os logs)', icon: <Layers className="h-3.5 w-3.5" /> },
+      { id: 'custom_lists', visible: false, label: 'Listas Personalizadas', icon: <Menu className="h-3.5 w-3.5" /> },
+      ...ALL_MEDIA_TYPES.map(type => ({ id: `all_${type}`, visible: false, label: `Todos ${TYPE_META[type]?.label}`, icon: mediaTypeIcon(type) })),
+      ...STATUS_GROUP_DEFS.flatMap(s => ALL_MEDIA_TYPES.map(type => ({ id: `${s.status}_${type}`, visible: false, label: `${s.label} ${TYPE_META[type]?.singular}`, icon: mediaTypeIcon(type) }))),
     ];
 
     if (!sectionConfig) return allDefs.filter(s => s.visible);
@@ -158,7 +168,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
       .filter(s => order.includes(s.id))
       .sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
 
-    const remaining = allDefs.filter(s => !order.includes(s.id));
+    const remaining = allDefs.filter(s => !order.includes(s.id) && s.visible);
 
     return [...ordered, ...remaining].map(s => ({
       ...s,
@@ -545,48 +555,39 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
     );
   });
 
-  const renderRecentAll = () => perTypeBlocks((type, typeLogs) => {
-    const meta = TYPE_META[type];
-    const sorted = [...typeLogs].sort((a, b) => b.id - a.id);
-    return (
-      <section>
-        <SectionHeader title={`Recentes · ${meta?.label}`} count={typeLogs.length} />
-        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
-          {sorted.slice(0, 12).map(log => <YgpCard key={log.id} log={log} accentColor={accentColor} />)}
-        </div>
-      </section>
-    );
-  });
-
-  const renderStatusAll = (status: string, label: string, sortByTitle = false) => perTypeBlocks((type, typeLogs) => {
-    let sectionLogs = typeLogs.filter(l => l.status === status);
-    if (sectionLogs.length === 0) return null;
+  const renderGrid = (title: string, gridLogs: LogEntry[], sortByTitle = false, limit = 12) => {
+    let items = gridLogs;
     if (sortByTitle) {
-      sectionLogs = [...sectionLogs].sort((a, b) => (a.media_item?.title || '').localeCompare(b.media_item?.title || '', 'pt-BR', { sensitivity: 'base', numeric: true }));
+      items = [...gridLogs].sort((a, b) => (a.media_item?.title || '').localeCompare(b.media_item?.title || '', 'pt-BR', { sensitivity: 'base', numeric: true }));
     }
-    const meta = TYPE_META[type];
     return (
       <section>
-        <SectionHeader title={`${label} · ${meta?.label}`} count={sectionLogs.length} />
+        <SectionHeader title={title} count={items.length} />
         <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
-          {sectionLogs.slice(0, 12).map(log => <YgpCard key={log.id} log={log} accentColor={accentColor} />)}
+          {items.slice(0, limit).map(log => <YgpCard key={log.id} log={log} accentColor={accentColor} />)}
         </div>
       </section>
     );
-  });
+  };
 
-  const renderAllItemsAll = () => perTypeBlocks((type, typeLogs) => {
+  const renderRecentAll = () => {
+    const sorted = [...logs].sort((a, b) => b.id - a.id);
+    return renderGrid('Recentes', sorted, false);
+  };
+
+  const renderStatusType = (status: string, type: string, label: string) => {
+    const singular = TYPE_META[type]?.singular || type;
+    const sectionLogs = logs.filter(l => l.media_item.media_type === type && l.status === status);
+    if (sectionLogs.length === 0) return null;
+    return renderGrid(`${label} ${singular}`, sectionLogs, status === 'library');
+  };
+
+  const renderAllType = (type: string) => {
     const meta = TYPE_META[type];
-    const sorted = [...typeLogs].sort((a, b) => (a.media_item?.title || '').localeCompare(b.media_item?.title || '', 'pt-BR', { sensitivity: 'base', numeric: true }));
-    return (
-      <section>
-        <SectionHeader title={`Todos · ${meta?.label}`} count={typeLogs.length} />
-        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
-          {sorted.slice(0, 12).map(log => <YgpCard key={log.id} log={log} accentColor={accentColor} />)}
-        </div>
-      </section>
-    );
-  });
+    const typeLogs = logs.filter(l => l.media_item.media_type === type);
+    if (typeLogs.length === 0) return null;
+    return renderGrid(`Todos ${meta?.label}`, typeLogs, true);
+  };
 
   const renderCustomListsAll = () => ['game', 'movie', 'series', 'book'].map(type => {
     const meta = TYPE_META[type];
@@ -628,20 +629,19 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
     );
   });
 
-  const PROFILE_SECTIONS = [
-    { id: 'favorite_games', label: 'Favoritos' },
-    { id: 'recent_games', label: 'Atividade Recente' },
-    { id: 'reviews', label: 'Reviews' },
-    { id: 'posts', label: 'Posts' },
-    { id: 'top_5', label: 'Top 5' },
-    { id: 'recent', label: 'Recentes' },
-    { id: 'in_progress', label: 'Em Progresso' },
-    { id: 'completed', label: 'Finalizados' },
-    { id: 'wishlist', label: 'Lista de Desejos' },
-    { id: 'library', label: 'Biblioteca' },
-    { id: 'dropped', label: 'Abandonados' },
-    { id: 'all_items', label: 'Todos' },
-    { id: 'custom_lists', label: 'Listas Personalizadas' },
+  const PROFILE_SECTIONS: Array<{ id: string; label: string; icon?: React.ReactNode; group?: string }> = [
+    { id: 'favorite_games', label: 'Favoritos', icon: <Heart className="h-3.5 w-3.5" />, group: 'Principal' },
+    { id: 'recent_games', label: 'Atividade Recente', icon: <Clock className="h-3.5 w-3.5" />, group: 'Principal' },
+    { id: 'reviews', label: 'Reviews', icon: <Star className="h-3.5 w-3.5" />, group: 'Principal' },
+    { id: 'posts', label: 'Posts', icon: <MessageCircle className="h-3.5 w-3.5" />, group: 'Principal' },
+    { id: 'top_5', label: 'Top 5', icon: <Trophy className="h-3.5 w-3.5" />, group: 'Principal' },
+    { id: 'recent', label: 'Recentes', icon: <History className="h-3.5 w-3.5" />, group: 'Principal' },
+    { id: 'general_all', label: 'Geral (todos os logs)', icon: <Layers className="h-3.5 w-3.5" />, group: 'Principal' },
+    { id: 'custom_lists', label: 'Listas Personalizadas', icon: <Menu className="h-3.5 w-3.5" />, group: 'Principal' },
+    ...ALL_MEDIA_TYPES.map(type => ({ id: `all_${type}`, label: `Todos ${TYPE_META[type]?.label}`, icon: mediaTypeIcon(type), group: 'Todos por mídia' })),
+    ...STATUS_GROUP_DEFS.flatMap(s =>
+      ALL_MEDIA_TYPES.map(type => ({ id: `${s.status}_${type}`, label: `${s.label} ${TYPE_META[type]?.singular}`, icon: mediaTypeIcon(type), group: s.label })),
+    ),
   ];
 
   const handleSaveLayout = async (newSections: { id: string; visible: boolean }[]) => {
@@ -662,14 +662,18 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
     posts: renderPosts,
     top_5: renderTop5All,
     recent: renderRecentAll,
-    in_progress: () => renderStatusAll('in_progress', 'Em Progresso'),
-    completed: () => renderStatusAll('completed', 'Finalizados'),
-    wishlist: () => renderStatusAll('wishlist', 'Lista de Desejos'),
-    library: () => renderStatusAll('library', 'Biblioteca', true),
-    dropped: () => renderStatusAll('dropped', 'Abandonados'),
-    all_items: renderAllItemsAll,
+    general_all: () => renderGrid('Geral', logs, true),
     custom_lists: renderCustomListsAll,
   };
+
+  for (const type of ALL_MEDIA_TYPES) {
+    sectionRenderers[`all_${type}`] = () => renderAllType(type);
+  }
+  for (const s of STATUS_GROUP_DEFS) {
+    for (const type of ALL_MEDIA_TYPES) {
+      sectionRenderers[`${s.status}_${type}`] = () => renderStatusType(s.status, type, s.label);
+    }
+  }
 
   const viewRenderers: Record<string, () => React.ReactNode> = {
     reviews: () => (
