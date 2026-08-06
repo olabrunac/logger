@@ -48,3 +48,21 @@ export function getLogUrl(item: MediaItem): string {
 export function getMediaUrl(item: MediaItem): string {
   return `/media/${item.media_type}/${getApiId(item)}`;
 }
+
+export function parseServerDate(dateStr: string | number | null | undefined): Date {
+  if (!dateStr) return new Date(0);
+  if (typeof dateStr === 'number') return new Date(dateStr);
+  const str = /(?:Z|[+-]\d{2}:\d{2})$/i.test(dateStr) ? dateStr : dateStr + 'Z';
+  return new Date(str);
+}
+
+export function timeAgo(dateStr: string | number | null | undefined): string {
+  const diff = Date.now() - parseServerDate(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'agora';
+  if (mins < 60) return `${mins}m`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h`;
+  const days = Math.floor(hours / 24);
+  return `${days}d`;
+}
