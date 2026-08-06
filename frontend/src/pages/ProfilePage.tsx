@@ -538,9 +538,9 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
             );
           })}
         </div>
-        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 lg:hidden">
+        <div className="scrollbar-hide -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 lg:hidden">
           {typeTop.map((item, index) => (
-            <div key={item.id} className="min-w-0">
+            <div key={item.id} className="w-[28%] shrink-0">
               {item.media_item ? (
                 <YgpCard log={{ id: item.id, media_item: item.media_item }} rank={`#${index + 1}`} />
               ) : (
