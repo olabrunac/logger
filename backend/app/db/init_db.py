@@ -34,6 +34,7 @@ def init_db() -> None:
     _migrate('ALTER TABLE "user" ADD COLUMN trophy_showcase TEXT DEFAULT \'[]\'')
     _migrate('ALTER TABLE "user" ADD COLUMN birth_date DATE')
     _migrate('ALTER TABLE "user" ADD COLUMN birth_date_updated_at TIMESTAMP')
+    _migrate('ALTER TABLE "user" ADD COLUMN banner_position VARCHAR')
 
     # Badge de primeiro log removida do sistema de badges
     _migrate("DELETE FROM user_badge WHERE badge_key = 'first_log'")
