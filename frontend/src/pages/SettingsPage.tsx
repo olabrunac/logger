@@ -283,8 +283,8 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
         const w = img.naturalWidth;
         const h = img.naturalHeight;
         if (uploadType === 'banner') {
-          // Banner sem restrição de largura/proporção — a imagem é esticada para
-          // preencher o enquadramento (1400x300) no ImageFramingModal.
+          // Banner sem restrição de largura/proporção — o usuário escolhe o recorte
+          // (cover + pan/zoom/rotação) no ImageFramingModal.
         } else {
           if (w < 256 || h < 256) {
             resolve({ valid: false, error: 'Avatar muito pequeno. Use pelo menos 256x256px.' });
@@ -1127,7 +1127,6 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
         outputWidth={framingTarget === 'avatar' ? 512 : 1400}
         outputHeight={framingTarget === 'avatar' ? 512 : 300}
         title={framingTarget === 'avatar' ? 'Ajustar avatar' : 'Ajustar banner'}
-        stretch={framingTarget === 'banner'}
         onCancel={() => { if (framingUrl) URL.revokeObjectURL(framingUrl); setFramingUrl(null); setFramingTarget(null); }}
         onConfirm={handleFramingConfirm}
       />

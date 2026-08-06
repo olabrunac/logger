@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, RotateCcw } from 'lucide-react';
+import { X, RotateCcw, RotateCw } from 'lucide-react';
 
 interface ImageFramingModalProps {
   open: boolean;
@@ -9,12 +9,13 @@ interface ImageFramingModalProps {
   outputWidth: number;
   outputHeight: number;
   title: string;
-  stretch?: boolean;
   onCancel: () => void;
   onConfirm: (blob: Blob) => void;
 }
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
+
+const ROTATE_RAD = (deg: number) => (deg * Math.PI) / 180;
 
 function drawCrop(
   ctx: CanvasRenderingContext2D,
@@ -23,32 +24,34 @@ function drawCrop(
   img: HTMLImageElement,
   zoom: number,
   pan: { x: number; y: number },
-  stretch = false,
+  rotation: number,
 ) {
-  let drawW: number;
-  let drawH: number;
-  if (stretch) {
-    drawW = W * zoom;
-    drawH = H * zoom;
-  } else {
-    const base = Math.max(W / img.naturalWidth, H / img.naturalHeight) * zoom;
-    drawW = img.naturalWidth * base;
-    drawH = img.naturalHeight * base;
-  }
-  const maxPanX = Math.max(0, (drawW - W) / (2 * W));
-  const maxPanY = Math.max(0, (drawH - H) / (2 * H));
+  const rad = ROTATE_RAD(rotation);
+  const rotated = rotation % 180 !== 0;
+  const base = Math.max((rotated ? H : W) / img.naturalWidth, (rotated ? W : H) / img.naturalHeight) * zoom;
+  const drawW = img.naturalWidth * base;
+  const drawH = img.naturalHeight * base;
+  const screenW = rotated ? drawH : drawW;
+  const screenH = rotated ? drawW : drawH;
+  const maxPanX = Math.max(0, (screenW - W) / (2 * W));
+  const maxPanY = Math.max(0, (screenH - H) / (2 * H));
   const px = clamp(pan.x, -maxPanX, maxPanX);
   const py = clamp(pan.y, -maxPanY, maxPanY);
   const cx = W / 2 + px * W;
   const cy = H / 2 + py * H;
   ctx.clearRect(0, 0, W, H);
-  ctx.drawImage(img, cx - drawW / 2, cy - drawH / 2, drawW, drawH);
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(rad);
+  ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
+  ctx.restore();
 }
 
-export function ImageFramingModal({ open, sourceUrl, aspectRatio, outputWidth, outputHeight, title, stretch = false, onCancel, onConfirm }: ImageFramingModalProps) {
+export function ImageFramingModal({ open, sourceUrl, aspectRatio, outputWidth, outputHeight, title, onCancel, onConfirm }: ImageFramingModalProps) {
   const [img, setImg] = useState<HTMLImageElement | null>(null);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [rotation, setRotation] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -60,6 +63,7 @@ export function ImageFramingModal({ open, sourceUrl, aspectRatio, outputWidth, o
     setLoading(true);
     setZoom(1);
     setPan({ x: 0, y: 0 });
+    setRotation(0);
     const image = new Image();
     image.onload = () => {
       setImg(image);
@@ -78,8 +82,8 @@ export function ImageFramingModal({ open, sourceUrl, aspectRatio, outputWidth, o
     if (!canvas || !img) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    drawCrop(ctx, outputWidth, outputHeight, img, zoom, pan, stretch);
-  }, [img, zoom, pan, outputWidth, outputHeight, stretch]);
+    drawCrop(ctx, outputWidth, outputHeight, img, zoom, pan, rotation);
+  }, [img, zoom, pan, rotation, outputWidth, outputHeight]);
 
   useEffect(() => {
     if (!open) return;
@@ -96,18 +100,14 @@ export function ImageFramingModal({ open, sourceUrl, aspectRatio, outputWidth, o
 
   const clampPanFor = (next: { x: number; y: number }) => {
     if (!img) return next;
-    let drawW: number;
-    let drawH: number;
-    if (stretch) {
-      drawW = outputWidth * zoom;
-      drawH = outputHeight * zoom;
-    } else {
-      const base = Math.max(outputWidth / img.naturalWidth, outputHeight / img.naturalHeight) * zoom;
-      drawW = img.naturalWidth * base;
-      drawH = img.naturalHeight * base;
-    }
-    const maxPanX = Math.max(0, (drawW - outputWidth) / (2 * outputWidth));
-    const maxPanY = Math.max(0, (drawH - outputHeight) / (2 * outputHeight));
+    const rotated = rotation % 180 !== 0;
+    const base = Math.max((rotated ? outputHeight : outputWidth) / img.naturalWidth, (rotated ? outputWidth : outputHeight) / img.naturalHeight) * zoom;
+    const drawW = img.naturalWidth * base;
+    const drawH = img.naturalHeight * base;
+    const screenW = rotated ? drawH : drawW;
+    const screenH = rotated ? drawW : drawH;
+    const maxPanX = Math.max(0, (screenW - outputWidth) / (2 * outputWidth));
+    const maxPanY = Math.max(0, (screenH - outputHeight) / (2 * outputHeight));
     return { x: clamp(next.x, -maxPanX, maxPanX), y: clamp(next.y, -maxPanY, maxPanY) };
   };
 
@@ -130,6 +130,20 @@ export function ImageFramingModal({ open, sourceUrl, aspectRatio, outputWidth, o
     draggingRef.current = false;
   };
 
+  const rotateImage = () => {
+    setRotation(r => {
+      const next = (r + 90) % 360;
+      setPan(p => clampPanFor(p));
+      return next;
+    });
+  };
+
+  const resetAll = () => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+    setRotation(0);
+  };
+
   const handleConfirm = async () => {
     if (!img) return;
     setSaving(true);
@@ -139,7 +153,7 @@ export function ImageFramingModal({ open, sourceUrl, aspectRatio, outputWidth, o
       canvas.height = outputHeight;
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
-      drawCrop(ctx, outputWidth, outputHeight, img, zoom, pan, stretch);
+      drawCrop(ctx, outputWidth, outputHeight, img, zoom, pan, rotation);
       canvas.toBlob(blob => {
         setSaving(false);
         if (blob) onConfirm(blob);
@@ -160,7 +174,7 @@ export function ImageFramingModal({ open, sourceUrl, aspectRatio, outputWidth, o
         </div>
 
         <div className="mb-3 text-xs text-white/50">
-          Arraste para mover · role para dar zoom
+          Arraste para mover · role para dar zoom · gire para ajustar
         </div>
 
         <div className="rounded-xl overflow-hidden relative" style={{ background: '#000' }}>
@@ -195,7 +209,15 @@ export function ImageFramingModal({ open, sourceUrl, aspectRatio, outputWidth, o
           />
           <button
             type="button"
-            onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }}
+            onClick={rotateImage}
+            className="p-2 rounded-lg bg-white/10 text-white/70 hover:text-white hover:bg-white/20 transition-colors"
+            title="Girar 90°"
+          >
+            <RotateCw size={16} />
+          </button>
+          <button
+            type="button"
+            onClick={resetAll}
             className="p-2 rounded-lg bg-white/10 text-white/70 hover:text-white hover:bg-white/20 transition-colors"
             title="Resetar"
           >
