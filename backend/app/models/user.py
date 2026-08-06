@@ -26,6 +26,12 @@ class User(Base):
     bio = Column(String, nullable=True)
     trophy_showcase = Column(Text, default='[]')
 
+    profile_public = Column(Boolean, default=True, nullable=False)
+    show_game_library = Column(Boolean, default=True, nullable=False)
+    show_achievements = Column(Boolean, default=True, nullable=False)
+    show_hours = Column(Boolean, default=False, nullable=False)
+    show_stats = Column(Boolean, default=True, nullable=False)
+
     password_reset_token = Column(String, nullable=True)
     password_reset_expires = Column(DateTime, nullable=True)
     

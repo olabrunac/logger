@@ -112,20 +112,33 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
     }
   };
 
+  const viewLogs = useMemo(() => {
+    if (isOwnProfile) return logs;
+    const showHours = profileUser?.show_hours ?? false;
+    const showAch = profileUser?.show_achievements ?? false;
+    if (showHours && showAch) return logs;
+    return logs.map(l => ({
+      ...l,
+      hours_spent: showHours ? l.hours_spent : 0,
+      unlocked_achievements: showAch ? l.unlocked_achievements : undefined,
+      total_achievements: showAch ? l.total_achievements : undefined,
+    }));
+  }, [logs, isOwnProfile, profileUser?.show_hours, profileUser?.show_achievements]);
+
   const recentLogs = useMemo(() => {
-    return [...logs].sort((a, b) => b.id - a.id).slice(0, 12);
-  }, [logs]);
+    return [...viewLogs].sort((a, b) => b.id - a.id).slice(0, 12);
+  }, [viewLogs]);
 
   const reviewEntries = useMemo(() => {
     const entries: { review: LogReview; log: LogEntry }[] = [];
-    logs.forEach(l => {
+    viewLogs.forEach(l => {
       const reviews = reviewMap.get(l.id);
       if (reviews) {
         reviews.forEach(r => entries.push({ review: r, log: l }));
       }
     });
     return entries.sort((a, b) => b.review.created_at.localeCompare(a.review.created_at));
-  }, [logs, reviewMap]);
+  }, [viewLogs, reviewMap]);
 
   const accentColor = profileUser?.accent_color || '#ff6b35';
 
@@ -209,6 +222,22 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
           <h3 className="text-white mb-2">{error || 'Perfil não encontrado'}</h3>
           <p className="text-sm mb-4">O usuário "{displayUsername}" não existe.</p>
           <Link to="/" className="mdf-btn-primary">Voltar ao início</Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isOwnProfile && profileUser.profile_public === false) {
+    return (
+      <div className="space-y-10">
+        <div className="mdf-card p-8 text-center text-white/50">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+          <h3 className="text-white mb-2">Este perfil é privado</h3>
+          <p className="text-sm">@{profileUser.username} não tornou o perfil público.</p>
         </div>
       </div>
     );
@@ -498,7 +527,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
 
   const perTypeBlocks = (renderer: (type: string, typeLogs: LogEntry[]) => React.ReactNode) =>
     ['game', 'movie', 'series', 'book'].map(type => {
-      const typeLogs = logs.filter(l => l.media_item.media_type === type);
+      const typeLogs = viewLogs.filter(l => l.media_item.media_type === type);
       if (typeLogs.length === 0) return null;
       return <div key={type}>{renderer(type, typeLogs)}</div>;
     });
@@ -571,20 +600,20 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
   };
 
   const renderRecentAll = () => {
-    const sorted = [...logs].sort((a, b) => b.id - a.id);
+    const sorted = [...viewLogs].sort((a, b) => b.id - a.id);
     return renderGrid('Recentes', sorted, false);
   };
 
   const renderStatusType = (status: string, type: string, label: string) => {
     const singular = TYPE_META[type]?.singular || type;
-    const sectionLogs = logs.filter(l => l.media_item.media_type === type && l.status === status);
+    const sectionLogs = viewLogs.filter(l => l.media_item.media_type === type && l.status === status);
     if (sectionLogs.length === 0) return null;
     return renderGrid(`${label} ${singular}`, sectionLogs, status === 'library');
   };
 
   const renderAllType = (type: string) => {
     const meta = TYPE_META[type];
-    const typeLogs = logs.filter(l => l.media_item.media_type === type);
+    const typeLogs = viewLogs.filter(l => l.media_item.media_type === type);
     if (typeLogs.length === 0) return null;
     return renderGrid(`Todos ${meta?.label}`, typeLogs, true);
   };
@@ -662,7 +691,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
     posts: renderPosts,
     top_5: renderTop5All,
     recent: renderRecentAll,
-    general_all: () => renderGrid('Geral', logs, true),
+    general_all: () => renderGrid('Geral', viewLogs, true),
     custom_lists: renderCustomListsAll,
   };
 
@@ -671,6 +700,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
   }
   for (const s of STATUS_GROUP_DEFS) {
     for (const type of ALL_MEDIA_TYPES) {
+      if (s.status === 'library' && !isOwnProfile && !(profileUser?.show_game_library ?? true)) continue;
       sectionRenderers[`${s.status}_${type}`] = () => renderStatusType(s.status, type, s.label);
     }
   }
@@ -811,7 +841,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
           <ProfileHero
           profileUser={profileUser}
           currentUser={currentUser}
-          logs={logs}
+          logs={viewLogs}
           isOwnProfile={isOwnProfile}
           isFollowing={isFollowing}
           followLoading={followLoading}
@@ -846,7 +876,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
           )}
         </>
       ) : isMediaTypeView ? (
-        <MediaTypeProfilePage key={view} currentUser={currentUser} mediaType={view} profileUser={profileUser} logs={logs} customLists={customLists} topListItems={topListItems} />
+        <MediaTypeProfilePage key={view} currentUser={currentUser} mediaType={view} profileUser={profileUser} logs={viewLogs} customLists={customLists} topListItems={topListItems} />
       ) : (
         <div key={view}>
           {viewRenderers[view]?.()}

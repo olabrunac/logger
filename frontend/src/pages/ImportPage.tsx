@@ -325,7 +325,7 @@ const ImportPage = ({ user }: ImportPageProps) => {
   const tabBtn = (key: Tab, label: string, icon: string) => (
     <button
       onClick={() => toggleTab(key)}
-      className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all"
+      className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap shrink-0"
       style={tab === key ? {
         background: 'var(--accent)',
         color: '#000',
@@ -370,7 +370,7 @@ const ImportPage = ({ user }: ImportPageProps) => {
               <p className="text-xs" style={{ color: 'var(--text-dim)' }}>
                 Ex: <code>76561197960434622</code> ou <code>steamcommunity.com/id/seuperfil</code>
               </p>
-              <div className="flex gap-2">
+      <div className="flex gap-2 overflow-x-auto scrollbar-hide">
                 <input
                   type="text"
                   value={steamId}
