@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { getNotifications, markNotificationRead, markAllNotificationsRead } from '../services/api';
 import type { AppNotification } from '../types';
+import { parseServerDate } from '../utils';
 
 const ICON_MAP: Record<string, ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
   Wrench, Film, Tv, Gamepad2, BookOpen, Trophy, Star, Flame, Users, UserPlus,
@@ -59,7 +60,7 @@ const TYPE_CONFIG: Record<string, {
 };
 
 const timeAgo = (dateStr: string) => {
-  const diff = Date.now() - new Date(dateStr).getTime();
+  const diff = Date.now() - parseServerDate(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return 'agora';
   if (mins < 60) return `${mins}m`;
