@@ -143,7 +143,7 @@ const RightSidebar = ({ user, isCollapsed, onToggleCollapse }: RightSidebarProps
       case 'badges':
         return (
           <>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-2">Conquistas e Medalhas</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-2">Medalhas</div>
             <BadgesSection userId={user.id} />
           </>
         );
