@@ -325,8 +325,10 @@ const ListsPage = ({ currentUser }: ListsPageProps) => {
           ) : (
             <>
               <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
-                {visibleItems.map(l => (
-                  <YgpCard key={l.id} log={l} />
+                {visibleItems.map((l, i) => (
+                  <div key={l.id} className={i >= 7 ? 'hidden sm:block' : undefined}>
+                    <YgpCard log={l} />
+                  </div>
                 ))}
               </div>
             </>
@@ -357,21 +359,23 @@ const ListsPage = ({ currentUser }: ListsPageProps) => {
           ) : (
             <>
               <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
-                {visibleWishlist.map(l => (
-                  <YgpCard key={l.id} log={l} actions={
-                    isOwnProfile ? (
-                    <>
-                      <Link to={`/new-log?edit=${l.id}`} onClick={(e) => e.stopPropagation()}
-                        className="w-6 h-6 rounded flex items-center justify-center bg-black/70 text-white/70 hover:text-white backdrop-blur-sm transition-colors" title="Editar">
-                        <Pencil size={12} />
-                      </Link>
-                      <button onClick={(e) => { e.stopPropagation(); deleteWishlistItem(l.id); }}
-                        className="w-6 h-6 rounded flex items-center justify-center bg-black/70 text-white/70 hover:text-red-400 backdrop-blur-sm transition-colors" title="Remover">
-                        <Trash2 size={12} />
-                      </button>
-                    </>
-                    ) : undefined
-                  } />
+                {visibleWishlist.map((l, i) => (
+                  <div key={l.id} className={i >= 7 ? 'hidden sm:block' : undefined}>
+                    <YgpCard log={l} actions={
+                      isOwnProfile ? (
+                      <>
+                        <Link to={`/new-log?edit=${l.id}`} onClick={(e) => e.stopPropagation()}
+                          className="w-6 h-6 rounded flex items-center justify-center bg-black/70 text-white/70 hover:text-white backdrop-blur-sm transition-colors" title="Editar">
+                          <Pencil size={12} />
+                        </Link>
+                        <button onClick={(e) => { e.stopPropagation(); deleteWishlistItem(l.id); }}
+                          className="w-6 h-6 rounded flex items-center justify-center bg-black/70 text-white/70 hover:text-red-400 backdrop-blur-sm transition-colors" title="Remover">
+                          <Trash2 size={12} />
+                        </button>
+                      </>
+                      ) : undefined
+                    } />
+                  </div>
                 ))}
               </div>
             </>
@@ -448,10 +452,11 @@ const ListsPage = ({ currentUser }: ListsPageProps) => {
                     ) : (
                       <>
                         <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
-                          {(expandedSections[`list-${cl.id}`] === true ? filteredItems : filteredItems.slice(0, 12)).map(item => {
+                          {(expandedSections[`list-${cl.id}`] === true ? filteredItems : filteredItems.slice(0, 12)).map((item, i) => {
                           if (!item.media_item) return null;
                           return (
-                            <YgpCard key={item.id} log={{ id: item.id, media_item: item.media_item }} actions={
+                            <div key={item.id} className={i >= 7 ? 'hidden sm:block' : undefined}>
+                            <YgpCard log={{ id: item.id, media_item: item.media_item }} actions={
                               isOwnProfile ? (
                               <button onClick={(e) => { e.stopPropagation(); handleRemoveItem(cl.id, item.id); }}
                                 className="w-6 h-6 rounded flex items-center justify-center bg-black/70 text-white/70 hover:text-red-400 backdrop-blur-sm transition-colors" title="Remover da lista">
@@ -459,6 +464,7 @@ const ListsPage = ({ currentUser }: ListsPageProps) => {
                               </button>
                               ) : undefined
                             } />
+                            </div>
                           );
                         })}
                         </div>

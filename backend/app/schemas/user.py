@@ -27,6 +27,11 @@ class UserUpdate(BaseModel):
     bio: Optional[str] = None
     trophy_showcase: Optional[str] = None
     birth_date: Optional[date] = None
+    profile_public: Optional[bool] = None
+    show_game_library: Optional[bool] = None
+    show_achievements: Optional[bool] = None
+    show_hours: Optional[bool] = None
+    show_stats: Optional[bool] = None
 
     @field_validator('bio')
     @classmethod
@@ -76,6 +81,11 @@ class User(UserBase):
     trophy_showcase: Optional[str] = '[]'
     birth_date: Optional[date] = None
     birth_date_updated_at: Optional[datetime] = None
+    profile_public: Optional[bool] = True
+    show_game_library: Optional[bool] = True
+    show_achievements: Optional[bool] = True
+    show_hours: Optional[bool] = False
+    show_stats: Optional[bool] = True
     followers_count: int = 0
     following_count: int = 0
 
