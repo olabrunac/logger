@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Heart } from 'lucide-react';
+import { Heart, Star } from 'lucide-react';
 import type { CSSProperties, ReactNode } from 'react';
 import type { LogEntry, MediaItem } from '../../types';
 import { TYPE_META, STATUS_COLORS, getStars } from '../../constants/designSystem';
@@ -91,7 +91,7 @@ const YgpCard = ({ log, accentColor, showStatus = true, actions, rank, className
             {achievements ? `${achievements.unlocked}/${achievements.total}` : `${episodes!.watched}/${episodes!.total}`}
           </div>
         )}
-        <div className="flex items-center gap-0.5">
+        <div className="hidden sm:flex items-center gap-0.5">
           {(() => {
             const stars = getStars(log.rating);
             const list = stars.length > 0 ? stars : ['empty', 'empty', 'empty', 'empty', 'empty'];
@@ -104,6 +104,12 @@ const YgpCard = ({ log, accentColor, showStatus = true, actions, rank, className
             ));
           })()}
         </div>
+        {log.rating != null && (
+          <div className="flex sm:hidden items-center gap-0.5 text-[10px] font-semibold leading-none text-white/85">
+            <Star size={9} fill="var(--mdf-yellow)" stroke="var(--mdf-yellow)" />
+            {new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 1 }).format(log.rating)}
+          </div>
+        )}
       </div>
 
       {hasHours && (
