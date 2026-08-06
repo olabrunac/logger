@@ -89,9 +89,9 @@ const LogCard = ({ entry, currentUser, onReply, onLike }: LogCardProps) => {
 
   return (
     <div className="mdf-card rounded-xl overflow-hidden">
-      <Link to={getLogUrl(entry.media_item)} className="block group hover:bg-white/[0.03] transition-colors p-4">
+      <div className="p-4">
         <div className="flex gap-4">
-          <div className="flex-shrink-0">
+          <Link to={`/profile/${entry.user.username}`} className="flex-shrink-0">
             <div className="w-10 h-10 rounded-full overflow-hidden border-2" style={{ borderColor: 'var(--accent)' }}>
               {avatarUrl ? (
                 <img src={avatarUrl} alt={entry.user.username} className="w-full h-full object-cover" />
@@ -101,15 +101,16 @@ const LogCard = ({ entry, currentUser, onReply, onLike }: LogCardProps) => {
                 </div>
               )}
             </div>
-          </div>
+          </Link>
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 text-sm mb-2">
-              <span className="font-bold text-white">{entry.user.username}</span>
+              <Link to={`/profile/${entry.user.username}`} className="font-bold text-white hover:underline">{entry.user.username}</Link>
               <span className="text-white/40">{statusLabel || 'registrou'}</span>
               <span className="text-white/40">{meta.emoji}</span>
             </div>
 
+            <Link to={getLogUrl(entry.media_item)} className="block group rounded-lg p-2 -m-2 hover:bg-white/[0.03] transition-colors">
             <div className="flex gap-3 items-start">
               {coverUrl ? (
                 <div className="w-14 h-20 rounded-lg overflow-hidden flex-shrink-0" style={{ borderBottom: '3px solid ' + meta.color }}>
@@ -162,6 +163,7 @@ const LogCard = ({ entry, currentUser, onReply, onLike }: LogCardProps) => {
                 )}
               </div>
             </div>
+            </Link>
 
             <div className="flex items-center gap-3 mt-2 text-[10px] text-white/30">
               {entry.log_date && (
@@ -178,7 +180,7 @@ const LogCard = ({ entry, currentUser, onReply, onLike }: LogCardProps) => {
             </div>
           </div>
         </div>
-      </Link>
+      </div>
 
       <div className="px-4 py-2 flex items-center gap-4 border-t" style={{ borderColor: 'var(--border)' }}>
         <button onClick={toggleReplies} className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition-colors">
