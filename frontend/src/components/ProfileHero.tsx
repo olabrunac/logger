@@ -159,7 +159,7 @@ const tabs = [
             </div>
 
             {(bio || showLocation) && (
-              <div className="flex items-start gap-3 mt-3 max-w-2xl">
+              <div className="flex items-center gap-3 mt-3 max-w-2xl">
                 {showLocation && (
                   <span className="flex items-center gap-1.5 text-sm text-white/50 shrink-0">
                     {countryCode && (

@@ -117,7 +117,20 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
     })();
   }, [username, rawMediaType]);
 
-  const filteredLogs = useMemo(() => logs.filter(l => l.media_item.media_type === mediaType), [logs, mediaType]);
+  const viewLogs = useMemo(() => {
+    if (isOwnProfile) return logs;
+    const showHours = profileUser?.show_hours ?? false;
+    const showAch = profileUser?.show_achievements ?? false;
+    if (showHours && showAch) return logs;
+    return logs.map(l => ({
+      ...l,
+      hours_spent: showHours ? l.hours_spent : 0,
+      unlocked_achievements: showAch ? l.unlocked_achievements : undefined,
+      total_achievements: showAch ? l.total_achievements : undefined,
+    }));
+  }, [logs, isOwnProfile, profileUser?.show_hours, profileUser?.show_achievements]);
+
+  const filteredLogs = useMemo(() => viewLogs.filter(l => l.media_item.media_type === mediaType), [viewLogs, mediaType]);
   const reviewEntries = useMemo(() => {
     const entries: { review: LogReview; log: LogEntry }[] = [];
     filteredLogs.forEach(l => {
@@ -294,6 +307,22 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
           <h3 className="text-white mb-2">{error || 'Perfil nao encontrado'}</h3>
           <p className="text-sm mb-4">O usuario "{displayUsername}" nao existe.</p>
           <Link to="/" className="mdf-btn-primary">Voltar ao inicio</Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isOwnProfile && profileUser.profile_public === false) {
+    return (
+      <div className="space-y-10">
+        <div className="mdf-card p-8 text-center text-white/50">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+          <h3 className="text-white mb-2">Este perfil é privado</h3>
+          <p className="text-sm">@{profileUser.username} não tornou o perfil público.</p>
         </div>
       </div>
     );
@@ -657,7 +686,10 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
     in_progress: () => renderStatusSection('in_progress'),
     completed: () => renderStatusSection('completed'),
     wishlist: () => renderStatusSection('wishlist'),
-    library: () => renderStatusSection('library'),
+    library: () => {
+      if (!isOwnProfile && !(profileUser?.show_game_library ?? true)) return null;
+      return renderStatusSection('library');
+    },
     dropped: () => renderStatusSection('dropped'),
     reviews: renderReviews,
     all_items: renderAllItems,
@@ -670,7 +702,7 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
         <ProfileHero
           profileUser={profileUser}
           currentUser={currentUser}
-          logs={logs}
+          logs={viewLogs}
           isOwnProfile={isOwnProfile}
           isFollowing={false}
           followLoading={false}
