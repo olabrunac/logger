@@ -509,7 +509,7 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
     return (
       <section>
         <SectionHeader title="Reviews" linkTo={`/profile/${profileUser?.username}/reviews`} count={reviewEntries.length} />
-        <div className="scrollbar-hide -mx-5 flex gap-3 overflow-x-auto px-5 lg:hidden">
+        <div className="scrollbar-hide -mx-4 flex gap-3 overflow-x-auto px-4 lg:hidden">
           {reviewEntries.slice(0, 10).map(e => {
             const m = TYPE_META[e.log.media_item.media_type];
             return (
@@ -665,19 +665,21 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
   };
 
   return (
-    <div className="space-y-10">
-      <ProfileHero
-        profileUser={profileUser}
-        currentUser={currentUser}
-        logs={logs}
-        isOwnProfile={isOwnProfile}
-        isFollowing={false}
-        followLoading={false}
-        onFollowToggle={() => {}}
-        accentColor={accentColor}
-        activeMediaType={mediaType}
-        onEditLayout={isOwnProfile ? () => setEditingLayout(true) : undefined}
-      />
+    <div className="flex flex-col gap-4 lg:gap-10">
+      <div className="-mx-4 lg:mx-0">
+        <ProfileHero
+          profileUser={profileUser}
+          currentUser={currentUser}
+          logs={logs}
+          isOwnProfile={isOwnProfile}
+          isFollowing={false}
+          followLoading={false}
+          onFollowToggle={() => {}}
+          accentColor={accentColor}
+          activeMediaType={mediaType}
+          onEditLayout={isOwnProfile ? () => setEditingLayout(true) : undefined}
+        />
+      </div>
 
       {effectiveSections.map(section => {
         if (!section.visible) return null;

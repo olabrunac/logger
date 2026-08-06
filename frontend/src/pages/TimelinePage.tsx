@@ -179,7 +179,7 @@ const TimelinePage = ({ user }: TimelinePageProps) => {
 
   return (
     <div className="space-y-6 max-w-[1844px] mx-auto">
-      <div>
+      <div className="hidden lg:block">
         <h1 className="font-display text-3xl font-black tracking-tight">Timeline</h1>
         <div className="text-white/50 text-sm mt-1">Atividades dos usuarios que voce segue</div>
       </div>
