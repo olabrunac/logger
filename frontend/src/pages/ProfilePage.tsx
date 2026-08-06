@@ -528,9 +528,9 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
             );
           })}
         </div>
-        <div className="flex items-start gap-1.5 lg:hidden">
+        <div className="grid grid-cols-5 gap-1.5 lg:hidden">
           {typeTop.map((item, index) => (
-            <div key={item.id} className="min-w-0 shrink-0" style={{ width: 'calc(20% - 4.8px)' }}>
+            <div key={item.id} className="min-w-0">
               {item.media_item ? (
                 <YgpCard log={{ id: item.id, media_item: item.media_item }} rank={`#${index + 1}`} />
               ) : (
