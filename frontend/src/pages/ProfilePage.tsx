@@ -217,27 +217,11 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
             ))}
           </div>
           <div className="scrollbar-hide -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 lg:hidden">
-            {recentLogs.slice(0, 12).map(log => {
-              const meta = TYPE_META[log.media_item.media_type];
-              return (
-                <Link key={log.id} to={getLogUrl(log.media_item)} className="w-[28%] shrink-0">
-                  {log.media_item.cover_image_url ? (
-                    <img src={log.media_item.cover_image_url} alt={log.media_item.title} className="w-full rounded-md object-cover" style={{ aspectRatio: '3/4', border: '1px solid var(--border)', background: 'var(--bg-card)' }} loading="lazy" />
-                  ) : (
-                    <div className="w-full rounded-md flex items-center justify-center text-2xl" style={{ aspectRatio: '3/4', background: (meta?.color || '#666') + '22', border: '1px solid var(--border)' }}>{meta?.emoji || '📄'}</div>
-                  )}
-                  <div className="mt-1.5 flex items-center justify-between gap-2">
-                    {log.rating != null && log.rating > 0 ? (
-                      <span className="flex items-center gap-1 text-[11px] font-medium tabular-nums" style={{ color: accentColor }}>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="var(--mdf-yellow)" stroke="var(--mdf-yellow)" strokeWidth="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-                        {log.rating}
-                      </span>
-                    ) : <span />}
-                    <span className="text-[11px] tabular-nums text-white/30">{new Date(log.log_date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</span>
-                  </div>
-                </Link>
-              );
-            })}
+            {recentLogs.slice(0, 12).map(log => (
+              <div key={log.id} className="w-[28%] shrink-0">
+                <YgpCard log={log} accentColor={accentColor} />
+              </div>
+            ))}
           </div>
         </>
       )}
