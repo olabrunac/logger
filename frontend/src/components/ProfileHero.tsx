@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Settings2, Library, CheckCircle2, Star, Heart, Clock } from 'lucide-react';
 import type { User, LogEntry } from '../types';
-import { imageUrl } from '../utils';
+import { imageUrl, bannerPosition } from '../utils';
 
 const COUNTRY_NAMES: Record<string, string> = {
   BR: 'Brasil',
@@ -46,6 +46,8 @@ const ProfileHero = ({
   const bannerUrl = imageUrl(profileUser.banner_url);
   const avatarUrl = imageUrl(profileUser.avatar_url);
 
+  const bannerPos = bannerPosition(profileUser.banner_position);
+
   const displayName = profileUser.display_name || profileUser.username;
   const bio = profileUser.bio || '';
 
@@ -86,7 +88,7 @@ const tabs = [
         style={bannerUrl ? {
           backgroundImage: `url(${bannerUrl})`,
           backgroundSize: 'cover',
-          backgroundPosition: 'center',
+          backgroundPosition: bannerPos,
         } : {
           background: `linear-gradient(135deg, ${accentColor}22 0%, var(--bg-elevated) 50%, var(--bg) 100%)`,
         }}

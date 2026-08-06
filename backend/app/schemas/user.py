@@ -16,6 +16,7 @@ class UserCreate(UserBase):
 class UserUpdate(BaseModel):
     username: Optional[str] = None
     banner_url: Optional[str] = None
+    banner_position: Optional[str] = None
     avatar_url: Optional[str] = None
     accent_color: Optional[str] = None
     section_order: Optional[str] = None
@@ -63,6 +64,7 @@ class User(UserBase):
     id: int
     email: Optional[str] = None
     banner_url: Optional[str] = None
+    banner_position: Optional[str] = None
     avatar_url: Optional[str] = None
     accent_color: Optional[str] = "#ff6b35"
     section_order: Optional[str] = None
