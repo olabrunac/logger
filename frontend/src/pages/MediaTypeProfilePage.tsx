@@ -380,7 +380,6 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
                       <div className="w-full h-full flex items-center justify-center text-white/20 text-xs" style={{ background: meta.color + '11' }}>{meta.emoji}</div>
                     </div>
                   )}
-                  <div className="text-xs text-center font-medium truncate w-full mt-1.5 text-white/70">{media?.title || '...'}</div>
                 </div>
               </div>
             );
@@ -399,15 +398,14 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
                 {media ? (
                   <YgpCard log={findBestLogForMedia(item.media_item_id, filteredLogs) || { id: item.id || index, media_item: media }} rank={`#${index + 1}`} />
                 ) : (
-                  <div className="group relative flex flex-col overflow-hidden rounded-lg w-full" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderBottom: `3px solid ${meta.color}`, aspectRatio: '3/4' }}>
-                    <div className="w-full h-full flex items-center justify-center text-white/20 text-xs" style={{ background: meta.color + '11' }}>{meta.emoji}</div>
-                  </div>
-                )}
-                <div className="text-[10px] text-center font-medium truncate w-full text-white/60">{media?.title || '...'}</div>
-              </div>
-            );
-          })}
-        </div>
+                    <div className="group relative flex flex-col overflow-hidden rounded-lg w-full" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderBottom: `3px solid ${meta.color}`, aspectRatio: '3/4' }}>
+                      <div className="w-full h-full flex items-center justify-center text-white/20 text-xs" style={{ background: meta.color + '11' }}>{meta.emoji}</div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
 
         {editingTop5 && (
           <div className="mt-4 p-4 rounded-xl" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>

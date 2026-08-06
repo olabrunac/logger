@@ -33,11 +33,18 @@ const YgpCard = ({ log, accentColor, showStatus = true, actions, rank, className
   const isPlatinated = isGame && (log.status === 'platinated' || (achievements != null && achievements.unlocked === achievements.total));
 
   return (
-    <Link
-      to={getLogUrl(log.media_item)}
-      className={`group relative flex flex-col overflow-hidden rounded-lg transition-opacity hover:opacity-90 ${className ?? ''}`}
-      style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderBottom: `3px solid ${color}`, aspectRatio: '3/4', ...style }}
-    >
+    <div className="flex min-w-0 flex-col gap-1">
+      {rank && (
+        <div className="text-center text-[10px] font-bold tracking-wide leading-tight truncate" style={{ color: 'var(--accent)' }}>
+          {rank}
+        </div>
+      )}
+
+      <Link
+        to={getLogUrl(log.media_item)}
+        className={`group relative flex flex-col overflow-hidden rounded-lg transition-opacity hover:opacity-90 ${className ?? ''}`}
+        style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderBottom: `3px solid ${color}`, aspectRatio: '3/4', ...style }}
+      >
       {log.media_item.cover_image_url ? (
         <img
           src={log.media_item.cover_image_url}
@@ -79,11 +86,6 @@ const YgpCard = ({ log, accentColor, showStatus = true, actions, rank, className
       )}
 
       <div className="absolute bottom-0 left-0 flex flex-col items-start gap-1 p-2.5">
-        {rank && (
-          <div className="flex h-5 items-center rounded bg-black/50 px-1.5 text-[10px] font-bold text-white/80 tabular-nums backdrop-blur-sm">
-            {rank}
-          </div>
-        )}
         {(achievements || episodes) && (
           <div className="flex h-5 items-center rounded bg-black/50 px-1.5 text-[10px] text-white/80 tabular-nums backdrop-blur-sm">
             {achievements ? `${achievements.unlocked}/${achievements.total}` : `${episodes!.watched}/${episodes!.total}`}
@@ -115,7 +117,10 @@ const YgpCard = ({ log, accentColor, showStatus = true, actions, rank, className
           {actions}
         </div>
       )}
-    </Link>
+      </Link>
+
+      <div className="text-[10px] font-medium text-center text-white/70 leading-tight truncate w-full">{log.media_item.title}</div>
+    </div>
   );
 };
 
