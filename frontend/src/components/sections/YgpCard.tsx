@@ -33,7 +33,7 @@ const YgpCard = ({ log, accentColor, showStatus = true, actions, rank, className
   const isPlatinated = isGame && (log.status === 'platinated' || (achievements != null && achievements.unlocked === achievements.total));
 
   return (
-    <div className="flex min-w-0 flex-col gap-1">
+    <div className="flex min-w-0 w-full flex-col gap-1">
       {rank && (
         <div className="text-center text-[10px] font-bold tracking-wide leading-tight truncate" style={{ color: 'var(--accent)' }}>
           {rank}
