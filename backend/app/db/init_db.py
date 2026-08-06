@@ -17,9 +17,10 @@ def init_db() -> None:
             if db.bind.dialect.name == "sqlite":
                 rows = db.execute(text(f"PRAGMA table_info({table})")).fetchall()
                 return {r[1] for r in rows}
+            # information_schema stores the name without quotes; pass the plain name
             rows = db.execute(text(
                 "SELECT column_name FROM information_schema.columns WHERE table_name = :t"
-            ), {"t": table}).fetchall()
+            ), {"t": table.strip('"')}).fetchall()
             return {r[0] for r in rows}
         except Exception:
             return set()
@@ -58,11 +59,11 @@ def init_db() -> None:
     _add_column('"user"', 'birth_date', 'ALTER TABLE "user" ADD COLUMN birth_date DATE')
     _add_column('"user"', 'birth_date_updated_at', 'ALTER TABLE "user" ADD COLUMN birth_date_updated_at TIMESTAMP')
     _add_column('"user"', 'banner_position', 'ALTER TABLE "user" ADD COLUMN banner_position VARCHAR')
-    _add_column('"user"', 'profile_public', 'ALTER TABLE "user" ADD COLUMN profile_public BOOLEAN DEFAULT 1')
-    _add_column('"user"', 'show_game_library', 'ALTER TABLE "user" ADD COLUMN show_game_library BOOLEAN DEFAULT 1')
-    _add_column('"user"', 'show_achievements', 'ALTER TABLE "user" ADD COLUMN show_achievements BOOLEAN DEFAULT 1')
-    _add_column('"user"', 'show_hours', 'ALTER TABLE "user" ADD COLUMN show_hours BOOLEAN DEFAULT 0')
-    _add_column('"user"', 'show_stats', 'ALTER TABLE "user" ADD COLUMN show_stats BOOLEAN DEFAULT 1')
+    _add_column('"user"', 'profile_public', 'ALTER TABLE "user" ADD COLUMN profile_public BOOLEAN DEFAULT TRUE')
+    _add_column('"user"', 'show_game_library', 'ALTER TABLE "user" ADD COLUMN show_game_library BOOLEAN DEFAULT TRUE')
+    _add_column('"user"', 'show_achievements', 'ALTER TABLE "user" ADD COLUMN show_achievements BOOLEAN DEFAULT TRUE')
+    _add_column('"user"', 'show_hours', 'ALTER TABLE "user" ADD COLUMN show_hours BOOLEAN DEFAULT FALSE')
+    _add_column('"user"', 'show_stats', 'ALTER TABLE "user" ADD COLUMN show_stats BOOLEAN DEFAULT TRUE')
 
     # Badge de primeiro log removida do sistema de badges (tabela real: userbadge)
     _exec("DELETE FROM userbadge WHERE badge_key = 'first_log'")
