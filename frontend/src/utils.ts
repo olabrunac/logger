@@ -4,6 +4,13 @@ export function imageUrl(url: string | null | undefined): string | null {
   return `${window.location.origin}${url}`;
 }
 
+export function bannerPosition(position: string | null | undefined): string {
+  if (!position) return 'center';
+  const [x, y] = position.split(/\s+/).map(Number);
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return 'center';
+  return `${x}% ${y}%`;
+}
+
 export function apiBaseUrl(): string {
   return '/api/v1';
 }

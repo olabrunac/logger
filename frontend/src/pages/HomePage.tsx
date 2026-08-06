@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../services/api';
 import type { User, LogEntry } from '../types';
 import { ChevronRight } from 'lucide-react';
-import { imageUrl } from '../utils';
+import { imageUrl, bannerPosition } from '../utils';
 import YgpCard from '../components/sections/YgpCard';
 
 interface HomePageProps {
@@ -52,7 +52,7 @@ const HomePage = ({ user }: HomePageProps) => {
           style={bannerUrl ? {
             backgroundImage: `url(${bannerUrl})`,
             backgroundSize: 'cover',
-            backgroundPosition: 'center',
+            backgroundPosition: bannerPosition(user.banner_position),
           } : {
             background: 'linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-card) 50%, var(--bg) 100%)',
           }}>

@@ -15,6 +15,7 @@ class User(Base):
     birth_date_updated_at = Column(DateTime, nullable=True)
     
     banner_url = Column(String, nullable=True)
+    banner_position = Column(String, nullable=True)
     avatar_url = Column(String, nullable=True)
     accent_color = Column(String, default="#ff6b35")
     section_order = Column(Text, default='["in_progress","completed","wishlist","dropped","reviews","lists"]')

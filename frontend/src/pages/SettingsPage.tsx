@@ -31,6 +31,7 @@ import {
   Activity,
   MessageCircle,
   Trophy,
+  SlidersHorizontal,
 } from 'lucide-react';
 
 // Per-category layout defaults
@@ -121,7 +122,9 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
   const [accentColor, setAccentColor] = useState(user.accent_color || '#ff6b35');
   const [uploading, setUploading] = useState<'banner' | 'avatar' | null>(null);
   const [framingTarget, setFramingTarget] = useState<'banner' | 'avatar' | null>(null);
+  const [framingPositionOnly, setFramingPositionOnly] = useState(false);
   const [framingUrl, setFramingUrl] = useState<string | null>(null);
+  const gifFileRef = useRef<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -316,9 +319,17 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
       return;
     }
     if (file.type === 'image/gif') {
+      if (uploadType === 'banner') {
+        gifFileRef.current = file;
+        setFramingPositionOnly(true);
+        setFramingUrl(URL.createObjectURL(file));
+        setFramingTarget(uploadType);
+        return;
+      }
       handleFileUpload(file, uploadType);
       return;
     }
+    setFramingPositionOnly(false);
     setFramingUrl(URL.createObjectURL(file));
     setFramingTarget(uploadType);
   };
@@ -329,6 +340,40 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
     setFramingUrl(null);
     setFramingTarget(null);
     await handleFileUpload(file, framingTarget);
+  };
+
+  const handleFramingPositionConfirm = async (position: string) => {
+    const file = gifFileRef.current;
+    setFramingUrl(null);
+    setFramingTarget(null);
+    setFramingPositionOnly(false);
+    gifFileRef.current = null;
+    if (!user) return;
+    setUploading('banner');
+    setMessage(null);
+    try {
+      if (file) {
+        const formData = new FormData();
+        formData.append('file', file);
+        await uploadFile(`/users/${user.id}/upload/banner`, formData);
+      }
+      const res = await api.put(`/users/${user.id}/profile`, { banner_position: position });
+      onUserUpdate(res.data);
+      showSuccess('Banner atualizado!');
+    } catch (err) {
+      console.error(err);
+      showError('Erro ao fazer upload.');
+    } finally {
+      setUploading(null);
+    }
+  };
+
+  const openBannerReposition = () => {
+    if (!user.banner_url) return;
+    gifFileRef.current = null;
+    setFramingPositionOnly(true);
+    setFramingUrl(imageUrl(user.banner_url) || user.banner_url);
+    setFramingTarget('banner');
   };
 
   const handleSaveProfile = async () => {
@@ -679,6 +724,12 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
           <button onClick={() => bannerInputRef.current?.click()} disabled={uploading === 'banner'} className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-medium text-white/70 transition-colors hover:border-white/20 hover:text-white disabled:opacity-50">
             Alterar
           </button>
+          {bannerUrl && user.banner_url?.toLowerCase().endsWith('.gif') && (
+            <button onClick={openBannerReposition} disabled={uploading === 'banner'} className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-medium text-white/70 transition-colors hover:border-white/20 hover:text-white disabled:opacity-50">
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              Ajustar posição
+            </button>
+          )}
           {bannerUrl && (
             <button onClick={() => handleDeleteImage('banner')} disabled={uploading === 'banner'} className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50" style={{ borderColor: 'rgba(248,113,113,0.3)', color: '#f87171' }}>
               <Trash2 className="h-3.5 w-3.5" />
@@ -1127,8 +1178,10 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
         outputWidth={framingTarget === 'avatar' ? 512 : 1400}
         outputHeight={framingTarget === 'avatar' ? 512 : 300}
         title={framingTarget === 'avatar' ? 'Ajustar avatar' : 'Ajustar banner'}
-        onCancel={() => { if (framingUrl) URL.revokeObjectURL(framingUrl); setFramingUrl(null); setFramingTarget(null); }}
+        positionOnly={framingPositionOnly}
+        onCancel={() => { if (framingUrl) URL.revokeObjectURL(framingUrl); setFramingUrl(null); setFramingTarget(null); setFramingPositionOnly(false); gifFileRef.current = null; }}
         onConfirm={handleFramingConfirm}
+        onConfirmPosition={handleFramingPositionConfirm}
       />
     </div>
   );
