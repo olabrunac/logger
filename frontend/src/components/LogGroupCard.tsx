@@ -21,7 +21,7 @@ const LogGroupCard = ({ entry }: { entry: TimelineEntry }) => {
   return (
     <div className="mdf-card rounded-xl p-4 transition-colors">
       <div className="flex gap-4">
-        <div className="flex-shrink-0">
+        <Link to={`/profile/${entry.user.username}`} className="flex-shrink-0">
           <div className="w-10 h-10 rounded-full overflow-hidden border-2" style={{ borderColor: 'var(--accent)' }}>
             {avatarUrl ? (
               <img src={avatarUrl} alt={entry.user.username} className="w-full h-full object-cover" />
@@ -31,11 +31,11 @@ const LogGroupCard = ({ entry }: { entry: TimelineEntry }) => {
               </div>
             )}
           </div>
-        </div>
+        </Link>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 text-sm mb-3">
-            <span className="font-bold text-white">{entry.user.username}</span>
+            <Link to={`/profile/${entry.user.username}`} className="font-bold text-white hover:underline">{entry.user.username}</Link>
             <span className="text-white/40">{statusLabel} {entry.group_count} {meta.singular.toLowerCase()}s</span>
             <span className="text-white/40">{meta.emoji}</span>
           </div>

@@ -539,7 +539,6 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
                       <div className="w-full h-full flex items-center justify-center text-white/20 text-xs" style={{ background: (meta?.color || '#666') + '11' }}>{meta?.emoji}</div>
                     </div>
                   )}
-                  <div className="text-xs text-center font-medium truncate w-full mt-1.5 text-white/70">{item.media_item?.title || '...'}</div>
                 </div>
               </div>
             );
@@ -547,7 +546,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
         </div>
         <div className="flex items-start gap-1.5 lg:hidden">
           {typeTop.map((item, index) => (
-            <div key={item.id} className="flex flex-col items-center gap-1 min-w-0" style={{ width: 'calc(20% - 4.8px)' }}>
+            <div key={item.id} className="min-w-0 shrink-0" style={{ width: 'calc(20% - 4.8px)' }}>
               {item.media_item ? (
                 <YgpCard log={{ id: item.id, media_item: item.media_item }} rank={`#${index + 1}`} />
               ) : (
@@ -555,7 +554,6 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
                   <div className="w-full h-full flex items-center justify-center text-white/20 text-xs" style={{ background: (meta?.color || '#666') + '11' }}>{meta?.emoji}</div>
                 </div>
               )}
-              <div className="text-[10px] text-center font-medium truncate w-full text-white/60">{item.media_item?.title || '...'}</div>
             </div>
           ))}
         </div>
