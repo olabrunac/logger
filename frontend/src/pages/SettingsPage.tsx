@@ -62,7 +62,7 @@ const GENERAL_SIDEBAR: LayoutSectionDef[] = [
   { id: 'hours', label: 'Horas por Tipo', icon: <Clock className="h-3.5 w-3.5" />, visible: true, premium: false },
   { id: 'activity_map', label: 'Mapa de Atividade', icon: <Activity className="h-3.5 w-3.5" />, visible: true, premium: false },
   { id: 'recent_activity', label: 'Atividade Recente', icon: <Clock className="h-3.5 w-3.5" />, visible: true, premium: false },
-  { id: 'badges', label: 'Conquistas e Medalhas', icon: <Medal className="h-3.5 w-3.5" />, visible: true, premium: false },
+  { id: 'badges', label: 'Medalhas', icon: <Medal className="h-3.5 w-3.5" />, visible: true, premium: false },
 ];
 
 const MEDIA_DESKTOP: LayoutSectionDef[] = [
