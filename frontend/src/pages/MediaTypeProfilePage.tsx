@@ -389,7 +389,7 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
           {displayItems.map((item, index) => {
             const media = item.media_item || top5Favorites.find(m => m.id === (item as any).media_item_id) as MediaItem | undefined;
             return (
-              <div key={item.id || index} className="flex flex-col items-center gap-1 w-[28%] shrink-0">
+              <div key={item.id || index} className="flex flex-col gap-1 w-[28%] shrink-0">
                 {editingTop5 && (
                   <button onClick={() => removeTop5Item(index)} className="self-end p-0.5 bg-black/60 rounded text-white/60 hover:text-red-400">
                     <Trash2 size={12} />
