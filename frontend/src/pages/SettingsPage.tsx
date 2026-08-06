@@ -160,6 +160,15 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
   const [editingDisplayName, setEditingDisplayName] = useState(false);
   const [editingBio, setEditingBio] = useState(false);
 
+  const [visibility, setVisibility] = useState({
+    profile_public: user.profile_public ?? true,
+    show_game_library: user.show_game_library ?? true,
+    show_achievements: user.show_achievements ?? true,
+    show_hours: user.show_hours ?? false,
+    show_stats: user.show_stats ?? true,
+  });
+  const [savingVisibility, setSavingVisibility] = useState(false);
+
   // Parse saved section_order — supports both old {desktop,mobile,sidebar} and new per-category format
   const parseSectionOrder = (): Record<string, any> | null => {
     try {
@@ -374,6 +383,22 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
     setFramingPositionOnly(true);
     setFramingUrl(imageUrl(user.banner_url) || user.banner_url);
     setFramingTarget('banner');
+  };
+
+  const handleVisibilityToggle = async (key: keyof typeof visibility) => {
+    setSavingVisibility(true);
+    setMessage(null);
+    try {
+      const next = { ...visibility, [key]: !visibility[key] };
+      const res = await api.put(`/users/${user.id}/profile`, { [key]: next[key] });
+      setVisibility(next);
+      onUserUpdate(res.data);
+    } catch (err) {
+      console.error(err);
+      showError('Erro ao salvar a preferência.');
+    } finally {
+      setSavingVisibility(false);
+    }
   };
 
   const handleSaveProfile = async () => {
@@ -877,16 +902,6 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
           </div>
 
           <div className="rounded-xl border border-white/10 bg-[var(--mdf-bg)] p-3 lg:p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-white">Autenticação de dois fatores</p>
-                <p className="mt-1 text-xs text-white/40">Adicione um segundo passo a cada login.</p>
-              </div>
-              <button type="button" className="shrink-0 rounded-lg bg-[var(--accent)] px-4 py-1.5 text-xs font-semibold text-white transition-colors hover:opacity-80">Ativar 2FA</button>
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-white/10 bg-[var(--mdf-bg)] p-3 lg:p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-white">Alterar Email</p>
@@ -974,19 +989,19 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
         </div>
         <div className="space-y-3">
           {[
-            { label: 'Perfil público', desc: 'Qualquer pessoa pode ver seu perfil', enabled: true },
-            { label: 'Mostrar jogos na biblioteca', desc: 'Exibe sua biblioteca de jogos para visitantes', enabled: true },
-            { label: 'Mostrar conquistas', desc: 'Exibe suas conquistas desbloqueadas', enabled: true },
-            { label: 'Mostrar tempo de jogo', desc: 'Exibe horas totais jogadas', enabled: false },
-            { label: 'Mostrar estatísticas', desc: 'Exibe estatísticas de conclusão, platina, etc.', enabled: true },
-          ].map((item, i) => (
-            <div key={i} className="flex items-center justify-between rounded-xl border border-white/10 bg-[var(--mdf-bg)] p-3">
+            { key: 'profile_public', label: 'Perfil público', desc: 'Qualquer pessoa pode ver seu perfil' },
+            { key: 'show_game_library', label: 'Mostrar jogos na biblioteca', desc: 'Exibe sua biblioteca de jogos para visitantes' },
+            { key: 'show_achievements', label: 'Mostrar conquistas', desc: 'Exibe suas conquistas desbloqueadas' },
+            { key: 'show_hours', label: 'Mostrar tempo de jogo', desc: 'Exibe horas totais jogadas' },
+            { key: 'show_stats', label: 'Mostrar estatísticas', desc: 'Exibe estatísticas de conclusão, platina, etc.' },
+          ].map((item) => (
+            <div key={item.key} className="flex items-center justify-between rounded-xl border border-white/10 bg-[var(--mdf-bg)] p-3">
               <div>
                 <p className="text-sm font-medium text-white">{item.label}</p>
                 <p className="text-xs text-white/40">{item.desc}</p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" defaultChecked={item.enabled} className="sr-only peer" />
+                <input type="checkbox" checked={!!visibility[item.key as keyof typeof visibility]} onChange={() => handleVisibilityToggle(item.key as keyof typeof visibility)} disabled={savingVisibility} className="sr-only peer" />
                 <div className="w-11 h-6 rounded-full bg-white/10 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[var(--accent)]/20 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white/40 after:transition-all peer-checked:bg-[var(--accent)]"></div>
               </label>
             </div>
@@ -1019,25 +1034,6 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
               </label>
             </div>
           ))}
-        </div>
-      </div>
-
-      <div className="rounded-2xl border border-white/5 bg-[var(--mdf-surface)] p-5">
-        <div className="flex items-start justify-between gap-4 mb-4">
-          <div>
-            <h2 className="text-base font-semibold text-white">Dados e cookies</h2>
-            <p className="text-xs text-white/50 mt-0.5">Gerencie seus dados pessoais e preferências de rastreamento.</p>
-          </div>
-        </div>
-        <div className="space-y-3">
-          <button className="w-full flex items-center justify-between rounded-xl border border-white/10 bg-[var(--mdf-bg)] p-3 text-left text-white transition-colors hover:border-white/20">
-            <span>Baixar meus dados</span>
-            <Download className="h-4 w-4 text-white/40" />
-          </button>
-          <button className="w-full flex items-center justify-between rounded-xl border border-white/10 bg-[var(--mdf-bg)] p-3 text-left text-white/70 transition-colors hover:border-white/20 hover:text-white">
-            <span>Gerenciar cookies</span>
-            <SettingsIcon className="h-4 w-4 text-white/40" />
-          </button>
         </div>
       </div>
     </div>
