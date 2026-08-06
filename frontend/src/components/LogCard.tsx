@@ -7,7 +7,7 @@ import { getStars, TYPE_META, STATUS_COLORS } from '../constants/designSystem';
 import { statusLabels } from '../constants/statusLabels';
 import StatusIcon from './StatusIcon';
 import { Send, Heart, MessageCircle, ThumbsUp } from 'lucide-react';
-import { imageUrl, getLogUrl } from '../utils';
+import { imageUrl, getLogUrl, timeAgo } from '../utils';
 
 interface LogReplyItem {
   id: number;
@@ -27,17 +27,6 @@ interface LogCardProps {
 }
 
 const IMAGE_URL = (url: string) => imageUrl(url) || '';
-
-const timeAgo = (dateStr: string) => {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'agora';
-  if (mins < 60) return `${mins}m`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h`;
-  const days = Math.floor(hours / 24);
-  return `${days}d`;
-};
 
 const LogCard = ({ entry, currentUser, onReply, onLike }: LogCardProps) => {
   const [showReplies, setShowReplies] = useState(false);
