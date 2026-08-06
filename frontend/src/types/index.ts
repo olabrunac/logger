@@ -6,6 +6,7 @@ export interface User {
   email?: string;
   created_at?: string;
   banner_url?: string;
+  banner_position?: string;
   avatar_url?: string;
   accent_color?: string;
   section_order?: string;
