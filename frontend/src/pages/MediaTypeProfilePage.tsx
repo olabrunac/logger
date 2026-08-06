@@ -219,16 +219,16 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
   const CATEGORY_NAME: Record<string, string> = { movie: 'movies', series: 'series', book: 'books', game: 'games' };
 
   const MEDIA_SECTION_DEFS = [
-    { id: 'top_5', label: 'Top 5' },
-    { id: 'recent', label: 'Recentes' },
-    { id: 'in_progress', label: 'Em Progresso' },
-    { id: 'completed', label: 'Finalizados' },
-    { id: 'wishlist', label: 'Lista de Desejos' },
-    { id: 'library', label: 'Biblioteca' },
-    { id: 'dropped', label: 'Abandonados' },
-    { id: 'reviews', label: 'Reviews' },
-    { id: 'all_items', label: 'Todos' },
-    { id: 'custom_lists', label: 'Listas Personalizadas' },
+    { id: 'top_5', label: 'Top 5', icon: <Heart className="h-3.5 w-3.5" /> },
+    { id: 'recent', label: 'Recentes', icon: <Clock className="h-3.5 w-3.5" /> },
+    { id: 'in_progress', label: 'Em Progresso', icon: <Target className="h-3.5 w-3.5" /> },
+    { id: 'completed', label: 'Finalizados', icon: <CheckCircle className="h-3.5 w-3.5" /> },
+    { id: 'wishlist', label: 'Lista de Desejos', icon: <Clock className="h-3.5 w-3.5" /> },
+    { id: 'library', label: 'Biblioteca', icon: <BookOpen className="h-3.5 w-3.5" /> },
+    { id: 'dropped', label: 'Abandonados', icon: <X className="h-3.5 w-3.5" /> },
+    { id: 'reviews', label: 'Reviews', icon: <Star className="h-3.5 w-3.5" /> },
+    { id: 'all_items', label: 'Todos', icon: <Layers className="h-3.5 w-3.5" /> },
+    { id: 'custom_lists', label: 'Listas Personalizadas', icon: <Menu className="h-3.5 w-3.5" /> },
   ];
 
   const handleSaveLayout = async (newSections: { id: string; visible: boolean }[]) => {

@@ -30,6 +30,7 @@ import {
   BarChart2,
   Activity,
   MessageCircle,
+  Trophy,
 } from 'lucide-react';
 
 // Per-category layout defaults
@@ -56,6 +57,8 @@ const GENERAL_MOBILE: LayoutSectionDef[] = [
   { id: 'posts', label: 'Posts', icon: <MessageCircle className="h-3.5 w-3.5" />, visible: true, premium: false },
 ];
 const GENERAL_SIDEBAR: LayoutSectionDef[] = [
+  { id: 'favorites', label: 'Favoritos', icon: <Heart className="h-3.5 w-3.5" />, visible: true, premium: false },
+  { id: 'top_5', label: 'Top 5', icon: <Trophy className="h-3.5 w-3.5" />, visible: true, premium: false },
   { id: 'stats', label: 'Estatísticas', icon: <BarChart2 className="h-3.5 w-3.5" />, visible: true, premium: false },
   { id: 'rating_distribution', label: 'Distribuição de Notas', icon: <BarChart2 className="h-3.5 w-3.5" />, visible: true, premium: false },
   { id: 'top_genres', label: 'Principais Gêneros', icon: <BarChart2 className="h-3.5 w-3.5" />, visible: true, premium: false },
@@ -93,6 +96,16 @@ const CATEGORY_DEFAULTS: Record<LayoutCategory, Record<LayoutDevice, LayoutSecti
   movies: { desktop: MEDIA_DESKTOP, mobile: MEDIA_MOBILE, sidebar: MEDIA_SIDEBAR },
   series: { desktop: MEDIA_DESKTOP, mobile: MEDIA_MOBILE, sidebar: MEDIA_SIDEBAR },
   books: { desktop: MEDIA_DESKTOP, mobile: MEDIA_MOBILE, sidebar: MEDIA_SIDEBAR },
+};
+
+const SIDEBAR_TOP_IDS = ['favorites', 'top_5'];
+const SIDEBAR_BOTTOM_IDS = ['badges'];
+
+const enforceSidebarOrder = <T extends { id: string }>(sections: T[]): T[] => {
+  const top = sections.filter(s => SIDEBAR_TOP_IDS.includes(s.id));
+  const bottom = sections.filter(s => SIDEBAR_BOTTOM_IDS.includes(s.id));
+  const rest = sections.filter(s => !SIDEBAR_TOP_IDS.includes(s.id) && !SIDEBAR_BOTTOM_IDS.includes(s.id));
+  return [...top, ...rest, ...bottom];
 };
 
 type SettingsTab = 'general' | 'profile' | 'security' | 'privacy' | 'import' | 'premium' | 'community';
@@ -191,7 +204,7 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
     const catSaved = migrateLayout(savedLayout)[category];
     const saved = catSaved?.[device];
     if (saved && Array.isArray(saved)) {
-      return defaults.map(d => {
+      const result = defaults.map(d => {
         const match = saved.find((s: any) => s.id === d.id);
         return match ? { ...d, visible: match.visible ?? d.visible } : d;
       }).sort((a, b) => {
@@ -202,8 +215,9 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
         if (idxB === -1) return -1;
         return idxA - idxB;
       });
+      return device === 'sidebar' ? enforceSidebarOrder(result) : result;
     }
-    return defaults;
+    return device === 'sidebar' ? enforceSidebarOrder(defaults) : defaults;
   };
 
   const [layoutCategory, setLayoutCategory] = useState<LayoutCategory>('general');
@@ -321,7 +335,15 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
     setSaving(true);
     setMessage(null);
     try {
-      const sectionOrderData = JSON.stringify(layoutByCategory);
+      const toSave: Record<string, Record<LayoutDevice, LayoutSectionDef[]>> = {} as any;
+      for (const cat of LAYOUT_CATEGORIES) {
+        toSave[cat] = {
+          desktop: layoutByCategory[cat]?.desktop || [],
+          mobile: layoutByCategory[cat]?.mobile || [],
+          sidebar: enforceSidebarOrder(layoutByCategory[cat]?.sidebar || []),
+        };
+      }
+      const sectionOrderData = JSON.stringify(toSave);
 
       const res = await api.put(`/users/${user.id}/profile`, {
         accent_color: accentColor,
@@ -744,15 +766,22 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
             </button>
           ))}
         </div>
+        {layoutDeviceTab === 'sidebar' && (
+          <p className="mb-3 text-[11px] text-white/40">Favoritos e Top 5 ficam sempre no topo; Medalhas sempre no final.</p>
+        )}
         <div className="space-y-1">
-          {getCurrentSections().map((section, idx, arr) => (
+          {getCurrentSections().map((section, idx, arr) => {
+            const isSidebar = layoutDeviceTab === 'sidebar';
+            const canUp = isSidebar ? !(idx === 0 || SIDEBAR_TOP_IDS.includes(arr[idx - 1]?.id)) : idx > 0;
+            const canDown = isSidebar ? !(idx === arr.length - 1 || SIDEBAR_BOTTOM_IDS.includes(arr[idx + 1]?.id)) : idx < arr.length - 1;
+            return (
             <div key={section.id} className="flex items-center justify-between rounded-xl border border-white/10 bg-[var(--mdf-bg)] px-3 py-2.5">
               <div className="flex items-center gap-3">
                 <div className="flex flex-col gap-0.5">
-                  <button onClick={() => { if (idx > 0) { const updated = [...arr]; [updated[idx-1], updated[idx]] = [updated[idx], updated[idx-1]]; setCurrentSections(updated); } }}
-                    className="text-white/30 hover:text-white/70 disabled:opacity-20" disabled={idx === 0}><ChevronUp className="h-3 w-3" /></button>
-                  <button onClick={() => { if (idx < arr.length - 1) { const updated = [...arr]; [updated[idx], updated[idx+1]] = [updated[idx+1], updated[idx]]; setCurrentSections(updated); } }}
-                    className="text-white/30 hover:text-white/70 disabled:opacity-20" disabled={idx === arr.length - 1}><ChevronDown className="h-3 w-3" /></button>
+                  <button onClick={() => { if (canUp) { const updated = [...arr]; [updated[idx-1], updated[idx]] = [updated[idx], updated[idx-1]]; setCurrentSections(updated); } }}
+                    className="text-white/30 hover:text-white/70 disabled:opacity-20" disabled={!canUp}><ChevronUp className="h-3 w-3" /></button>
+                  <button onClick={() => { if (canDown) { const updated = [...arr]; [updated[idx], updated[idx+1]] = [updated[idx+1], updated[idx]]; setCurrentSections(updated); } }}
+                    className="text-white/30 hover:text-white/70 disabled:opacity-20" disabled={!canDown}><ChevronDown className="h-3 w-3" /></button>
                 </div>
                 <span className="text-white/50">{section.icon}</span>
                 <span className="text-sm text-white">{section.label}</span>
@@ -765,7 +794,8 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
                 <div className="w-9 h-5 rounded-full bg-white/10 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:h-[18px] after:w-[18px] after:rounded-full after:bg-white/40 after:transition-all peer-checked:bg-[var(--accent)]"></div>
               </label>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
