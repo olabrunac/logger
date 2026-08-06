@@ -385,7 +385,7 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
             );
           })}
         </div>
-        <div className="grid grid-cols-5 gap-1.5 lg:hidden">
+        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 lg:hidden">
           {displayItems.map((item, index) => {
             const media = item.media_item || top5Favorites.find(m => m.id === (item as any).media_item_id) as MediaItem | undefined;
             return (

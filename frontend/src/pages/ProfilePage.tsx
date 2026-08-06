@@ -538,7 +538,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
             );
           })}
         </div>
-        <div className="grid grid-cols-5 gap-1.5 lg:hidden">
+        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 lg:hidden">
           {typeTop.map((item, index) => (
             <div key={item.id} className="min-w-0">
               {item.media_item ? (
