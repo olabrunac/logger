@@ -4,7 +4,6 @@ from typing import Optional
 from app.crud.base import CRUDBase
 from app.models.media import MediaItem, LogEntry, MediaType, LogStatus
 from app.schemas.media import MediaItemCreate, MediaItemUpdate, LogEntryCreate, LogEntryUpdate
-from app.services.hours_service import effective_hours
 
 
 class CRUDMediaItem(CRUDBase[MediaItem, MediaItemCreate, MediaItemUpdate]):
@@ -102,13 +101,16 @@ class CRUDLogEntry(CRUDBase[LogEntry, LogEntryCreate, LogEntryUpdate]):
          .all()
         
         # Total hours (excluding wishlist/soon) - auto-calc from runtime when manual hours are null
-        hours_logs = db.query(LogEntry).filter(
+        from sqlalchemy.orm import joinedload
+        from app.services.hours_service import effective_hours_batch
+        hours_logs = db.query(LogEntry).options(joinedload(LogEntry.media_item)).filter(
             LogEntry.user_id == user_id,
             LogEntry.status.notin_(non_log_statuses),
         ).all()
+        hours_map = effective_hours_batch(db, hours_logs)
         hours_by_type: dict = {}
         for log in hours_logs:
-            eff = effective_hours(db, log) or 0
+            eff = hours_map.get(log.id) or 0
             mt = log.media_item.media_type.value
             hours_by_type[mt] = hours_by_type.get(mt, 0) + eff
         
@@ -135,11 +137,12 @@ class CRUDLogEntry(CRUDBase[LogEntry, LogEntryCreate, LogEntryUpdate]):
         for media_type, total in hours_by_type.items():
             result[media_type]['hours'] = round(total, 1)
         
-        # Add grand totals
-        result['total'] = sum(v['total'] for v in result.values())
-        result['favorites'] = sum(v['favorites'] for v in result.values())
-        result['completed'] = sum(v['completed'] for v in result.values())
-        result['hours'] = sum(v['hours'] for v in result.values())
+        # Add grand totals (soma apenas os dicts por tipo, não os totais já somados)
+        type_keys = [mt.value for mt in [MediaType.MOVIE, MediaType.SERIES, MediaType.GAME, MediaType.BOOK]]
+        result['total'] = sum(result[k]['total'] for k in type_keys)
+        result['favorites'] = sum(result[k]['favorites'] for k in type_keys)
+        result['completed'] = sum(result[k]['completed'] for k in type_keys)
+        result['hours'] = sum(result[k]['hours'] for k in type_keys)
         
         return result
 
