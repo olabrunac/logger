@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Settings2, Library, CheckCircle2, Star, Heart, Clock } from 'lucide-react';
 import type { User, LogEntry } from '../types';
 import { imageUrl, bannerPosition } from '../utils';
+import FollowersFollowingModal from './FollowersFollowingModal';
 
 const COUNTRY_NAMES: Record<string, string> = {
   BR: 'Brasil',
@@ -62,6 +64,8 @@ const ProfileHero = ({
   const ratedCount = logs.filter(l => l.rating != null && l.rating > 0).length;
   const favoriteCount = logs.filter(l => l.is_favorite).length;
   const totalHours = logs.reduce((sum, l) => sum + (l.hours_spent || 0), 0);
+
+  const [listModal, setListModal] = useState<'followers' | 'following' | null>(null);
 
   const tabCounts: Record<string, number> = {};
   const activeMediaTypes = logs.filter(l => l.status === 'completed' || l.status === 'in_progress' || l.status === 'dropped');
@@ -183,27 +187,27 @@ const tabs = [
                 <span className="font-bold text-white tabular-nums">{activeMediaTypes.length}</span>
                 Títulos
               </span>
-              <span className="flex items-center gap-1.5">
+              <button onClick={() => setListModal('following')} className="flex items-center gap-1.5 transition-colors hover:text-white/80">
                 <span className="font-bold text-white tabular-nums">{profileUser.following_count ?? 0}</span>
                 Seguindo
-              </span>
-              <span className="flex items-center gap-1.5">
+              </button>
+              <button onClick={() => setListModal('followers')} className="flex items-center gap-1.5 transition-colors hover:text-white/80">
                 <span className="font-bold text-white tabular-nums">{profileUser.followers_count ?? 0}</span>
                 Seguidores
-              </span>
+              </button>
             </div>
 
             <div className="hidden lg:flex items-center justify-center md:justify-start gap-3 mt-4 text-center md:text-left">
-              <Link to={`/profile/${profileUser.username}`}
+              <button onClick={() => setListModal('following')}
                 className="flex flex-col items-center md:items-start group min-w-[50px]">
                 <span className="font-display text-lg md:text-xl font-black text-white">{profileUser.following_count ?? 0}</span>
                 <span className="text-[10px] uppercase tracking-[0.2em] text-white/40 group-hover:text-white/60 transition-colors">Seguindo</span>
-              </Link>
-              <Link to={`/profile/${profileUser.username}`}
+              </button>
+              <button onClick={() => setListModal('followers')}
                 className="flex flex-col items-center md:items-start group min-w-[50px]">
                 <span className="font-display text-lg md:text-xl font-black text-white">{profileUser.followers_count ?? 0}</span>
                 <span className="text-[10px] uppercase tracking-[0.2em] text-white/40 group-hover:text-white/60 transition-colors">Seguidores</span>
-              </Link>
+              </button>
               <div className="w-px h-10 bg-white/10 mx-1" />
               <Link to={`/profile/${profileUser.username}`}
                 className="flex flex-col items-center md:items-start group min-w-[50px]">
@@ -285,6 +289,14 @@ const tabs = [
       </div>
 
 
+      {listModal && (
+        <FollowersFollowingModal
+          userId={profileUser.id}
+          username={profileUser.username}
+          initialTab={listModal}
+          onClose={() => setListModal(null)}
+        />
+      )}
     </div>
   );
 };

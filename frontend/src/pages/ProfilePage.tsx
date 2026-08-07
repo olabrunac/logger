@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import api, { getUserCustomLists, resolveUserByUsername } from '../services/api';
 import type { LogEntry, LogReview, User, TopListItem, CustomList } from '../types';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import ProfileHero from '../components/ProfileHero';
 import MediaTypeProfilePage from './MediaTypeProfilePage';
 import YgpCard from '../components/sections/YgpCard';
@@ -9,6 +10,7 @@ import SectionHeader from '../components/sections/SectionHeader';
 import BadgesSection from '../components/sections/BadgesSection';
 import LayoutEditorModal from '../components/sections/LayoutEditorModal';
 import PostCard from '../components/PostCard';
+import HashtagText from '../components/HashtagText';
 import { TYPE_META, getStars } from '../constants/designSystem';
 import type { Post } from '../types/feed';
 import { imageUrl, getLogUrl, findBestLogForMedia } from '../utils';
@@ -48,6 +50,9 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
   const [topListItems, setTopListItems] = useState<TopListItem[]>([]);
   const [customLists, setCustomLists] = useState<CustomList[]>([]);
   const [editingLayout, setEditingLayout] = useState(false);
+
+  const isMobile = useMediaQuery('(max-width: 767px)');
+  const deviceKey = isMobile ? 'mobile' : 'desktop';
 
   const displayUsername = username || currentUser.username;
   const isOwnProfile = displayUsername === currentUser.username;
@@ -149,13 +154,15 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
       if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
         // New per-category format
         const general = parsed.general;
+        if (general && general[deviceKey]) return general[deviceKey] as Array<{ id: string; visible: boolean }>;
         if (general && general.desktop) return general.desktop as Array<{ id: string; visible: boolean }>;
         // Old format fallback
+        if (parsed[deviceKey]) return parsed[deviceKey] as Array<{ id: string; visible: boolean }>;
         if (parsed.desktop) return parsed.desktop as Array<{ id: string; visible: boolean }>;
       }
       return null;
     } catch { return null; }
-  }, [profileUser?.section_order]);
+  }, [profileUser?.section_order, deviceKey]);
 
   const effectiveSections = useMemo(() => {
     const allDefs: Array<{ id: string; visible: boolean; label: string; icon?: React.ReactNode }> = [
@@ -387,7 +394,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
                       <span className="text-[11px] font-bold text-white/80">{e.review.rating}</span>
                     </div>
                   )}
-                  {e.review.review_text && <p className="line-clamp-3 text-[10px] leading-relaxed text-white/50">{e.review.review_text}</p>}
+                  {e.review.review_text && <p className="line-clamp-3 text-[10px] leading-relaxed text-white/50"><HashtagText text={e.review.review_text} /></p>}
                 </div>
               </Link>
             );
@@ -426,7 +433,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
                     )}
                     <span className="text-[10px] text-white/30">{new Date(e.review.created_at).toLocaleDateString('pt-BR')}</span>
                   </div>
-                  {e.review.review_text && <p className="line-clamp-4 text-[13px] leading-relaxed text-white/50 flex-1">{e.review.review_text.length > 320 ? e.review.review_text.slice(0, 320) + '…' : e.review.review_text}</p>}
+                  {e.review.review_text && <p className="line-clamp-4 text-[13px] leading-relaxed text-white/50 flex-1"><HashtagText text={e.review.review_text.length > 320 ? e.review.review_text.slice(0, 320) + '…' : e.review.review_text} /></p>}
                   {e.log.hours_spent != null && e.log.hours_spent > 0 && (
                     <div className="text-[10px] text-white/40 font-mono">{e.log.hours_spent}h</div>
                   )}
@@ -670,7 +677,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
     let parsed: Record<string, any> = {};
     try { if (raw) parsed = JSON.parse(raw); } catch {}
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) parsed = {};
-    parsed.general = { ...(parsed.general || {}), desktop: newSections };
+    parsed.general = { ...(parsed.general || {}), [deviceKey]: newSections };
     await api.put(`/users/${profileUser!.id}/profile`, { section_order: JSON.stringify(parsed) });
     setProfileUser(prev => prev ? { ...prev, section_order: JSON.stringify(parsed) } : prev);
     setEditingLayout(false);
@@ -724,7 +731,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
                         </svg>))}</div>
                     )}
                     <span className="text-[10px] text-white/30">{new Date(e.review.created_at).toLocaleDateString('pt-BR')}</span>
-                    {e.review.review_text && <p className="line-clamp-4 text-[13px] leading-relaxed text-white/50">{e.review.review_text}</p>}
+                    {e.review.review_text && <p className="line-clamp-4 text-[13px] leading-relaxed text-white/50"><HashtagText text={e.review.review_text} /></p>}
                   </div>
                 </Link>
               );
