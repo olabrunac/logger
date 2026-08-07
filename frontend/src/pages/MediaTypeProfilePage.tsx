@@ -6,8 +6,10 @@ import ProfileHero from '../components/ProfileHero';
 import YgpCard from '../components/sections/YgpCard';
 import SectionHeader from '../components/sections/SectionHeader';
 import LayoutEditorModal from '../components/sections/LayoutEditorModal';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import { TYPE_META, getStars } from '../constants/designSystem';
 import { getLogUrl, findBestLogForMedia } from '../utils';
+import HashtagText from '../components/HashtagText';
 import { Heart, Clock, Star, Target, CheckCircle, BookOpen, X, Layers, Menu, ChevronUp, ChevronDown, Trash2 } from 'lucide-react';
 
 interface MediaTypeProfilePageProps {
@@ -60,6 +62,8 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
   const displayUsername = username || currentUser.username;
   const isOwnProfile = displayUsername === currentUser.username;
   const hasInitialData = !!(propProfileUser && propLogs);
+  const isMobile = useMediaQuery('(max-width: 767px)');
+  const deviceKey = isMobile ? 'mobile' : 'desktop';
 
   useEffect(() => {
     if (hasInitialData) {
@@ -220,13 +224,16 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
       if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
         const categoryName = mediaType === 'game' ? 'games' : mediaType === 'movie' ? 'movies' : mediaType === 'series' ? 'series' : 'books';
         const catConfig = parsed[categoryName];
+        if (catConfig?.[deviceKey]) return catConfig[deviceKey] as Array<{ id: string; visible: boolean }>;
         if (catConfig?.desktop) return catConfig.desktop as Array<{ id: string; visible: boolean }>;
+        if (parsed.general?.[deviceKey]) return parsed.general[deviceKey] as Array<{ id: string; visible: boolean }>;
         if (parsed.general?.desktop) return parsed.general.desktop as Array<{ id: string; visible: boolean }>;
+        if (parsed[deviceKey]) return parsed[deviceKey] as Array<{ id: string; visible: boolean }>;
         if (parsed.desktop) return parsed.desktop as Array<{ id: string; visible: boolean }>;
       }
       return null;
     } catch { return null; }
-  }, [profileUser?.section_order, mediaType]);
+  }, [profileUser?.section_order, mediaType, deviceKey]);
 
   const CATEGORY_NAME: Record<string, string> = { movie: 'movies', series: 'series', book: 'books', game: 'games' };
 
@@ -249,7 +256,7 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
     try { if (raw) parsed = JSON.parse(raw); } catch {}
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) parsed = {};
     const cat = CATEGORY_NAME[mediaType] || 'movies';
-    parsed[cat] = { ...(parsed[cat] || {}), desktop: newSections };
+    parsed[cat] = { ...(parsed[cat] || {}), [deviceKey]: newSections };
     await api.put(`/users/${profileUser!.id}/profile`, { section_order: JSON.stringify(parsed) });
     setProfileUser(prev => prev ? { ...prev, section_order: JSON.stringify(parsed) } : prev);
     setEditingLayout(false);
@@ -559,7 +566,7 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
                       <span className="text-[11px] font-bold text-white/80">{e.review.rating}</span>
                     </div>
                   )}
-                  {e.review.review_text && <p className="line-clamp-3 text-[10px] leading-relaxed text-white/50">{e.review.review_text}</p>}
+                  {e.review.review_text && <p className="line-clamp-3 text-[10px] leading-relaxed text-white/50"><HashtagText text={e.review.review_text} /></p>}
                 </div>
               </Link>
             );
@@ -598,7 +605,7 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
                     )}
                     <span className="text-[10px] text-white/30">{new Date(e.review.created_at).toLocaleDateString('pt-BR')}</span>
                   </div>
-                  {e.review.review_text && <p className="line-clamp-4 text-[13px] leading-relaxed text-white/50 flex-1">{e.review.review_text.length > 320 ? e.review.review_text.slice(0, 320) + '…' : e.review.review_text}</p>}
+                  {e.review.review_text && <p className="line-clamp-4 text-[13px] leading-relaxed text-white/50 flex-1"><HashtagText text={e.review.review_text.length > 320 ? e.review.review_text.slice(0, 320) + '…' : e.review.review_text} /></p>}
                   {e.log.hours_spent != null && e.log.hours_spent > 0 && (
                     <div className="text-[10px] text-white/40 font-mono">{e.log.hours_spent}h</div>
                   )}

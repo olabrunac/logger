@@ -295,7 +295,7 @@ def search_media(*, db: Session = Depends(deps.get_db), q: str = Query("", min_l
                     "tmdb_id": item.tmdb_id,
                     "igdb_id": item.igdb_id,
                     "google_books_id": item.google_books_id,
-                    "cover_image_url": item.cover_image_url,
+                    "cover_image_url": item.cover_image_url.replace("http://", "https://") if item.cover_image_url else None,
                     "release_date": item.release_date.isoformat() if item.release_date else None,
                     "synopsis": item.synopsis,
                     "id": item.id,

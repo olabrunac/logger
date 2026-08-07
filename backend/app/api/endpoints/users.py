@@ -267,7 +267,16 @@ def get_followers(
 ):
     from app.crud import crud_follow
     followers = crud_follow.get_followers(db, user_id=user_id)
-    return [{"id": u.id, "username": u.username, "avatar_url": u.avatar_url} for u in followers]
+    return [
+        {
+            "id": u.id,
+            "username": u.username,
+            "display_name": u.display_name,
+            "avatar_url": u.avatar_url,
+            "accent_color": u.accent_color,
+        }
+        for u in followers
+    ]
 
 
 @router.get("/{user_id}/following")
@@ -278,7 +287,16 @@ def get_following(
 ):
     from app.crud import crud_follow
     following = crud_follow.get_following(db, user_id=user_id)
-    return [{"id": u.id, "username": u.username, "avatar_url": u.avatar_url} for u in following]
+    return [
+        {
+            "id": u.id,
+            "username": u.username,
+            "display_name": u.display_name,
+            "avatar_url": u.avatar_url,
+            "accent_color": u.accent_color,
+        }
+        for u in following
+    ]
 
 
 # --- Timeline ---
