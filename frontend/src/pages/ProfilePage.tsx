@@ -12,7 +12,7 @@ import PostCard from '../components/PostCard';
 import { TYPE_META, getStars } from '../constants/designSystem';
 import type { Post } from '../types/feed';
 import { imageUrl, getLogUrl, findBestLogForMedia } from '../utils';
-import { Heart, Clock, Star, MessageCircle, Trophy, History, Layers, Menu } from 'lucide-react';
+import { Heart, Clock, Star, MessageCircle, Trophy, Layers, Menu } from 'lucide-react';
 
 interface ProfilePageProps {
   currentUser: User;
@@ -160,11 +160,10 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
   const effectiveSections = useMemo(() => {
     const allDefs: Array<{ id: string; visible: boolean; label: string; icon?: React.ReactNode }> = [
       { id: 'favorite_games', visible: true, label: 'Favoritos', icon: <Heart className="h-3.5 w-3.5" /> },
-      { id: 'recent_games', visible: true, label: 'Atividade recente', icon: <Clock className="h-3.5 w-3.5" /> },
+      { id: 'recent_games', visible: true, label: 'Logs recentes', icon: <Clock className="h-3.5 w-3.5" /> },
       { id: 'reviews', visible: true, label: 'Reviews', icon: <Star className="h-3.5 w-3.5" /> },
       { id: 'posts', visible: true, label: 'Posts', icon: <MessageCircle className="h-3.5 w-3.5" /> },
       { id: 'top_5', visible: false, label: 'Top 5', icon: <Trophy className="h-3.5 w-3.5" /> },
-      { id: 'recent', visible: false, label: 'Recentes', icon: <History className="h-3.5 w-3.5" /> },
       { id: 'general_all', visible: false, label: 'Geral (todos os logs)', icon: <Layers className="h-3.5 w-3.5" /> },
       { id: 'custom_lists', visible: false, label: 'Listas Personalizadas', icon: <Menu className="h-3.5 w-3.5" /> },
       ...ALL_MEDIA_TYPES.map(type => ({ id: `all_${type}`, visible: false, label: `Todos ${TYPE_META[type]?.label}`, icon: mediaTypeIcon(type) })),
@@ -244,7 +243,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
 
   const renderRecentGames = () => (
     <section>
-      <SectionHeader title="Atividade recente" linkTo={`/profile/${profileUser.username}/diary`} />
+      <SectionHeader title="Logs recentes" linkTo={`/profile/${profileUser.username}/diary`} />
       {recentLogs.length === 0 ? (
         <div className="mdf-card p-8 text-center text-white/50">Nenhum log ainda.</div>
       ) : (
@@ -598,11 +597,6 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
     );
   };
 
-  const renderRecentAll = () => {
-    const sorted = [...viewLogs].sort((a, b) => b.id - a.id);
-    return renderGrid('Recentes', sorted, false);
-  };
-
   const renderStatusType = (status: string, type: string, label: string) => {
     const singular = TYPE_META[type]?.singular || type;
     const sectionLogs = viewLogs.filter(l => l.media_item.media_type === type && l.status === status);
@@ -659,11 +653,10 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
 
   const PROFILE_SECTIONS: Array<{ id: string; label: string; icon?: React.ReactNode; group?: string }> = [
     { id: 'favorite_games', label: 'Favoritos', icon: <Heart className="h-3.5 w-3.5" />, group: 'Principal' },
-    { id: 'recent_games', label: 'Atividade Recente', icon: <Clock className="h-3.5 w-3.5" />, group: 'Principal' },
+    { id: 'recent_games', label: 'Logs recentes', icon: <Clock className="h-3.5 w-3.5" />, group: 'Principal' },
     { id: 'reviews', label: 'Reviews', icon: <Star className="h-3.5 w-3.5" />, group: 'Principal' },
     { id: 'posts', label: 'Posts', icon: <MessageCircle className="h-3.5 w-3.5" />, group: 'Principal' },
     { id: 'top_5', label: 'Top 5', icon: <Trophy className="h-3.5 w-3.5" />, group: 'Principal' },
-    { id: 'recent', label: 'Recentes', icon: <History className="h-3.5 w-3.5" />, group: 'Principal' },
     { id: 'general_all', label: 'Geral (todos os logs)', icon: <Layers className="h-3.5 w-3.5" />, group: 'Principal' },
     { id: 'custom_lists', label: 'Listas Personalizadas', icon: <Menu className="h-3.5 w-3.5" />, group: 'Principal' },
     ...ALL_MEDIA_TYPES.map(type => ({ id: `all_${type}`, label: `Todos ${TYPE_META[type]?.label}`, icon: mediaTypeIcon(type), group: 'Todos por mídia' })),
@@ -689,7 +682,6 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
     reviews: renderReviews,
     posts: renderPosts,
     top_5: renderTop5All,
-    recent: renderRecentAll,
     general_all: () => renderGrid('Geral', viewLogs, true),
     custom_lists: renderCustomListsAll,
   };

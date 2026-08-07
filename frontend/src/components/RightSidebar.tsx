@@ -15,6 +15,8 @@ interface RightSidebarProps {
   user: User;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
+  previewOrder?: string[];
+  embedded?: boolean;
 }
 
 const SIDEBAR_TOP_IDS = ['favorites', 'top_5'];
@@ -33,6 +35,13 @@ const MEDIA_TYPE_MAP: Record<string, string> = {
   games: 'game',
 };
 
+const MEDIA_TO_CATEGORY: Record<string, string> = {
+  movie: 'movies',
+  series: 'series',
+  book: 'books',
+  game: 'games',
+};
+
 const PAGE_LABELS: Record<string, string> = {
   movie: 'Filmes',
   series: 'Séries',
@@ -47,7 +56,7 @@ const MEDIA_COLORS: Record<string, string> = {
   book: '#4ade80',
 };
 
-const RightSidebar = ({ user, isCollapsed, onToggleCollapse }: RightSidebarProps) => {
+const RightSidebar = ({ user, isCollapsed, onToggleCollapse, previewOrder, embedded = false }: RightSidebarProps) => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [topListItems, setTopListItems] = useState<TopListItem[]>([]);
   const location = useLocation();
@@ -84,11 +93,15 @@ const RightSidebar = ({ user, isCollapsed, onToggleCollapse }: RightSidebarProps
 
   const sidebarOrder = useMemo(() => {
     const defaults = ['favorites', 'top_5', 'stats', 'rating_distribution', 'top_genres', 'hours', 'activity_map', 'recent_activity', 'badges'];
+    if (previewOrder) return enforceSidebarIds(previewOrder);
     try {
       const raw = user?.section_order;
       if (raw) {
         const parsed = JSON.parse(raw);
-        const sidebar = parsed?.general?.sidebar || parsed?.sidebar;
+        const category = activeMediaType ? MEDIA_TO_CATEGORY[activeMediaType] : null;
+        const sidebar = (category && parsed?.[category]?.sidebar)
+          || parsed?.general?.sidebar
+          || parsed?.sidebar;
         if (Array.isArray(sidebar)) {
           const configMap = new Map(sidebar.map((s: { id: string; visible?: boolean }) => [s.id, s.visible]));
           const order = sidebar.map((s: { id: string }) => s.id);
@@ -99,12 +112,12 @@ const RightSidebar = ({ user, isCollapsed, onToggleCollapse }: RightSidebarProps
       }
     } catch {}
     return enforceSidebarIds(defaults);
-  }, [user?.section_order]);
+  }, [user?.section_order, activeMediaType, previewOrder]);
 
   const accentColor = user.accent_color || '#00e054';
   const currentMediaColor = activeMediaType ? MEDIA_COLORS[activeMediaType] : accentColor;
 
-  if (isCollapsed) {
+  if (isCollapsed && !embedded) {
     return (
       <aside className="hidden lg:flex fixed top-0 right-0 h-screen w-14 border-l flex-col items-center py-4 z-40"
         style={{ background: 'var(--mdf-bg)', borderColor: 'var(--border)' }}>
@@ -183,7 +196,7 @@ const RightSidebar = ({ user, isCollapsed, onToggleCollapse }: RightSidebarProps
       case 'recent_activity':
         return (
           <>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-2">Atividade Recente</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-2">Logs recentes</div>
             {logs.length > 0 ? (
               <div className="flex gap-1.5 overflow-x-auto pb-1">
                 {[...logs]
@@ -220,19 +233,23 @@ const RightSidebar = ({ user, isCollapsed, onToggleCollapse }: RightSidebarProps
   };
 
   return (
-    <aside className="hidden lg:flex fixed top-0 right-0 h-screen w-[324px] p-4 border-l flex-col z-40 overflow-y-auto space-y-3 right-sidebar"
-      style={{ background: 'var(--mdf-bg)', borderColor: 'var(--border)' }}>
+    <aside className={embedded
+      ? "flex flex-col w-full p-4 overflow-y-auto space-y-3 right-sidebar"
+      : "hidden lg:flex fixed top-0 right-0 h-screen w-[324px] p-4 border-l flex-col z-40 overflow-y-auto space-y-3 right-sidebar"}
+      style={embedded ? undefined : { background: 'var(--mdf-bg)', borderColor: 'var(--border)' }}>
 
       <div className="flex items-center justify-between mb-1 pt-1">
         <div className="flex items-center gap-2">
-          <button
-            onClick={onToggleCollapse}
-            className="w-7 h-7 rounded flex items-center justify-center transition-colors hover:bg-white/10"
-            style={{ color: 'var(--text)' }}
-            title="Recolher barra lateral"
-          >
-            <ChevronRight size={18} />
-          </button>
+          {!embedded && (
+            <button
+              onClick={onToggleCollapse}
+              className="w-7 h-7 rounded flex items-center justify-center transition-colors hover:bg-white/10"
+              style={{ color: 'var(--text)' }}
+              title="Recolher barra lateral"
+            >
+              <ChevronRight size={18} />
+            </button>
+          )}
           <h3 className="font-display font-bold text-base -tracking-tight">
             Analytics {activeMediaType ? `(${PAGE_LABELS[activeMediaType]})` : ''}
           </h3>
