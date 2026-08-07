@@ -1,5 +1,5 @@
 import enum
-from sqlalchemy import Column, Integer, String, DateTime, Float, Boolean, ForeignKey, Enum, Text, Date, UniqueConstraint
+from sqlalchemy import Column, Integer, String, DateTime, Float, Boolean, ForeignKey, Enum, Text, Date, UniqueConstraint, JSON
 from sqlalchemy.orm import relationship
 from app.db.base import Base
 import datetime
@@ -57,6 +57,8 @@ class MediaItem(Base):
     book_categories = Column(String, nullable=True)
     book_language = Column(String, nullable=True)
     book_rating = Column(Float, nullable=True)
+    authors = Column(JSON, nullable=True)
+    popularity = Column(Float, nullable=True)
     logs = relationship("LogEntry", back_populates="media_item")
 
 class LogEntry(Base):

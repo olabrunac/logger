@@ -315,6 +315,7 @@ def wipe_user_data(
 
     post_ids = [p.id for p in db.query(Post).filter(Post.user_id == user_id).all()]
     if post_ids:
+        db.query(Notification).filter(Notification.post_id.in_(post_ids)).delete(synchronize_session=False)
         db.query(PostLike).filter(PostLike.post_id.in_(post_ids)).delete(synchronize_session=False)
         db.query(PostReply).filter(PostReply.post_id.in_(post_ids)).delete(synchronize_session=False)
         db.query(PostImage).filter(PostImage.post_id.in_(post_ids)).delete(synchronize_session=False)
