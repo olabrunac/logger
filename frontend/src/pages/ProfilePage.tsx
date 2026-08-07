@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import api, { getUserCustomLists } from '../services/api';
+import api, { getUserCustomLists, resolveUserByUsername } from '../services/api';
 import type { LogEntry, LogReview, User, TopListItem, CustomList } from '../types';
 import ProfileHero from '../components/ProfileHero';
 import MediaTypeProfilePage from './MediaTypeProfilePage';
@@ -68,8 +68,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
       if (isOwnProfile) {
         targetUser = currentUser;
       } else {
-        const userRes = await api.get('/login/by-username/' + encodeURIComponent(displayUsername));
-        targetUser = userRes.data;
+        targetUser = await resolveUserByUsername(displayUsername);
       }
       setProfileUser(targetUser);
       const [logsRes, wishlistRes, topListRes, customListsRes] = await Promise.all([

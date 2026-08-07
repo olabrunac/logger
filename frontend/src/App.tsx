@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
-import api from './services/api';
+import api, { resolveUserByUsername } from './services/api';
 import LoginPage from './pages/LoginPage';
 import NewLogPage from './pages/NewLogPage';
 import CalendarPage from './pages/CalendarPage';
@@ -83,8 +83,8 @@ function AppInner() {
     const username = decodeURIComponent(match[1]);
     if (!user || username === user.username) { setViewedUser(null); return; }
     try {
-      const res = await api.get('/login/by-username/' + encodeURIComponent(username));
-      setViewedUser(res.data);
+      const data = await resolveUserByUsername(username);
+      setViewedUser(data);
     } catch {
       setViewedUser(null);
     }
