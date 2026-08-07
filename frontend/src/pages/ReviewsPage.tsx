@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import api from '../services/api';
+import api, { resolveUserByUsername } from '../services/api';
 import type { LogEntry, LogReview, User, MediaType } from '../types';
 import { Heart } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
@@ -37,8 +37,7 @@ const ReviewsPage = ({ currentUser }: ReviewsPageProps) => {
   const fetchLogs = useCallback(async () => {
     try {
       let targetUser = currentUser;
-      const userRes = await api.get('/login/by-username/' + encodeURIComponent(displayUsername));
-      targetUser = userRes.data;
+      targetUser = await resolveUserByUsername(displayUsername);
       const response = await api.get('/media/logs', { params: { user_id: targetUser.id, limit: 500 } });
       const allLogs = response.data || [];
       setLogs(allLogs);
