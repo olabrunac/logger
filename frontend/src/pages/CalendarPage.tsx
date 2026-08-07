@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import api from '../services/api';
+import api, { resolveUserByUsername } from '../services/api';
 import type { LogEntry, MediaType, User } from '../types';
 import { ChevronLeft, ChevronRight, Gamepad2, Film, Tv, Book } from 'lucide-react';
 import { startOfMonth, addMonths, subMonths, isSameMonth, isSameDay, format, startOfWeek } from 'date-fns';
@@ -39,8 +39,7 @@ const CalendarPage = ({ currentUser }: CalendarPageProps) => {
     try {
       let targetUser = currentUser;
       if (username && username !== currentUser.username) {
-        const userRes = await api.get('/login/by-username/' + encodeURIComponent(username));
-        targetUser = userRes.data;
+        targetUser = await resolveUserByUsername(username);
       }
       const response = await api.get('/media/logs', { params: { user_id: targetUser.id, limit: 500 } });
       setLogs(response.data || []);
