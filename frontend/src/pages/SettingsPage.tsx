@@ -3,6 +3,7 @@ import api, { uploadFile, deleteUpload } from '../services/api';
 import ImportPage from './ImportPage';
 import { ImageFramingModal } from '../components/ImageFramingModal';
 import RightSidebar from '../components/RightSidebar';
+import LayoutPreview from '../components/LayoutPreview';
 import type { User } from '../types';
 import { imageUrl } from '../utils';
 import {
@@ -877,6 +878,18 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
               })}
             </div>
           </div>
+          {layoutDeviceTab !== 'sidebar' && (
+            <div className="hidden xl:flex shrink-0 items-start justify-center">
+              <LayoutPreview
+                device={layoutDeviceTab}
+                sections={getCurrentSections()}
+                username={user.username}
+                displayName={user.display_name}
+                accentColor={user.accent_color}
+                avatarUrl={user.avatar_url}
+              />
+            </div>
+          )}
           {layoutDeviceTab === 'sidebar' && (
             <div className="hidden xl:block w-[324px] shrink-0 rounded-2xl border border-white/5 bg-[var(--mdf-bg)] overflow-hidden">
               <RightSidebar
