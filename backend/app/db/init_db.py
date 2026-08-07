@@ -86,6 +86,10 @@ def init_db() -> None:
     _exec("CREATE INDEX IF NOT EXISTS ix_notification_from_user_id ON notification (from_user_id)")
     _exec("CREATE INDEX IF NOT EXISTS ix_notification_post_id ON notification (post_id)")
 
+    # Capas de livros antigas salvas com http:// — Chrome bloqueia mixed content
+    # em produção (https), então normaliza tudo para https de uma vez.
+    _exec("UPDATE mediaitem SET cover_image_url = 'https://' || substr(cover_image_url, 8) WHERE cover_image_url LIKE 'http://%'")
+
     # Seed admin user
     admin = crud.user.get_by_username(db, username="admin")
     if not admin:

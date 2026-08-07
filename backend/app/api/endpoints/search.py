@@ -60,7 +60,7 @@ def _serialize_media(item: MediaItem, db: Session, user_id: Optional[int]) -> di
         "igdb_id": item.igdb_id,
         "google_books_id": item.google_books_id,
         "steam_appid": item.steam_appid,
-        "cover_image_url": item.cover_image_url,
+        "cover_image_url": item.cover_image_url.replace("http://", "https://") if item.cover_image_url else None,
         "release_date": item.release_date.isoformat() if item.release_date else None,
         "synopsis": item.synopsis,
         "has_log": has_log,
