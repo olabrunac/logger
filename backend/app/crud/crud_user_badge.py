@@ -24,41 +24,6 @@ def unlock_badge(db: Session, user_id: int, badge_key: str) -> UserBadge:
     return badge
 
 
-def _count_completed_by_type(db: Session, user_id: int, media_type: str) -> int:
-    from app.models.media import LogEntry, LogStatus, MediaItem
-    return (
-        db.query(func.count(LogEntry.id))
-        .join(MediaItem, LogEntry.media_item_id == MediaItem.id)
-        .filter(
-            LogEntry.user_id == user_id,
-            MediaItem.media_type == media_type,
-            LogEntry.status.in_([LogStatus.COMPLETED, LogStatus.PLATINATED]),
-        )
-        .scalar()
-    )
-
-
-def _count_platinated(db: Session, user_id: int) -> int:
-    from app.models.media import LogEntry, LogStatus
-    return (
-        db.query(func.count(LogEntry.id))
-        .filter(LogEntry.user_id == user_id, LogEntry.status == LogStatus.PLATINATED)
-        .scalar()
-    )
-
-
-def _count_reviews(db: Session, user_id: int) -> int:
-    from app.models.media import LogEntry
-    return (
-        db.query(func.count(LogEntry.id))
-        .filter(
-            LogEntry.user_id == user_id,
-            ((LogEntry.rating.isnot(None) & (LogEntry.rating > 0)) | (LogEntry.review.isnot(None) & (LogEntry.review != "")))
-        )
-        .scalar()
-    )
-
-
 def _calc_streak(db: Session, user_id: int) -> int:
     from app.models.media import LogEntry
     dates_raw = (
@@ -99,49 +64,74 @@ def _count_followers(db: Session, user_id: int) -> int:
     return db.query(func.count(UserFollow.id)).filter(UserFollow.following_id == user_id).scalar()
 
 
-def _has_posts(db: Session, user_id: int) -> bool:
-    from app.models.post import Post
-    return db.query(Post).filter(Post.user_id == user_id).first() is not None
-
-
-def _total_logs(db: Session, user_id: int) -> int:
-    from app.models.media import LogEntry, LogStatus
-    return (
-        db.query(func.count(LogEntry.id))
-        .filter(LogEntry.user_id == user_id, LogEntry.status.notin_([LogStatus.WISHLIST, LogStatus.SOON]))
-        .scalar()
-    )
-
-
-def _has_all_types(db: Session, user_id: int) -> bool:
+def _compute_badge_counts(db: Session, user_id: int) -> dict:
+    """Calcula todos os contadores de badges com queries em lote
+    (evita ~12 counts + N por série quando chamado por log/import)."""
     from app.models.media import LogEntry, LogStatus, MediaItem
-    types = (
-        db.query(MediaItem.media_type)
+    from app.models.post import Post
+    from sqlalchemy.orm import joinedload
+    from app.services.hours_service import effective_hours_batch
+
+    non_log = [LogStatus.WISHLIST, LogStatus.SOON]
+
+    completed_rows = (
+        db.query(MediaItem.media_type, func.count(LogEntry.id))
         .join(LogEntry, LogEntry.media_item_id == MediaItem.id)
-        .filter(LogEntry.user_id == user_id, LogEntry.status.notin_([LogStatus.WISHLIST, LogStatus.SOON]))
-        .distinct()
+        .filter(
+            LogEntry.user_id == user_id,
+            LogEntry.status.in_([LogStatus.COMPLETED, LogStatus.PLATINATED]),
+        )
+        .group_by(MediaItem.media_type)
         .all()
     )
-    return len(types) >= 4
+    completed_by_type = {mt.value: c for mt, c in completed_rows}
 
+    platina = db.query(func.count(LogEntry.id)).filter(
+        LogEntry.user_id == user_id, LogEntry.status == LogStatus.PLATINATED
+    ).scalar()
 
-def _count_favorites(db: Session, user_id: int) -> int:
-    from app.models.media import LogEntry, LogStatus
-    return (
-        db.query(func.count(LogEntry.id))
-        .filter(LogEntry.user_id == user_id, LogEntry.is_favorite == True, LogEntry.status.notin_([LogStatus.WISHLIST, LogStatus.SOON]))
-        .scalar()
+    reviews = db.query(func.count(LogEntry.id)).filter(
+        LogEntry.user_id == user_id,
+        ((LogEntry.rating.isnot(None) & (LogEntry.rating > 0)) | (LogEntry.review.isnot(None) & (LogEntry.review != ""))),
+    ).scalar()
+
+    total = db.query(func.count(LogEntry.id)).filter(
+        LogEntry.user_id == user_id, LogEntry.status.notin_(non_log)
+    ).scalar()
+
+    fav = db.query(func.count(LogEntry.id)).filter(
+        LogEntry.user_id == user_id, LogEntry.is_favorite == True, LogEntry.status.notin_(non_log)
+    ).scalar()
+
+    type_count = (
+        db.query(MediaItem.media_type)
+        .join(LogEntry, LogEntry.media_item_id == MediaItem.id)
+        .filter(LogEntry.user_id == user_id, LogEntry.status.notin_(non_log))
+        .distinct()
+        .count()
     )
 
-
-def _count_total_hours(db: Session, user_id: int) -> float:
-    from app.models.media import LogEntry, LogStatus
-    from app.services.hours_service import effective_hours
-    logs = db.query(LogEntry).filter(
+    hours_logs = db.query(LogEntry).options(joinedload(LogEntry.media_item)).filter(
         LogEntry.user_id == user_id,
-        LogEntry.status.notin_([LogStatus.WISHLIST, LogStatus.SOON]),
+        LogEntry.status.notin_(non_log),
     ).all()
-    return round(sum(effective_hours(db, log) or 0 for log in logs), 1)
+    hours = round(sum(v or 0 for v in effective_hours_batch(db, hours_logs).values()), 1)
+
+    return {
+        "movie": completed_by_type.get("movie", 0),
+        "series": completed_by_type.get("series", 0),
+        "game": completed_by_type.get("game", 0),
+        "book": completed_by_type.get("book", 0),
+        "platina": platina or 0,
+        "reviews": reviews or 0,
+        "streak": _calc_streak(db, user_id),
+        "followers": _count_followers(db, user_id),
+        "total": total or 0,
+        "fav": fav or 0,
+        "hours": hours or 0,
+        "has_posts": db.query(Post.id).filter(Post.user_id == user_id).first() is not None,
+        "all_types": type_count >= 4,
+    }
 
 
 def check_and_unlock(db: Session, user_id: int) -> List[dict]:
@@ -149,21 +139,17 @@ def check_and_unlock(db: Session, user_id: int) -> List[dict]:
     unlocked_keys = {b.badge_key for b in get_user_badges(db, user_id)}
     new_badges = []
 
-    counts = {
-        "movie": _count_completed_by_type(db, user_id, "movie"),
-        "series": _count_completed_by_type(db, user_id, "series"),
-        "game": _count_completed_by_type(db, user_id, "game"),
-        "book": _count_completed_by_type(db, user_id, "book"),
-    }
-    platina_count = _count_platinated(db, user_id)
-    review_count = _count_reviews(db, user_id)
-    streak = _calc_streak(db, user_id)
-    follower_count = _count_followers(db, user_id)
-    has_post = _has_posts(db, user_id)
-    total = _total_logs(db, user_id)
-    all_types = _has_all_types(db, user_id)
-    fav_count = _count_favorites(db, user_id)
-    total_hours = _count_total_hours(db, user_id)
+    counts_map = _compute_badge_counts(db, user_id)
+    counts = {mt: counts_map[mt] for mt in ["movie", "series", "game", "book"]}
+    platina_count = counts_map["platina"]
+    review_count = counts_map["reviews"]
+    streak = counts_map["streak"]
+    follower_count = counts_map["followers"]
+    has_post = counts_map["has_posts"]
+    total = counts_map["total"]
+    all_types = counts_map["all_types"]
+    fav_count = counts_map["fav"]
+    total_hours = counts_map["hours"]
 
     def _upgrade_group(keyed_thresholds: list[tuple[str, int]], current_value: int):
         best_key = None
@@ -241,19 +227,15 @@ def get_user_badges_with_progress(db: Session, user_id: int) -> dict:
     unlocked = get_user_badges(db, user_id)
     unlocked_keys = {b.badge_key for b in unlocked}
 
-    counts = {
-        "movie": _count_completed_by_type(db, user_id, "movie"),
-        "series": _count_completed_by_type(db, user_id, "series"),
-        "game": _count_completed_by_type(db, user_id, "game"),
-        "book": _count_completed_by_type(db, user_id, "book"),
-    }
-    platina_count = _count_platinated(db, user_id)
-    review_count = _count_reviews(db, user_id)
-    streak = _calc_streak(db, user_id)
-    follower_count = _count_followers(db, user_id)
-    total = _total_logs(db, user_id)
-    fav_count = _count_favorites(db, user_id)
-    total_hours = _count_total_hours(db, user_id)
+    counts_map = _compute_badge_counts(db, user_id)
+    counts = {mt: counts_map[mt] for mt in ["movie", "series", "game", "book"]}
+    platina_count = counts_map["platina"]
+    review_count = counts_map["reviews"]
+    streak = counts_map["streak"]
+    follower_count = counts_map["followers"]
+    total = counts_map["total"]
+    fav_count = counts_map["fav"]
+    total_hours = counts_map["hours"]
 
     # Build unlocked badge list with a lookup map
     unlocked_list = []
@@ -333,7 +315,7 @@ def get_user_badges_with_progress(db: Session, user_id: int) -> dict:
                     "key": key, "title": defn.title, "description": defn.description, "icon": defn.icon,
                     "category": defn.category,
                     "rarity": defn.rarity,
-                    "current": 0 if not _has_posts(db, user_id) else 1, "target": 1,
+                    "current": 0 if not counts_map["has_posts"] else 1, "target": 1,
                 })
             elif key.startswith("hours_"):
                 next_milestones.append({
