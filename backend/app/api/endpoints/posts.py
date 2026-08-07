@@ -67,7 +67,7 @@ def get_feed(
     offset: int = 0,
 ):
     posts = crud_post.get_feed(db, user_id=user_id, limit=limit, offset=offset)
-    return [_post_response(p, db, current_user_id=user_id) for p in posts]
+    return _posts_response(posts, db, current_user_id=user_id)
 
 
 @router.get("/posts/user/{target_user_id}")
@@ -79,7 +79,7 @@ def get_user_posts(
     limit: int = 50,
 ):
     posts = crud_post.get_user_posts(db, user_id=target_user_id, limit=limit)
-    return [_post_response(p, db, current_user_id=current_user_id) for p in posts]
+    return _posts_response(posts, db, current_user_id=current_user_id)
 
 
 @router.get("/posts/{post_id}/replies")
@@ -201,6 +201,35 @@ def _post_response(post, db, current_user_id: int = None):
         "liked_by": liked_by,
         "created_at": post.created_at.isoformat() if post.created_at else "",
     }
+
+
+def _posts_response(posts, db, current_user_id: int = None):
+    if not posts:
+        return []
+    author_ids = {p.user_id for p in posts}
+    user_map = {}
+    if author_ids:
+        user_map = {u.id: u for u in db.query(User).filter(User.id.in_(author_ids)).all()}
+    replies_count, likes_count, liked_by, is_liked_set = crud_post.get_posts_interactions(
+        db, [p.id for p in posts], viewer_id=current_user_id
+    )
+    results = []
+    for post in posts:
+        user = user_map.get(post.user_id)
+        results.append({
+            "id": post.id,
+            "user_id": post.user_id,
+            "username": user.username if user else "unknown",
+            "avatar_url": user.avatar_url if user else None,
+            "content": post.content,
+            "images": [{"id": img.id, "url": img.url, "is_gif": img.is_gif, "position": img.position} for img in post.images],
+            "replies_count": replies_count.get(post.id, 0),
+            "likes_count": likes_count.get(post.id, 0),
+            "is_liked": post.id in is_liked_set,
+            "liked_by": liked_by.get(post.id, []),
+            "created_at": post.created_at.isoformat() if post.created_at else "",
+        })
+    return results
 
 
 def _reply_response(reply):
