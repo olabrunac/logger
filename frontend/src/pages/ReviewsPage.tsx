@@ -6,6 +6,7 @@ import { Heart } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { TYPE_META } from '../constants/designSystem';
+import HashtagText from '../components/HashtagText';
 import { getLogUrl } from '../utils';
 
 interface ReviewsPageProps {
@@ -138,7 +139,7 @@ const ReviewsPage = ({ currentUser }: ReviewsPageProps) => {
                         {e.log.is_favorite && <Heart size={12} className="text-[var(--mdf-pink)] flex-shrink-0" fill="var(--mdf-pink)" />}
                       </div>
                       {e.review.platform && <div className="text-xs text-white/50 mt-0.5">{e.review.platform}</div>}
-                      {e.review.review_text && <p className="text-sm text-white/70 mt-1 line-clamp-2">{e.review.review_text}</p>}
+                      {e.review.review_text && <p className="text-sm text-white/70 mt-1 line-clamp-2"><HashtagText text={e.review.review_text} /></p>}
                       {!e.review.review_text && <p className="text-xs text-white/30 italic mt-1">Sem review</p>}
                     </div>
                     <div className="flex flex-col items-end gap-1 flex-shrink-0">

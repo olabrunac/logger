@@ -7,6 +7,7 @@ import type { LogEntry, LogReview } from '../types';
 import type { MediaItem } from '../types/media';
 import { ChevronDown, Trash2, CheckCircle2, Circle, Pencil, Bookmark, Heart, Edit3, Star, Plus } from 'lucide-react';
 import LogForm from '../components/LogForm';
+import HashtagText from '../components/HashtagText';
 import { TYPE_META, STATUS_COLORS, getStars } from '../constants/designSystem';
 
 const STATUS_LABELS: Record<string, string> = {
@@ -595,7 +596,7 @@ const MediaDetailPage = () => {
               </div>
               {log.review && (
                 <div className="flex items-start justify-between gap-3">
-                  <p className="text-sm text-white/70 leading-relaxed whitespace-pre-wrap">{log.review}</p>
+                  <p className="text-sm text-white/70 leading-relaxed whitespace-pre-wrap"><HashtagText text={log.review} /></p>
                   <button
                     onClick={() => setShowDeleteReviewConfirm(true)}
                     className="flex-shrink-0 text-[10px] inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-white/10 text-white/40 hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-400 transition-colors"
@@ -976,7 +977,7 @@ const MediaDetailPage = () => {
                         </div>
                         <div className="flex-1 min-w-0">
                           {r.platform && <div className="text-xs text-white/40 mb-1">{r.platform}</div>}
-                          {r.review_text && <p className="text-sm text-white/60 leading-relaxed whitespace-pre-wrap">{r.review_text}</p>}
+                          {r.review_text && <p className="text-sm text-white/60 leading-relaxed whitespace-pre-wrap"><HashtagText text={r.review_text} /></p>}
                           {!r.review_text && <p className="text-xs text-white/30 italic">Sem review</p>}
                         </div>
                       </div>
@@ -1011,7 +1012,7 @@ const MediaDetailPage = () => {
                           )}
                           {r.log_date && <span className="text-xs text-white/40 ml-auto flex-shrink-0">{r.log_date.split('T')[0]}</span>}
                         </div>
-                        {r.review && <p className="text-sm text-white/70 leading-relaxed whitespace-pre-wrap">{r.review}</p>}
+                        {r.review && <p className="text-sm text-white/70 leading-relaxed whitespace-pre-wrap"><HashtagText text={r.review} /></p>}
                       </div>
                     ))}
                   </div>
