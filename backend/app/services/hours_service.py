@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
@@ -32,3 +32,30 @@ def effective_hours(db: Session, log: LogEntry, watched_episodes: Optional[int] 
 
 def total_effective_hours(db: Session, logs) -> float:
     return round(sum(effective_hours(db, log) or 0 for log in logs), 1)
+
+
+def effective_hours_batch(db: Session, logs: List[LogEntry]) -> Dict[int, Optional[float]]:
+    """Calcula horas efetivas de vários logs com uma única query para séries
+    (evita 1 COUNT de EpisodeWatched por log no loop)."""
+    series_ids = [
+        log.id for log in logs
+        if log.media_item
+        and log.media_item.media_type == MediaType.SERIES
+        and log.hours_spent is None
+        and log.media_item.runtime
+    ]
+    watched: Dict[int, int] = {}
+    if series_ids:
+        from sqlalchemy import func
+        rows = (
+            db.query(EpisodeWatched.log_id, func.count())
+            .filter(
+                EpisodeWatched.log_id.in_(series_ids),
+                EpisodeWatched.watched == True,
+                EpisodeWatched.season_number > 0,
+            )
+            .group_by(EpisodeWatched.log_id)
+            .all()
+        )
+        watched = {log_id: count for log_id, count in rows}
+    return {log.id: effective_hours(db, log, watched.get(log.id)) for log in logs}
