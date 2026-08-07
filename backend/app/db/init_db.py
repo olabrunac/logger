@@ -70,6 +70,22 @@ def init_db() -> None:
     # Badge de primeiro log removida do sistema de badges (tabela real: userbadge)
     _exec("DELETE FROM userbadge WHERE badge_key = 'first_log'")
 
+    # Índices ausentes (performance: queries de logs/posts/notificações são
+    # filtradas por user_id/log_id — sem índice, cada leitura é full scan)
+    _exec("CREATE INDEX IF NOT EXISTS ix_logentry_user_id ON logentry (user_id)")
+    _exec("CREATE INDEX IF NOT EXISTS ix_logentry_media_item_id ON logentry (media_item_id)")
+    _exec("CREATE INDEX IF NOT EXISTS ix_logentry_log_date ON logentry (log_date)")
+    _exec("CREATE INDEX IF NOT EXISTS ix_episodewatched_log_id ON episodewatched (log_id)")
+    _exec("CREATE INDEX IF NOT EXISTS ix_achievement_log_id ON achievement (log_id)")
+    _exec("CREATE INDEX IF NOT EXISTS ix_logreview_log_id ON logreview (log_id)")
+    _exec("CREATE INDEX IF NOT EXISTS ix_top_list_item_user_id ON top_list_item (user_id)")
+    _exec("CREATE INDEX IF NOT EXISTS ix_top_list_item_media_item_id ON top_list_item (media_item_id)")
+    _exec("CREATE INDEX IF NOT EXISTS ix_custom_list_user_id ON custom_list (user_id)")
+    _exec("CREATE INDEX IF NOT EXISTS ix_custom_list_item_custom_list_id ON custom_list_item (custom_list_id)")
+    _exec("CREATE INDEX IF NOT EXISTS ix_custom_list_item_media_item_id ON custom_list_item (media_item_id)")
+    _exec("CREATE INDEX IF NOT EXISTS ix_notification_from_user_id ON notification (from_user_id)")
+    _exec("CREATE INDEX IF NOT EXISTS ix_notification_post_id ON notification (post_id)")
+
     # Seed admin user
     admin = crud.user.get_by_username(db, username="admin")
     if not admin:
