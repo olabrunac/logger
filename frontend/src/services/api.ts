@@ -7,6 +7,26 @@ const api = axios.create({
   },
 });
 
+// Resolver de perfil por username com deduplicação de chamadas concorrentes:
+// App.tsx e as páginas de perfil (Profile/MediaType/Diary/Calendar/Reviews/Lists)
+// disparavam GET /login/by-username/{username} em paralelo. O cache guarda a
+// promise in-flight (callers compartilham a mesma request) e é removido após o
+// settle, então navegações futuras buscam dados frescos.
+const userByUsernameCache = new Map<string, Promise<any>>();
+
+export const resolveUserByUsername = (username: string) => {
+  const key = encodeURIComponent(username);
+  if (!userByUsernameCache.has(key)) {
+    const p = api.get(`/login/by-username/${key}`).then((res) => res.data);
+    const settled = p.then(
+      (data) => { userByUsernameCache.delete(key); return data; },
+      (err) => { userByUsernameCache.delete(key); throw err; }
+    );
+    userByUsernameCache.set(key, settled);
+  }
+  return userByUsernameCache.get(key)!;
+};
+
 const uploadApi = axios.create({
   baseURL: '/api/v1',
 });

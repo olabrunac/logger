@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import api, { getUserWishlist, getUserCustomLists, createCustomList, updateCustomList, deleteCustomList, addCustomListItem, removeCustomListItem } from '../services/api';
+import api, { getUserWishlist, getUserCustomLists, createCustomList, updateCustomList, deleteCustomList, addCustomListItem, removeCustomListItem, resolveUserByUsername } from '../services/api';
 import type { LogEntry, MediaType, CustomList, CustomListItem, User } from '../types';
 import type { MediaItem } from '../types/media';
 import { Gamepad2, Film, Tv, Book, Pencil, Trash2, Plus, ChevronDown, ChevronRight, X, Search } from 'lucide-react';
@@ -180,8 +180,8 @@ const ListsPage = ({ currentUser }: ListsPageProps) => {
 
   useEffect(() => {
     if (username && username !== currentUser.username) {
-      api.get('/login/by-username/' + encodeURIComponent(username))
-        .then(res => setTargetUser(res.data))
+      resolveUserByUsername(username)
+        .then(setTargetUser)
         .catch(() => setTargetUser(currentUser));
     } else {
       setTargetUser(currentUser);
