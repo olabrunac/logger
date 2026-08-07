@@ -117,8 +117,14 @@ export const getLogsReviewsBatch = (logIds: number[]) => {
 };
 
 // Global Search API
-export const globalSearch = (query: string, userId?: number) => {
-  return api.get('/search', { params: { q: query, user_id: userId } });
+export interface GlobalSearchFilters {
+  media_type?: string;
+  author?: string;
+  year?: number;
+  isbn?: string;
+}
+export const globalSearch = (query: string, userId?: number, filters?: GlobalSearchFilters) => {
+  return api.get('/search', { params: { q: query, user_id: userId, ...(filters || {}) } });
 };
 
 export const getPopularSearches = () => {
