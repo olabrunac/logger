@@ -232,7 +232,7 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
 
   const MEDIA_SECTION_DEFS = [
     { id: 'top_5', label: 'Top 5', icon: <Heart className="h-3.5 w-3.5" /> },
-    { id: 'recent', label: 'Recentes', icon: <Clock className="h-3.5 w-3.5" /> },
+    { id: 'recent', label: 'Logs recentes', icon: <Clock className="h-3.5 w-3.5" /> },
     { id: 'in_progress', label: 'Em Progresso', icon: <Target className="h-3.5 w-3.5" /> },
     { id: 'completed', label: 'Finalizados', icon: <CheckCircle className="h-3.5 w-3.5" /> },
     { id: 'wishlist', label: 'Lista de Desejos', icon: <Clock className="h-3.5 w-3.5" /> },
@@ -259,7 +259,7 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
   const effectiveSections = useMemo(() => {
     const defaultSections: EffectiveSection[] = [
       { id: 'top_5', visible: true, label: 'Top 5', icon: <Heart className="h-3.5 w-3.5" /> },
-      { id: 'recent', visible: true, label: 'Recentes', icon: <Clock className="h-3.5 w-3.5" /> },
+      { id: 'recent', visible: true, label: 'Logs recentes', icon: <Clock className="h-3.5 w-3.5" /> },
       { id: 'in_progress', visible: true, label: 'Em Progresso', icon: <Target className="h-3.5 w-3.5" /> },
       { id: 'completed', visible: true, label: 'Finalizados', icon: <CheckCircle className="h-3.5 w-3.5" /> },
       { id: 'wishlist', visible: true, label: 'Lista de Desejos', icon: <Clock className="h-3.5 w-3.5" /> },
@@ -506,7 +506,7 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
 
   const renderRecent = () => (
     <section>
-      <SectionHeader title="Recentes" count={filteredLogs.length} />
+      <SectionHeader title="Logs recentes" count={filteredLogs.length} />
       {filteredLogs.length === 0 ? (
         <div className="mdf-card p-6 text-center text-white/30 text-sm">Nenhuma mídia registrada.</div>
       ) : (

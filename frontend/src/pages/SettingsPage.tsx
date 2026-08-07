@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import api, { uploadFile, deleteUpload } from '../services/api';
 import ImportPage from './ImportPage';
 import { ImageFramingModal } from '../components/ImageFramingModal';
+import RightSidebar from '../components/RightSidebar';
 import type { User } from '../types';
 import { imageUrl } from '../utils';
 import {
@@ -46,14 +47,14 @@ interface LayoutSectionDef {
 const GENERAL_DESKTOP: LayoutSectionDef[] = [
   { id: 'stats_grid', label: 'Estatísticas', icon: <BarChart2 className="h-3.5 w-3.5" />, visible: true, premium: false },
   { id: 'favorite_games', label: 'Favoritos', icon: <Heart className="h-3.5 w-3.5" />, visible: true, premium: false },
-  { id: 'recent_games', label: 'Atividade Recente', icon: <Clock className="h-3.5 w-3.5" />, visible: true, premium: false },
+  { id: 'recent_games', label: 'Logs recentes', icon: <Clock className="h-3.5 w-3.5" />, visible: true, premium: false },
   { id: 'reviews', label: 'Reviews', icon: <Star className="h-3.5 w-3.5" />, visible: true, premium: false },
   { id: 'posts', label: 'Posts', icon: <MessageCircle className="h-3.5 w-3.5" />, visible: true, premium: false },
 ];
 const GENERAL_MOBILE: LayoutSectionDef[] = [
   { id: 'stats_grid', label: 'Estatísticas', icon: <BarChart2 className="h-3.5 w-3.5" />, visible: true, premium: false },
   { id: 'favorite_games', label: 'Favoritos', icon: <Heart className="h-3.5 w-3.5" />, visible: true, premium: false },
-  { id: 'recent_games', label: 'Atividade Recente', icon: <Clock className="h-3.5 w-3.5" />, visible: true, premium: false },
+  { id: 'recent_games', label: 'Logs recentes', icon: <Clock className="h-3.5 w-3.5" />, visible: true, premium: false },
   { id: 'reviews', label: 'Reviews', icon: <Star className="h-3.5 w-3.5" />, visible: true, premium: false },
   { id: 'posts', label: 'Posts', icon: <MessageCircle className="h-3.5 w-3.5" />, visible: true, premium: false },
 ];
@@ -65,14 +66,14 @@ const GENERAL_SIDEBAR: LayoutSectionDef[] = [
   { id: 'top_genres', label: 'Principais Gêneros', icon: <BarChart2 className="h-3.5 w-3.5" />, visible: true, premium: false },
   { id: 'hours', label: 'Horas por Tipo', icon: <Clock className="h-3.5 w-3.5" />, visible: true, premium: false },
   { id: 'activity_map', label: 'Mapa de Atividade', icon: <Activity className="h-3.5 w-3.5" />, visible: true, premium: false },
-  { id: 'recent_activity', label: 'Atividade Recente', icon: <Clock className="h-3.5 w-3.5" />, visible: true, premium: false },
+  { id: 'recent_activity', label: 'Logs recentes', icon: <Clock className="h-3.5 w-3.5" />, visible: true, premium: false },
   { id: 'badges', label: 'Medalhas', icon: <Medal className="h-3.5 w-3.5" />, visible: true, premium: false },
 ];
 
 const MEDIA_DESKTOP: LayoutSectionDef[] = [
   { id: 'stats_grid', label: 'Estatísticas', icon: <BarChart2 className="h-3.5 w-3.5" />, visible: true, premium: false },
   { id: 'top_5', label: 'Top 5', icon: <Heart className="h-3.5 w-3.5" />, visible: true, premium: false },
-  { id: 'recent', label: 'Recentes', icon: <Clock className="h-3.5 w-3.5" />, visible: true, premium: false },
+  { id: 'recent', label: 'Logs recentes', icon: <Clock className="h-3.5 w-3.5" />, visible: true, premium: false },
   { id: 'in_progress', label: 'Em Progresso', icon: <Target className="h-3.5 w-3.5" />, visible: true, premium: false },
   { id: 'completed', label: 'Finalizados', icon: <CheckCircle className="h-3.5 w-3.5" />, visible: true, premium: false },
   { id: 'wishlist', label: 'Lista de Desejos', icon: <Clock className="h-3.5 w-3.5" />, visible: true, premium: false },
@@ -84,7 +85,7 @@ const MEDIA_DESKTOP: LayoutSectionDef[] = [
 ];
 const MEDIA_MOBILE: LayoutSectionDef[] = [
   { id: 'stats_grid', label: 'Estatísticas', icon: <BarChart2 className="h-3.5 w-3.5" />, visible: true, premium: false },
-  { id: 'recent', label: 'Recentes', icon: <Clock className="h-3.5 w-3.5" />, visible: true, premium: false },
+  { id: 'recent', label: 'Logs recentes', icon: <Clock className="h-3.5 w-3.5" />, visible: true, premium: false },
   { id: 'in_progress', label: 'Em Progresso', icon: <Target className="h-3.5 w-3.5" />, visible: true, premium: false },
   { id: 'completed', label: 'Finalizados', icon: <CheckCircle className="h-3.5 w-3.5" />, visible: true, premium: false },
   { id: 'reviews', label: 'Reviews', icon: <Star className="h-3.5 w-3.5" />, visible: true, premium: false },
@@ -842,36 +843,51 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
             </button>
           ))}
         </div>
-        {layoutDeviceTab === 'sidebar' && (
-          <p className="mb-3 text-[11px] text-white/40">Favoritos e Top 5 ficam sempre no topo; Medalhas sempre no final.</p>
-        )}
-        <div className="space-y-1">
-          {getCurrentSections().map((section, idx, arr) => {
-            const isSidebar = layoutDeviceTab === 'sidebar';
-            const canUp = isSidebar ? !(idx === 0 || SIDEBAR_TOP_IDS.includes(arr[idx - 1]?.id)) : idx > 0;
-            const canDown = isSidebar ? !(idx === arr.length - 1 || SIDEBAR_BOTTOM_IDS.includes(arr[idx + 1]?.id)) : idx < arr.length - 1;
-            return (
-            <div key={section.id} className="flex items-center justify-between rounded-xl border border-white/10 bg-[var(--mdf-bg)] px-3 py-2.5">
-              <div className="flex items-center gap-3">
-                <div className="flex flex-col gap-0.5">
-                  <button onClick={() => { if (canUp) { const updated = [...arr]; [updated[idx-1], updated[idx]] = [updated[idx], updated[idx-1]]; setCurrentSections(updated); } }}
-                    className="text-white/30 hover:text-white/70 disabled:opacity-20" disabled={!canUp}><ChevronUp className="h-3 w-3" /></button>
-                  <button onClick={() => { if (canDown) { const updated = [...arr]; [updated[idx], updated[idx+1]] = [updated[idx+1], updated[idx]]; setCurrentSections(updated); } }}
-                    className="text-white/30 hover:text-white/70 disabled:opacity-20" disabled={!canDown}><ChevronDown className="h-3 w-3" /></button>
+        <div className="flex gap-4">
+          <div className="flex-1 min-w-0">
+            {layoutDeviceTab === 'sidebar' && (
+              <p className="mb-3 text-[11px] text-white/40">Favoritos e Top 5 ficam sempre no topo; Medalhas sempre no final.</p>
+            )}
+            <div className="space-y-1">
+              {getCurrentSections().map((section, idx, arr) => {
+                const isSidebar = layoutDeviceTab === 'sidebar';
+                const canUp = isSidebar ? !(idx === 0 || SIDEBAR_TOP_IDS.includes(arr[idx - 1]?.id)) : idx > 0;
+                const canDown = isSidebar ? !(idx === arr.length - 1 || SIDEBAR_BOTTOM_IDS.includes(arr[idx + 1]?.id)) : idx < arr.length - 1;
+                return (
+                <div key={section.id} className="flex items-center justify-between rounded-xl border border-white/10 bg-[var(--mdf-bg)] px-3 py-2.5">
+                  <div className="flex items-center gap-3">
+                    <div className="flex flex-col gap-0.5">
+                      <button onClick={() => { if (canUp) { const updated = [...arr]; [updated[idx-1], updated[idx]] = [updated[idx], updated[idx-1]]; setCurrentSections(updated); } }}
+                        className="text-white/30 hover:text-white/70 disabled:opacity-20" disabled={!canUp}><ChevronUp className="h-3 w-3" /></button>
+                      <button onClick={() => { if (canDown) { const updated = [...arr]; [updated[idx], updated[idx+1]] = [updated[idx+1], updated[idx]]; setCurrentSections(updated); } }}
+                        className="text-white/30 hover:text-white/70 disabled:opacity-20" disabled={!canDown}><ChevronDown className="h-3 w-3" /></button>
+                    </div>
+                    <span className="text-white/50">{section.icon}</span>
+                    <span className="text-sm text-white">{section.label}</span>
+                    {section.premium && <span title="Premium"><Crown className="h-3 w-3 text-yellow-500" /></span>}
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked={section.visible}
+                      onChange={() => { const updated = [...arr]; updated[idx] = { ...updated[idx], visible: !updated[idx].visible }; setCurrentSections(updated); }}
+                      className="sr-only peer" disabled={section.premium} />
+                    <div className="w-9 h-5 rounded-full bg-white/10 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:h-[18px] after:w-[18px] after:rounded-full after:bg-white/40 after:transition-all peer-checked:bg-[var(--accent)]"></div>
+                  </label>
                 </div>
-                <span className="text-white/50">{section.icon}</span>
-                <span className="text-sm text-white">{section.label}</span>
-                {section.premium && <span title="Premium"><Crown className="h-3 w-3 text-yellow-500" /></span>}
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" checked={section.visible}
-                  onChange={() => { const updated = [...arr]; updated[idx] = { ...updated[idx], visible: !updated[idx].visible }; setCurrentSections(updated); }}
-                  className="sr-only peer" disabled={section.premium} />
-                <div className="w-9 h-5 rounded-full bg-white/10 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:h-[18px] after:w-[18px] after:rounded-full after:bg-white/40 after:transition-all peer-checked:bg-[var(--accent)]"></div>
-              </label>
+                );
+              })}
             </div>
-            );
-          })}
+          </div>
+          {layoutDeviceTab === 'sidebar' && (
+            <div className="hidden xl:block w-[324px] shrink-0 rounded-2xl border border-white/5 bg-[var(--mdf-bg)] overflow-hidden">
+              <RightSidebar
+                user={user}
+                isCollapsed={false}
+                onToggleCollapse={() => {}}
+                embedded
+                previewOrder={layoutByCategory[layoutCategory]?.sidebar?.filter(s => s.visible).map(s => s.id) || []}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

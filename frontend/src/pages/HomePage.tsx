@@ -100,7 +100,7 @@ const HomePage = ({ user }: HomePageProps) => {
 
       <section>
         <div className="flex items-baseline justify-between mb-3">
-          <h2 className="font-display text-2xl font-bold">Atividade recente</h2>
+          <h2 className="font-display text-2xl font-bold">Logs recentes</h2>
           <Link to={`/profile/${user.username}`} className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider transition-colors" style={{ color: 'var(--accent)' }}>Ver mais <ChevronRight size={14} /></Link>
         </div>
 
