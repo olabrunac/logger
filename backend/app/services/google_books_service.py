@@ -52,12 +52,13 @@ def search_books(query: str, author: str = None, year: int = None, isbn: str = N
     if isbn:
         q_str = f"isbn:{isbn}"
     else:
-        if use_intitle:
-            parts = [f"intitle:{query}"]
-        else:
-            parts = [query]
+        parts = []
+        if query:
+            parts.append(f"intitle:{query}" if use_intitle else query)
         if author:
             parts.append(f"inauthor:{author}")
+        if not parts:
+            return []
         q_str = " ".join(parts)
     params = {
         "q": q_str,
