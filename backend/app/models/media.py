@@ -63,9 +63,9 @@ class MediaItem(Base):
 
 class LogEntry(Base):
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
-    media_item_id = Column(Integer, ForeignKey("mediaitem.id"), nullable=False)
-    log_date = Column(DateTime, default=datetime.datetime.utcnow)
+    user_id = Column(Integer, ForeignKey("user.id"), nullable=False, index=True)
+    media_item_id = Column(Integer, ForeignKey("mediaitem.id"), nullable=False, index=True)
+    log_date = Column(DateTime, default=datetime.datetime.utcnow, index=True)
     rating = Column(Float, nullable=True)
     is_favorite = Column(Boolean, default=False)
     is_relog = Column(Boolean, default=False)
@@ -105,7 +105,7 @@ class LogLike(Base):
 
 class EpisodeWatched(Base):
     id = Column(Integer, primary_key=True, index=True)
-    log_id = Column(Integer, ForeignKey("logentry.id"), nullable=False)
+    log_id = Column(Integer, ForeignKey("logentry.id"), nullable=False, index=True)
     season_number = Column(Integer, nullable=False)
     episode_number = Column(Integer, nullable=False)
     episode_name = Column(String, nullable=True)
@@ -118,7 +118,7 @@ class EpisodeWatched(Base):
 
 class Achievement(Base):
     id = Column(Integer, primary_key=True, index=True)
-    log_id = Column(Integer, ForeignKey("logentry.id"), nullable=False)
+    log_id = Column(Integer, ForeignKey("logentry.id"), nullable=False, index=True)
     external_id = Column(String, nullable=False)
     name = Column(String, nullable=False)
     description = Column(Text, nullable=True)
@@ -129,7 +129,7 @@ class Achievement(Base):
 
 class LogReview(Base):
     id = Column(Integer, primary_key=True, index=True)
-    log_id = Column(Integer, ForeignKey("logentry.id"), nullable=False)
+    log_id = Column(Integer, ForeignKey("logentry.id"), nullable=False, index=True)
     review_text = Column(Text, nullable=True)
     rating = Column(Float, nullable=True)
     platform = Column(String, nullable=True)
@@ -140,8 +140,8 @@ class LogReview(Base):
 class TopListItem(Base):
     __tablename__ = "top_list_item"
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
-    media_item_id = Column(Integer, ForeignKey("mediaitem.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("user.id"), nullable=False, index=True)
+    media_item_id = Column(Integer, ForeignKey("mediaitem.id"), nullable=False, index=True)
     position = Column(Integer, nullable=False)  # 1 to 5
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
@@ -153,7 +153,7 @@ class TopListItem(Base):
 class CustomList(Base):
     __tablename__ = "custom_list"
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("user.id"), nullable=False, index=True)
     name = Column(String, nullable=False)
     description = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
@@ -166,8 +166,8 @@ class CustomList(Base):
 class CustomListItem(Base):
     __tablename__ = "custom_list_item"
     id = Column(Integer, primary_key=True, index=True)
-    custom_list_id = Column(Integer, ForeignKey("custom_list.id"), nullable=False)
-    media_item_id = Column(Integer, ForeignKey("mediaitem.id"), nullable=False)
+    custom_list_id = Column(Integer, ForeignKey("custom_list.id"), nullable=False, index=True)
+    media_item_id = Column(Integer, ForeignKey("mediaitem.id"), nullable=False, index=True)
     position = Column(Integer, nullable=False, default=0)
     added_at = Column(DateTime, default=datetime.datetime.utcnow)
 
