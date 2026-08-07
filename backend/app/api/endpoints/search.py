@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -13,43 +13,6 @@ import datetime
 import math
 
 router = APIRouter()
-
-# Type hints for the global search: `#filme`, `#serie`, `#jogo`, `#livro` (singular/plural)
-TYPE_FILTER_ALIASES: Dict[str, MediaType] = {
-    "filme": MediaType.MOVIE,
-    "filmes": MediaType.MOVIE,
-    "movie": MediaType.MOVIE,
-    "movies": MediaType.MOVIE,
-    "serie": MediaType.SERIES,
-    "series": MediaType.SERIES,
-    "show": MediaType.SERIES,
-    "shows": MediaType.SERIES,
-    "tv": MediaType.SERIES,
-    "jogo": MediaType.GAME,
-    "jogos": MediaType.GAME,
-    "game": MediaType.GAME,
-    "games": MediaType.GAME,
-    "livro": MediaType.BOOK,
-    "livros": MediaType.BOOK,
-    "book": MediaType.BOOK,
-    "books": MediaType.BOOK,
-}
-
-
-def _extract_type_filter(query: str) -> tuple[Optional[MediaType], str]:
-    """Extract a `#tipo` tag (e.g. `#serie`) from the query and return (media_type, cleaned_query)."""
-    words = query.split()
-    media_type: Optional[MediaType] = None
-    kept = []
-    for w in words:
-        if w.startswith("#"):
-            alias = w[1:].strip().lower()
-            t = TYPE_FILTER_ALIASES.get(alias)
-            if t is not None:
-                media_type = t
-                continue
-        kept.append(w)
-    return media_type, " ".join(kept)
 
 
 def _fuzzy_score(query: str, title: str) -> float:
@@ -232,48 +195,76 @@ def global_search(
     db: Session = Depends(deps.get_db),
     q: str = Query("", min_length=0, max_length=100),
     user_id: Optional[int] = Query(None),
+    media_type: Optional[MediaType] = Query(None),
+    author: Optional[str] = Query(None, max_length=100),
+    year: Optional[int] = Query(None, ge=1800, le=datetime.date.today().year + 1),
+    isbn: Optional[str] = Query(None, max_length=20),
 ) -> Any:
     query = q.strip()
     only_users = query.startswith("@")
     query = query.lstrip("@").strip()
-    type_filter, query = _extract_type_filter(query)
+    type_filter = media_type
     media_results: List[dict] = []
     user_results: List[dict] = []
 
-    if query:
+    if query or isbn:
         if not only_users:
-            local_query = db.query(MediaItem)
-            if type_filter is not None:
-                local_query = local_query.filter(MediaItem.media_type == type_filter)
-            items = local_query.filter(MediaItem.title.ilike(f"%{query}%")).limit(50).all()
-            local_results = [_serialize_media(i, db, user_id) for i in items]
+            local_results: List[dict] = []
             external_results: List[dict] = []
+            if query:
+                local_query = db.query(MediaItem)
+                if type_filter is not None:
+                    local_query = local_query.filter(MediaItem.media_type == type_filter)
+                if year is not None:
+                    local_query = local_query.filter(
+                        MediaItem.release_date >= datetime.date(year, 1, 1),
+                        MediaItem.release_date < datetime.date(year + 1, 1, 1),
+                    )
+                items = local_query.filter(MediaItem.title.ilike(f"%{query}%")).limit(50).all()
+                if author and (type_filter is None or type_filter == MediaType.BOOK):
+                    items = [
+                        i for i in items
+                        if any(author.lower() in (a or "").lower() for a in (i.authors or []))
+                    ]
+                local_results = [_serialize_media(i, db, user_id) for i in items]
 
-            if type_filter in (None, MediaType.MOVIE):
-                try:
-                    raw_movies = tmdb_service.search_media(query=query, media_type="movie") or []
-                    external_results += [_tmdb_to_media(it, MediaType.MOVIE) for it in raw_movies[:5]]
-                except Exception:
-                    pass
+            if query:
+                if type_filter in (None, MediaType.MOVIE):
+                    try:
+                        raw_movies = tmdb_service.search_media(query=query, media_type="movie", year=year) or []
+                        external_results += [_tmdb_to_media(it, MediaType.MOVIE) for it in raw_movies[:5]]
+                    except Exception:
+                        pass
 
-            if type_filter in (None, MediaType.SERIES):
-                try:
-                    raw_tv = tmdb_service.search_media(query=query, media_type="tv") or []
-                    external_results += [_tmdb_to_media(it, MediaType.SERIES) for it in raw_tv[:5]]
-                except Exception:
-                    pass
+                if type_filter in (None, MediaType.SERIES):
+                    try:
+                        raw_tv = tmdb_service.search_media(query=query, media_type="tv", year=year) or []
+                        external_results += [_tmdb_to_media(it, MediaType.SERIES) for it in raw_tv[:5]]
+                    except Exception:
+                        pass
 
-            if type_filter in (None, MediaType.GAME):
-                try:
-                    raw_games = igdb_service.search_games(query=query) or []
-                    external_results += [_igdb_to_media(it) for it in raw_games[:5]]
-                except Exception:
-                    pass
+                if type_filter in (None, MediaType.GAME):
+                    try:
+                        raw_games = igdb_service.search_games(query=query) or []
+                        game_results = [_igdb_to_media(it) for it in raw_games[:10]]
+                        if year is not None:
+                            game_results = [
+                                r for r in game_results
+                                if r.get("release_date") and int(r["release_date"][:4]) == year
+                            ]
+                        external_results += game_results[:5]
+                    except Exception:
+                        pass
 
             if type_filter in (None, MediaType.BOOK):
                 try:
-                    raw_books = google_books_service.search_books(query=query) or []
+                    raw_books = google_books_service.search_books(query=query, author=author, year=year, isbn=isbn) or []
                     external_results += [_book_to_media(it) for it in raw_books[:5]]
+                    if not external_results and query:
+                        raw_books2 = google_books_service.search_books(
+                            query, author=author, year=year, isbn=isbn, use_intitle=False
+                        ) or []
+                        external_results += [_book_to_media(it) for it in raw_books2[:5]]
                 except Exception:
                     pass
 
@@ -297,12 +288,13 @@ def global_search(
             )
             media_results = media_results[:15]
 
-        users = db.query(User).filter(
-            (User.username.ilike(f"%{query}%")) | (User.display_name.ilike(f"%{query}%"))
-        ).limit(20).all()
-        user_results = [_serialize_user(u, db) for u in users]
-        user_results.sort(key=lambda r: _fuzzy_score(query, r.get("display_name") or r.get("username") or ""), reverse=True)
-        user_results = user_results[:8]
+        if query:
+            users = db.query(User).filter(
+                (User.username.ilike(f"%{query}%")) | (User.display_name.ilike(f"%{query}%"))
+            ).limit(20).all()
+            user_results = [_serialize_user(u, db) for u in users]
+            user_results.sort(key=lambda r: _fuzzy_score(query, r.get("display_name") or r.get("username") or ""), reverse=True)
+            user_results = user_results[:8]
 
     return {"media": media_results, "users": user_results}
 
