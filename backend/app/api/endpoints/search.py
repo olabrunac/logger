@@ -207,7 +207,7 @@ def global_search(
     media_results: List[dict] = []
     user_results: List[dict] = []
 
-    if query or isbn:
+    if query or isbn or author or year:
         if not only_users:
             local_results: List[dict] = []
             external_results: List[dict] = []
@@ -227,6 +227,29 @@ def global_search(
                         if any(author.lower() in (a or "").lower() for a in (i.authors or []))
                     ]
                 local_results = [_serialize_media(i, db, user_id) for i in items]
+            elif author and (type_filter is None or type_filter == MediaType.BOOK):
+                books = (
+                    db.query(MediaItem)
+                    .filter(MediaItem.media_type == MediaType.BOOK)
+                    .order_by(MediaItem.popularity.desc())
+                    .all()
+                )
+                matched: List[MediaItem] = []
+                for i in books:
+                    if any(author.lower() in (a or "").lower() for a in (i.authors or [])):
+                        matched.append(i)
+                        if len(matched) >= 20:
+                            break
+                local_results = [_serialize_media(i, db, user_id) for i in matched]
+            elif year:
+                local_query = db.query(MediaItem).filter(
+                    MediaItem.release_date >= datetime.date(year, 1, 1),
+                    MediaItem.release_date < datetime.date(year + 1, 1, 1),
+                )
+                if type_filter is not None:
+                    local_query = local_query.filter(MediaItem.media_type == type_filter)
+                local_query = local_query.order_by(MediaItem.popularity.desc()).limit(20)
+                local_results = [_serialize_media(i, db, user_id) for i in local_query.all()]
 
             if query:
                 if type_filter in (None, MediaType.MOVIE):
@@ -256,7 +279,7 @@ def global_search(
                     except Exception:
                         pass
 
-            if type_filter in (None, MediaType.BOOK):
+            if type_filter in (None, MediaType.BOOK) and (query or author or isbn):
                 try:
                     raw_books = google_books_service.search_books(query=query, author=author, year=year, isbn=isbn) or []
                     external_results += [_book_to_media(it) for it in raw_books[:5]]

@@ -92,7 +92,7 @@ const SearchPage = () => {
     } else {
       setSearchParams({}, { replace: true });
     }
-    if (!q && !isbnVal) {
+    if (!q && !isbnVal && !author.trim() && !year.trim()) {
       setResults({ media: [], users: [] });
       setSearched(false);
       return;
@@ -122,7 +122,7 @@ const SearchPage = () => {
   }, [query, currentUserId, setSearchParams, mediaType, author, year, isbn]);
 
   const hasResults = results.media.length > 0 || results.users.length > 0;
-  const noResults = searched && !isLoading && (query.trim() || isbn.trim()) && !hasResults;
+  const noResults = searched && !isLoading && (query.trim() || isbn.trim() || author.trim() || year.trim()) && !hasResults;
 
   return (
     <div className="mx-auto" style={{ maxWidth: '900px' }}>
@@ -169,13 +169,15 @@ const SearchPage = () => {
         </div>
 
         <div className="flex items-center gap-3 mt-3 flex-wrap">
-          <input
-            type="text"
-            value={author}
-            onChange={(e) => setAuthor(e.target.value)}
-            placeholder="Autor..."
-            className="flex-1 min-w-[140px] bg-white/5 text-white placeholder-white/30 text-sm outline-none px-3 py-1.5 rounded-lg"
-          />
+          {(mediaType === 'all' || mediaType === 'book') && (
+            <input
+              type="text"
+              value={author}
+              onChange={(e) => setAuthor(e.target.value)}
+              placeholder="Autor..."
+              className="flex-1 min-w-[140px] bg-white/5 text-white placeholder-white/30 text-sm outline-none px-3 py-1.5 rounded-lg"
+            />
+          )}
           <input
             type="number"
             value={year}
@@ -197,12 +199,12 @@ const SearchPage = () => {
         </div>
       </div>
 
-      {!query.trim() && !isbn.trim() && (
+      {!query.trim() && !isbn.trim() && !author.trim() && !year.trim() && (
         <div className="space-y-6">
           <div className="mdf-card p-8 text-center text-white/40 text-sm">
             Digite para buscar mídias (filmes, séries, jogos, livros) ou perfis de usuários.
             <br />
-            Use <span className="text-white/70">@</span> no início para buscar apenas perfis. Use as pílulas acima para filtrar por tipo.
+            Use <span className="text-white/70">@</span> no início para buscar apenas perfis. Também dá para buscar só por <span className="text-white/70">autor</span>, <span className="text-white/70">ano</span> ou <span className="text-white/70">ISBN</span> nos campos abaixo.
           </div>
 
           {recent.length > 0 && (
