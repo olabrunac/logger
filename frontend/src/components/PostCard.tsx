@@ -4,6 +4,7 @@ import api from '../services/api';
 import type { User } from '../types';
 import type { Post, PostReply } from '../types/feed';
 import { PostImages } from './PostImages';
+import HashtagText from './HashtagText';
 import { Send, Trash2, MessageCircle, ThumbsUp, Pencil, Check, X } from 'lucide-react';
 import { imageUrl, timeAgo } from '../utils';
 
@@ -125,7 +126,7 @@ const PostCard = ({ post, currentUser, onReply, onDelete, onLike, onEdit }: Post
               </div>
             </div>
           ) : (
-            <p className="text-sm text-white/80 mt-1 whitespace-pre-wrap break-words">{post.content}</p>
+            <p className="text-sm text-white/80 mt-1 whitespace-pre-wrap break-words"><HashtagText text={post.content} /></p>
           )}
         </div>
       </div>
@@ -197,7 +198,7 @@ const PostCard = ({ post, currentUser, onReply, onDelete, onLike, onEdit }: Post
                       <Link to={`/profile/${reply.username}`} className="text-xs font-bold text-white hover:underline">{reply.username}</Link>
                       <span className="text-[10px] text-white/25">{timeAgo(reply.created_at)}</span>
                     </div>
-                    <p className="text-xs text-white/70 mt-0.5 whitespace-pre-wrap break-words">{reply.content}</p>
+                    <p className="text-xs text-white/70 mt-0.5 whitespace-pre-wrap break-words"><HashtagText text={reply.content} /></p>
                   </div>
                 </div>
               ))}

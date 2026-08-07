@@ -7,6 +7,7 @@ import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { TYPE_META } from '../constants/designSystem';
 import { getLogUrl } from '../utils';
+import HashtagText from '../components/HashtagText';
 
 interface DiaryPageProps {
   currentUser: User;
@@ -98,7 +99,7 @@ const DiaryPage = ({ currentUser }: DiaryPageProps) => {
                         {l.is_favorite && <Heart size={12} className="text-[var(--mdf-pink)] flex-shrink-0" fill="var(--mdf-pink)" />}
                       </div>
                       {l.platform && <div className="text-xs text-white/50 mt-0.5">{l.platform}</div>}
-                      {l.review && <p className="text-sm text-white/70 mt-1 line-clamp-2">{l.review}</p>}
+                      {l.review && <p className="text-sm text-white/70 mt-1 line-clamp-2"><HashtagText text={l.review} /></p>}
                     </div>
                     <div className="flex flex-col items-end gap-1">
                       {l.rating != null && (

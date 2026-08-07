@@ -6,6 +6,7 @@ import type { TimelineEntry } from '../types/feed';
 import { getStars, TYPE_META, STATUS_COLORS } from '../constants/designSystem';
 import { statusLabels } from '../constants/statusLabels';
 import StatusIcon from './StatusIcon';
+import HashtagText from './HashtagText';
 import { Send, Heart, MessageCircle, ThumbsUp } from 'lucide-react';
 import { imageUrl, getLogUrl, timeAgo } from '../utils';
 
@@ -137,7 +138,7 @@ const LogCard = ({ entry, currentUser, onReply, onLike }: LogCardProps) => {
                 {entry.review && (
                   <div className="mt-1.5">
                     <p className={`text-xs text-white/40 ${expandedReview ? '' : 'line-clamp-2'}`}>
-                      {expandedReview || !reviewTruncated ? entry.review : entry.review.slice(0, 150)}
+                      <HashtagText text={expandedReview || !reviewTruncated ? entry.review : entry.review.slice(0, 150)} />
                     </p>
                     {reviewTruncated && (
                       <span
@@ -234,7 +235,7 @@ const LogCard = ({ entry, currentUser, onReply, onLike }: LogCardProps) => {
                       <Link to={`/profile/${reply.username}`} className="text-xs font-bold text-white hover:underline">{reply.username}</Link>
                       <span className="text-[10px] text-white/25">{timeAgo(reply.created_at)}</span>
                     </div>
-                    <p className="text-xs text-white/70 mt-0.5 whitespace-pre-wrap break-words">{reply.content}</p>
+                    <p className="text-xs text-white/70 mt-0.5 whitespace-pre-wrap break-words"><HashtagText text={reply.content} /></p>
                   </div>
                 </div>
               ))}
