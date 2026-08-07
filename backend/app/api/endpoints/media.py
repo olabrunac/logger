@@ -1117,8 +1117,9 @@ def get_user_stats(*, db: Session = Depends(deps.get_db), user_id: int) -> Any:
     total_logs = db.query(LogEntry).filter(LogEntry.user_id == user_id, LogEntry.status.notin_(non_log)).count()
     favorites = db.query(LogEntry).filter(LogEntry.user_id == user_id, LogEntry.is_favorite == True, LogEntry.status.notin_(non_log)).count()
     completed = db.query(LogEntry).filter(LogEntry.user_id == user_id, LogEntry.status == 'completed').count()
-    stats_logs = db.query(LogEntry).filter(LogEntry.user_id == user_id, LogEntry.status.notin_(non_log)).all()
-    hours_total = sum(effective_hours(db, log) or 0 for log in stats_logs)
+    from app.services.hours_service import effective_hours_batch
+    stats_logs = db.query(LogEntry).options(joinedload(LogEntry.media_item)).filter(LogEntry.user_id == user_id, LogEntry.status.notin_(non_log)).all()
+    hours_total = sum(v or 0 for v in effective_hours_batch(db, stats_logs).values())
     wishlist_count = db.query(LogEntry).filter(LogEntry.user_id == user_id, LogEntry.status.in_(non_log)).count()
     return {"total_logs": total_logs, "favorites": favorites, "completed": completed, "hours_total": round(hours_total, 1), "wishlist": wishlist_count}
 
