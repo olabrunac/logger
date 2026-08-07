@@ -391,8 +391,11 @@ def get_timeline(
     user_id: int,
     limit: int = 50,
 ):
-    from app.crud import crud_follow, crud_log_interaction
-    from app.models.media import LogEntry
+    from app.crud import crud_follow
+    from app.models.media import LogEntry, LogReply, LogLike, EpisodeWatched, MediaType
+    from app.models.user import User
+    from sqlalchemy import func as sa_func
+    from sqlalchemy.orm import joinedload
 
     following_ids_raw = crud_follow.get_following(db, user_id=user_id)
     following_ids = [u.id for u in following_ids_raw]
@@ -400,6 +403,7 @@ def get_timeline(
 
     logs = (
         db.query(LogEntry)
+        .options(joinedload(LogEntry.media_item))
         .filter(LogEntry.user_id.in_(user_ids))
         .order_by(LogEntry.log_date.desc())
         .limit(limit * 2)
@@ -420,6 +424,76 @@ def get_timeline(
             "google_books_id": mi.google_books_id,
         }
 
+    # Batch data: users, watched counts and log interactions (avoid N+1)
+    needed_user_ids = {log.user_id for log in logs}
+    user_map = {}
+    if needed_user_ids:
+        user_map = {u.id: u for u in db.query(User).filter(User.id.in_(needed_user_ids)).all()}
+
+    series_log_ids = [
+        log.id for log in logs
+        if log.media_item and log.media_item.media_type == MediaType.SERIES
+    ]
+    watched_counts: dict[int, int] = {}
+    if series_log_ids:
+        watched_counts = {
+            log_id: count
+            for log_id, count in db.query(EpisodeWatched.log_id, sa_func.count())
+            .filter(
+                EpisodeWatched.log_id.in_(series_log_ids),
+                EpisodeWatched.watched == True,
+                EpisodeWatched.season_number > 0,
+            )
+            .group_by(EpisodeWatched.log_id)
+            .all()
+        }
+
+    log_ids = [log.id for log in logs]
+    replies_count: dict[int, int] = {}
+    likes_count: dict[int, int] = {}
+    liked_by: dict[int, list] = {}
+    is_liked_set: set = set()
+    if log_ids:
+        replies_count = {
+            log_id: count
+            for log_id, count in db.query(LogReply.log_id, sa_func.count())
+            .filter(LogReply.log_id.in_(log_ids))
+            .group_by(LogReply.log_id)
+            .all()
+        }
+        likes_count = {
+            log_id: count
+            for log_id, count in db.query(LogLike.log_id, sa_func.count())
+            .filter(LogLike.log_id.in_(log_ids))
+            .group_by(LogLike.log_id)
+            .all()
+        }
+        like_rows = (
+            db.query(LogLike)
+            .filter(LogLike.log_id.in_(log_ids))
+            .order_by(LogLike.created_at.desc())
+            .all()
+        )
+        likers: dict[int, list[int]] = {}
+        for lk in like_rows:
+            lst = likers.setdefault(lk.log_id, [])
+            if len(lst) < 5:
+                lst.append(lk.user_id)
+        liker_user_ids = {uid for lst in likers.values() for uid in lst}
+        liker_map = {}
+        if liker_user_ids:
+            liker_map = {u.id: u for u in db.query(User).filter(User.id.in_(liker_user_ids)).all()}
+        liked_by = {
+            lid: [{"username": liker_map[uid].username, "avatar_url": liker_map[uid].avatar_url} for uid in lst if uid in liker_map]
+            for lid, lst in likers.items()
+        }
+        is_liked_set = {
+            lid
+            for (lid,) in db.query(LogLike.log_id)
+            .filter(LogLike.log_id.in_(log_ids), LogLike.user_id == user_id)
+            .all()
+        }
+
     # Group by (user_id, media_type, log_date without time)
     groups: dict = {}
     for log in logs:
@@ -430,7 +504,7 @@ def get_timeline(
         key = (log.user_id, mt, date_key)
 
         if key not in groups:
-            user_obj = crud.user.get(db, id=log.user_id)
+            user_obj = user_map.get(log.user_id)
             groups[key] = {
                 "user": {
                     "id": user_obj.id,
@@ -450,7 +524,7 @@ def get_timeline(
             "review": log.review,
             "platform": log.platform,
             "is_favorite": log.is_favorite,
-            "hours_spent": effective_hours(db, log),
+            "hours_spent": effective_hours(db, log, watched_counts.get(log.id, 0)),
         })
 
     result = []
@@ -470,10 +544,10 @@ def get_timeline(
                 "log_date": g["log_date"],
                 "is_favorite": item["is_favorite"],
                 "hours_spent": item["hours_spent"],
-                "replies_count": crud_log_interaction.get_replies_count(db, item["log_id"]),
-                "likes_count": crud_log_interaction.get_likes_count(db, item["log_id"]),
-                "is_liked": crud_log_interaction.has_liked(db, item["log_id"], user_id),
-                "liked_by": crud_log_interaction.get_likers(db, item["log_id"], limit=5),
+                "replies_count": replies_count.get(item["log_id"], 0),
+                "likes_count": likes_count.get(item["log_id"], 0),
+                "is_liked": item["log_id"] in is_liked_set,
+                "liked_by": liked_by.get(item["log_id"], []),
             })
         else:
             # Determine the most common status in the group

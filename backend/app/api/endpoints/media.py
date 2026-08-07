@@ -500,6 +500,8 @@ def create_log_entry(*, db: Session = Depends(deps.get_db), payload: schemas.Log
 @router.get("/logs", response_model=List[schemas.LogEntryWithStats])
 def read_logs(*, db: Session = Depends(deps.get_db), user_id: int, skip: int = 0, limit: int = 100, viewer_id: Optional[int] = None) -> Any:
     from sqlalchemy import func as sa_func
+    from app.models.media import LogReply, LogLike
+    from app.models.user import User
     logs = crud.log_entry.get_multi_by_user(db, user_id=user_id, skip=skip, limit=limit)
     log_ids = [log.id for log in logs]
     series_ids = [log.id for log in logs if log.media_item.media_type == MediaType.SERIES]
@@ -537,6 +539,52 @@ def read_logs(*, db: Session = Depends(deps.get_db), user_id: int, skip: int = 0
         )
         total_achievement_counts = {log_id: count for log_id, count in rows_total}
 
+    replies_count: dict[int, int] = {}
+    likes_count: dict[int, int] = {}
+    liked_by: dict[int, list] = {}
+    is_liked_set: set = set()
+    if log_ids:
+        replies_count = {
+            log_id: count
+            for log_id, count in db.query(LogReply.log_id, sa_func.count())
+            .filter(LogReply.log_id.in_(log_ids))
+            .group_by(LogReply.log_id)
+            .all()
+        }
+        likes_count = {
+            log_id: count
+            for log_id, count in db.query(LogLike.log_id, sa_func.count())
+            .filter(LogLike.log_id.in_(log_ids))
+            .group_by(LogLike.log_id)
+            .all()
+        }
+        like_rows = (
+            db.query(LogLike)
+            .filter(LogLike.log_id.in_(log_ids))
+            .order_by(LogLike.created_at.desc())
+            .all()
+        )
+        likers: dict[int, list[int]] = {}
+        for lk in like_rows:
+            lst = likers.setdefault(lk.log_id, [])
+            if len(lst) < 5:
+                lst.append(lk.user_id)
+        user_ids = {uid for lst in likers.values() for uid in lst}
+        user_map = {}
+        if user_ids:
+            user_map = {u.id: u for u in db.query(User).filter(User.id.in_(user_ids)).all()}
+        liked_by = {
+            lid: [{"username": user_map[uid].username, "avatar_url": user_map[uid].avatar_url} for uid in lst if uid in user_map]
+            for lid, lst in likers.items()
+        }
+        if viewer_id:
+            is_liked_set = {
+                lid
+                for (lid,) in db.query(LogLike.log_id)
+                .filter(LogLike.log_id.in_(log_ids), LogLike.user_id == viewer_id)
+                .all()
+            }
+
     results = []
     for log in logs:
         stats = {"watched_episodes": None, "total_episodes": None, "unlocked_achievements": None, "total_achievements": None}
@@ -549,10 +597,10 @@ def read_logs(*, db: Session = Depends(deps.get_db), user_id: int, skip: int = 0
         log_dict = schemas.LogEntryInDB.model_validate(log).model_dump()
         log_dict.update(stats)
         log_dict["hours_spent"] = effective_hours(db, log, watched_counts.get(log.id))
-        log_dict["replies_count"] = crud_log_interaction.get_replies_count(db, log.id)
-        log_dict["likes_count"] = crud_log_interaction.get_likes_count(db, log.id)
-        log_dict["is_liked"] = crud_log_interaction.has_liked(db, log.id, viewer_id) if viewer_id else False
-        log_dict["liked_by"] = crud_log_interaction.get_likers(db, log.id, limit=5)
+        log_dict["replies_count"] = replies_count.get(log.id, 0)
+        log_dict["likes_count"] = likes_count.get(log.id, 0)
+        log_dict["is_liked"] = log.id in is_liked_set
+        log_dict["liked_by"] = liked_by.get(log.id, [])
         results.append(schemas.LogEntryWithStats(**log_dict))
     return results
 
