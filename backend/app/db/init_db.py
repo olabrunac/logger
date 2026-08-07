@@ -55,6 +55,8 @@ def init_db() -> None:
     _add_column('episodewatched', 'air_date', 'ALTER TABLE episodewatched ADD COLUMN air_date VARCHAR')
     _add_column('mediaitem', 'time_to_beat', 'ALTER TABLE mediaitem ADD COLUMN time_to_beat TEXT')
     _add_column('mediaitem', 'similar_games', 'ALTER TABLE mediaitem ADD COLUMN similar_games TEXT')
+    _add_column('mediaitem', 'authors', 'ALTER TABLE mediaitem ADD COLUMN authors JSON')
+    _add_column('mediaitem', 'popularity', 'ALTER TABLE mediaitem ADD COLUMN popularity FLOAT')
     _add_column('"user"', 'trophy_showcase', 'ALTER TABLE "user" ADD COLUMN trophy_showcase TEXT DEFAULT \'[]\'')
     _add_column('"user"', 'birth_date', 'ALTER TABLE "user" ADD COLUMN birth_date DATE')
     _add_column('"user"', 'birth_date_updated_at', 'ALTER TABLE "user" ADD COLUMN birth_date_updated_at TIMESTAMP')
