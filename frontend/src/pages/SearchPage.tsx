@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Search, User, X, Clock, TrendingUp } from 'lucide-react';
-import type { MediaItem } from '../types/media';
+import type { MediaItem, MediaType } from '../types/media';
 import type { User as UserType } from '../types';
 import { globalSearch, getPopularSearches, trackSearch } from '../services/api';
+import type { GlobalSearchFilters } from '../services/api';
 import { getMediaUrl, imageUrl } from '../utils';
 import { TYPE_META } from '../constants/designSystem';
 
@@ -32,6 +33,10 @@ const SearchPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialQuery = searchParams.get('q') || '';
   const [query, setQuery] = useState(initialQuery);
+  const [mediaType, setMediaType] = useState<MediaType | 'all'>('all');
+  const [author, setAuthor] = useState('');
+  const [year, setYear] = useState('');
+  const [isbn, setIsbn] = useState('');
   const [results, setResults] = useState<GlobalSearchResult>({ media: [], users: [] });
   const [isLoading, setIsLoading] = useState(false);
   const [searched, setSearched] = useState(false);
@@ -81,12 +86,13 @@ const SearchPage = () => {
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     const q = query.trim();
+    const isbnVal = isbn.trim();
     if (q) {
       setSearchParams({ q }, { replace: true });
     } else {
       setSearchParams({}, { replace: true });
     }
-    if (!q) {
+    if (!q && !isbnVal && !author.trim() && !year.trim()) {
       setResults({ media: [], users: [] });
       setSearched(false);
       return;
@@ -94,10 +100,16 @@ const SearchPage = () => {
     debounceRef.current = setTimeout(async () => {
       setIsLoading(true);
       try {
-        const { data } = await globalSearch(q, currentUserId);
+        const filters: GlobalSearchFilters = {};
+        if (mediaType !== 'all') filters.media_type = mediaType;
+        if (author.trim()) filters.author = author.trim();
+        const yearNum = Number(year);
+        if (year.trim() && !isNaN(yearNum)) filters.year = yearNum;
+        if (isbnVal) filters.isbn = isbnVal;
+        const { data } = await globalSearch(q, currentUserId, filters);
         setResults({ media: data?.media || [], users: data?.users || [] });
         setSearched(true);
-        rememberSearch(q);
+        if (q) rememberSearch(q);
       } catch (err) {
         console.error('Global search failed', err);
         setResults({ media: [], users: [] });
@@ -107,10 +119,10 @@ const SearchPage = () => {
       }
     }, 300);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [query, currentUserId, setSearchParams]);
+  }, [query, currentUserId, setSearchParams, mediaType, author, year, isbn]);
 
   const hasResults = results.media.length > 0 || results.users.length > 0;
-  const noResults = searched && !isLoading && query.trim() && !hasResults;
+  const noResults = searched && !isLoading && (query.trim() || isbn.trim() || author.trim() || year.trim()) && !hasResults;
 
   return (
     <div className="mx-auto" style={{ maxWidth: '900px' }}>
@@ -134,15 +146,65 @@ const SearchPage = () => {
             </button>
           )}
         </div>
+
+        <div className="flex items-center gap-2 mt-3 flex-wrap">
+          {(['all', 'movie', 'series', 'game', 'book'] as const).map((t) => {
+            const active = mediaType === t;
+            const meta = t === 'all' ? null : TYPE_META[t];
+            return (
+              <button
+                key={t}
+                onClick={() => setMediaType(t)}
+                className="px-3 py-1.5 rounded-full text-sm font-medium transition-colors"
+                style={{
+                  background: active ? (meta?.color || 'var(--accent)') : 'rgba(255,255,255,0.05)',
+                  color: active ? '#000' : 'rgba(255,255,255,0.7)',
+                  fontWeight: active ? 700 : 500,
+                }}
+              >
+                {t === 'all' ? 'Todos' : meta.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex items-center gap-3 mt-3 flex-wrap">
+          {(mediaType === 'all' || mediaType === 'book') && (
+            <input
+              type="text"
+              value={author}
+              onChange={(e) => setAuthor(e.target.value)}
+              placeholder="Autor..."
+              className="flex-1 min-w-[140px] bg-white/5 text-white placeholder-white/30 text-sm outline-none px-3 py-1.5 rounded-lg"
+            />
+          )}
+          <input
+            type="number"
+            value={year}
+            onChange={(e) => setYear(e.target.value)}
+            placeholder="Ano..."
+            min="1800"
+            max="2100"
+            className="w-24 bg-white/5 text-white placeholder-white/30 text-sm outline-none px-3 py-1.5 rounded-lg"
+          />
+          {(mediaType === 'all' || mediaType === 'book') && (
+            <input
+              type="text"
+              value={isbn}
+              onChange={(e) => setIsbn(e.target.value)}
+              placeholder="ISBN..."
+              className="w-36 bg-white/5 text-white placeholder-white/30 text-sm outline-none px-3 py-1.5 rounded-lg"
+            />
+          )}
+        </div>
       </div>
 
-      {!query.trim() && (
+      {!query.trim() && !isbn.trim() && !author.trim() && !year.trim() && (
         <div className="space-y-6">
           <div className="mdf-card p-8 text-center text-white/40 text-sm">
             Digite para buscar mídias (filmes, séries, jogos, livros) ou perfis de usuários.
             <br />
-            Use <span className="text-white/70">@</span> no início para buscar apenas perfis, ou
-            <span className="text-white/70"> #filme</span>, <span className="text-white/70">#serie</span>, <span className="text-white/70">#jogo</span> ou <span className="text-white/70">#livro</span> para filtrar por tipo.
+            Use <span className="text-white/70">@</span> no início para buscar apenas perfis. Também dá para buscar só por <span className="text-white/70">autor</span>, <span className="text-white/70">ano</span> ou <span className="text-white/70">ISBN</span> nos campos abaixo.
           </div>
 
           {recent.length > 0 && (
