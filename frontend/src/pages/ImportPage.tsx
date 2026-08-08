@@ -646,7 +646,7 @@ const ImportPage = ({ user }: ImportPageProps) => {
                 <div key={i} className="flex items-center justify-between px-3 py-2 text-sm border-b last:border-b-0" style={{ borderColor: 'var(--border)' }}>
                   <span style={{ color: 'white' }}>{item.title}</span>
                   <span className="text-xs" style={{ color: item.action === 'updated' ? '#3b82f6' : 'var(--accent)' }}>
-                    {item.action === 'updated' ? `+${item.episodes_added} eps` : 'novo'}
+                    {item.action === 'updated' ? (item.episodes_added ? `+${item.episodes_added} eps` : 'atualizado') : 'novo'}
                   </span>
                 </div>
               ))}
