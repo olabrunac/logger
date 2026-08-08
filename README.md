@@ -42,14 +42,13 @@ Site pessoal para registrar e acompanhar filmes, séries, jogos e livros, inspir
 - **Diário**: DiaryPage funcional com reviews agrupados por data
 - **Wishlist**: Entradas separadas de log, auto-cleanup ao completar, deduplicação no backend
 - **Top 5**: Capas com aspect ratio correto (inline styles)
+- **Horas automáticas em filmes/séries**: Tempo manual bloqueado — filme = `runtime/60`, série = `runtime/60 × episódios assistidos`, com precisão de minutos (2 casas; ex.: 119 min = 1.98h)
+- **"Limpar dados" preserva posts, respostas e follows**: O wipe (Settings → Segurança) apaga logs/reviews/episódios/conquistas/listas/curtidas/notificações/badges não especiais, mas mantém posts, respostas, seguidores, seguindo, avatar, banner, cor e badges especiais
+- **Sidebar padrão + editor de layout alinhado**: Ordem Favoritos → Top 5 → Avaliações → Estatísticas → Gêneros / Categorias → Horas por Mídia → Mapa de Atividade → Logs recentes → Medalhas; Favoritos e Top 5 ocultos por padrão; Medalhas só no Geral; nomes dos blocos do editor idênticos aos títulos da sidebar
+- **Lista de seguidores/seguindo clicável (#15)**: Contador abre modal com avatar, nome, username e link ao perfil
+- **Hashtags coloridas (#16)**: `#tag` em posts/logs/reviews pinta com a accent color do usuário
 
 ### 🔄 Em Andamento / Pendente
-1. **Início**: Arrumar a página inicial (HomePage)
-2. **Páginas de mídia**: Arrumar as páginas individuais de cada tipo de mídia
-3. **Perfil na sidebar**: Mudar o layout do perfil na barra lateral esquerda
-4. **Cadastro completo**: Cadastro com email e senha (atualmente só username)
-5. **Interação entre contas**: Sistema de seguir/curtir posts
-6. **Timeline**: Feed com posts dos seguidos
-7. **Importação de logs**: Importar de outras plataformas (Letterboxd, IGDB, etc)
-8. **Reviews acima de conquistas**: Mover reviews de dentro da aba de conquistas do log de jogo para antes dela
-9. **Publicação**: Publicar o site, avaliar ferramentas de hosting do GitHub Students
+1. **Filtro de importação TV Time**: Escolher importar só séries, só filmes ou tudo antes de confirmar
+2. **Jogos do Family Share na importação Steam**: Fluxo documentado (access token via sessão web), implementação adiada
+3. **Início (HomePage)**: Ajustes finais na página inicial

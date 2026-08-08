@@ -92,7 +92,7 @@ const RightSidebar = ({ user, isCollapsed, onToggleCollapse, previewOrder, embed
   }, [topListItems]);
 
   const sidebarOrder = useMemo(() => {
-    const defaults = ['favorites', 'top_5', 'stats', 'rating_distribution', 'top_genres', 'hours', 'activity_map', 'recent_activity', 'badges'];
+    const defaults = ['favorites', 'top_5', 'rating_distribution', 'stats', 'top_genres', 'hours', 'activity_map', 'recent_activity', 'badges'];
     if (previewOrder) return enforceSidebarIds(previewOrder);
     try {
       const raw = user?.section_order;
@@ -111,7 +111,7 @@ const RightSidebar = ({ user, isCollapsed, onToggleCollapse, previewOrder, embed
         }
       }
     } catch {}
-    return enforceSidebarIds(defaults);
+    return enforceSidebarIds(defaults.filter((id) => !(id === 'favorites' || id === 'top_5' || (activeMediaType && id === 'badges'))));
   }, [user?.section_order, activeMediaType, previewOrder]);
 
   const accentColor = user.accent_color || '#00e054';

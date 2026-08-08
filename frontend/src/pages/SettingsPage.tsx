@@ -60,12 +60,12 @@ const GENERAL_MOBILE: LayoutSectionDef[] = [
   { id: 'posts', label: 'Posts', icon: <MessageCircle className="h-3.5 w-3.5" />, visible: true, premium: false },
 ];
 const GENERAL_SIDEBAR: LayoutSectionDef[] = [
-  { id: 'favorites', label: 'Favoritos', icon: <Heart className="h-3.5 w-3.5" />, visible: true, premium: false },
-  { id: 'top_5', label: 'Top 5', icon: <Trophy className="h-3.5 w-3.5" />, visible: true, premium: false },
+  { id: 'favorites', label: 'Favoritos', icon: <Heart className="h-3.5 w-3.5" />, visible: false, premium: false },
+  { id: 'top_5', label: 'Top 5', icon: <Trophy className="h-3.5 w-3.5" />, visible: false, premium: false },
+  { id: 'rating_distribution', label: 'Avaliações', icon: <BarChart2 className="h-3.5 w-3.5" />, visible: true, premium: false },
   { id: 'stats', label: 'Estatísticas', icon: <BarChart2 className="h-3.5 w-3.5" />, visible: true, premium: false },
-  { id: 'rating_distribution', label: 'Distribuição de Notas', icon: <BarChart2 className="h-3.5 w-3.5" />, visible: true, premium: false },
-  { id: 'top_genres', label: 'Principais Gêneros', icon: <BarChart2 className="h-3.5 w-3.5" />, visible: true, premium: false },
-  { id: 'hours', label: 'Horas por Tipo', icon: <Clock className="h-3.5 w-3.5" />, visible: true, premium: false },
+  { id: 'top_genres', label: 'Gêneros / Categorias', icon: <BarChart2 className="h-3.5 w-3.5" />, visible: true, premium: false },
+  { id: 'hours', label: 'Horas por Mídia', icon: <Clock className="h-3.5 w-3.5" />, visible: true, premium: false },
   { id: 'activity_map', label: 'Mapa de Atividade', icon: <Activity className="h-3.5 w-3.5" />, visible: true, premium: false },
   { id: 'recent_activity', label: 'Logs recentes', icon: <Clock className="h-3.5 w-3.5" />, visible: true, premium: false },
   { id: 'badges', label: 'Medalhas', icon: <Medal className="h-3.5 w-3.5" />, visible: true, premium: false },
@@ -91,7 +91,9 @@ const MEDIA_MOBILE: LayoutSectionDef[] = [
   { id: 'completed', label: 'Finalizados', icon: <CheckCircle className="h-3.5 w-3.5" />, visible: true, premium: false },
   { id: 'reviews', label: 'Reviews', icon: <Star className="h-3.5 w-3.5" />, visible: true, premium: false },
 ];
-const MEDIA_SIDEBAR: LayoutSectionDef[] = GENERAL_SIDEBAR;
+const MEDIA_SIDEBAR: LayoutSectionDef[] = GENERAL_SIDEBAR.map((s) =>
+  s.id === 'badges' ? { ...s, visible: false } : s,
+);
 
 const CATEGORY_DEFAULTS: Record<LayoutCategory, Record<LayoutDevice, LayoutSectionDef[]>> = {
   general: { desktop: GENERAL_DESKTOP, mobile: GENERAL_MOBILE, sidebar: GENERAL_SIDEBAR },
@@ -546,7 +548,7 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
     setMessage(null);
     try {
       await api.post(`/users/${user.id}/wipe`);
-      showSuccess('Dados limpos com sucesso! Avatar, banner, cor e badge dev mantidos.');
+      showSuccess('Dados limpos! Posts, respostas, seguidores e seguindo mantidos.');
       setShowWipeConfirm(false);
     } catch (err: any) {
       showError(err.response?.data?.detail || 'Erro ao limpar dados.');
@@ -1187,7 +1189,7 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
             </div>
             <div className="space-y-2 text-white/70">
               <p>Tem certeza que deseja limpar todos os dados de <strong className="text-white">{user.username}</strong>?</p>
-              <p className="text-sm" style={{ color: '#eab308' }}>Logs, reviews, conquistas, notificações e badges serão apagados. Avatar, banner, cor de destaque e badges especiais serão mantidos.</p>
+              <p className="text-sm" style={{ color: '#eab308' }}>Logs, reviews, conquistas, listas, curtidas e notificações serão apagados. Posts, respostas, seguidores, seguindo, avatar, banner, cor de destaque e badges especiais serão mantidos.</p>
             </div>
             <div className="mt-6 flex gap-3">
               <button onClick={() => setShowWipeConfirm(false)} className="flex-1 rounded-xl border border-white/10 bg-transparent px-4 py-2.5 text-sm font-medium text-white/70 transition-colors hover:border-white/20 hover:text-white" disabled={wiping}>Cancelar</button>
