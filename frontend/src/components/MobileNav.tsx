@@ -72,7 +72,7 @@ const MobileNav = ({ user, onLogout, refreshUnreadTrigger }: MobileNavProps) => 
           )}
         </button>
 
-        <div className="font-display font-black tracking-[1.5px] text-xs" style={{ color: 'var(--accent)' }}>LOGGER</div>
+        <Link to="/" className="font-display font-black tracking-[1.5px] text-xs" style={{ color: 'var(--accent)' }}>LOGGER</Link>
 
         {user ? (
           <Link to="/notifications" className="h-11 w-11 flex items-center justify-center relative" aria-label="Notificações">
