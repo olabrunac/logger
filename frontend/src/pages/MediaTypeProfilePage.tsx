@@ -505,7 +505,7 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
     const expanded = showExpanded[statusId];
     return (
       <section key={statusId}>
-        <SectionHeader title={label} count={sectionLogs.length} />
+        <SectionHeader title={label} count={sectionLogs.length} linkTo={`/profile/${profileUser?.username}/${status}/${rawMediaType}`} />
         {sectionLogs.length === 0 ? (
           <div className="mdf-card p-6 text-center text-white/30 text-sm">{emptyMsg}</div>
         ) : (
@@ -542,7 +542,7 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
 
   const renderRecent = () => (
     <section>
-      <SectionHeader title="Logs recentes" count={filteredLogs.length} />
+      <SectionHeader title="Logs recentes" count={filteredLogs.length} linkTo={`/profile/${profileUser?.username}/all/${rawMediaType}`} />
       {filteredLogs.length === 0 ? (
         <div className="mdf-card p-6 text-center text-white/30 text-sm">Nenhuma mídia registrada.</div>
       ) : (
@@ -664,7 +664,7 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
 
   const renderAllItems = () => (
     <section>
-      <SectionHeader title="Todos" count={filteredLogs.length} />
+      <SectionHeader title="Todos" count={filteredLogs.length} linkTo={`/profile/${profileUser?.username}/all/${rawMediaType}`} />
       {filteredLogs.length === 0 ? (
         <div className="mdf-card p-6 text-center text-white/30 text-sm">Nenhuma mídia registrada.</div>
       ) : (
