@@ -578,6 +578,7 @@ def _run_steam_import(job, db, user_id: int, resolved_steam_id: str, items: list
     from app.models.media import Achievement
     created = 0
     skipped = 0
+    updated = 0
     media_crud = CRUDMediaItem(MediaItem)
 
     # Pre-resolve cover URLs for all appids in parallel (each HEAD ~1s, so
@@ -645,11 +646,6 @@ def _run_steam_import(job, db, user_id: int, resolved_steam_id: str, items: list
             LogEntry.user_id == user_id,
             LogEntry.media_item_id == media_item.id,
         ).first()
-        if existing_log:
-            skipped += 1
-            job.add_skipped({"title": title, "reason": "duplicate"})
-            job.progress(current=idx + 1, created=created, skipped=skipped)
-            continue
 
         status_str = item.get("status", "completed")
         try:
@@ -658,35 +654,46 @@ def _run_steam_import(job, db, user_id: int, resolved_steam_id: str, items: list
             log_status = LogStatus.COMPLETED
 
         hours = item.get("hours_spent")
-        log_date = None
-        if item.get("log_date"):
-            try:
-                log_date = datetime.datetime.fromisoformat(item["log_date"])
-            except (ValueError, TypeError):
-                log_date = datetime.datetime.utcnow()
+        new_family_share = bool(item.get("family_share", False))
+
+        if existing_log:
+            is_update = True
+            log = existing_log
+            # Re-import: horas são SUBSTITUÍDAS apenas se o novo import tiver mais
+            # (nunca somadas) — evita contagem dupla ao reimportar um arquivo novo.
+            if hours is not None and (log.hours_spent is None or hours > log.hours_spent):
+                log.hours_spent = hours
+            if log.family_share != new_family_share:
+                log.family_share = new_family_share
         else:
-            log_date = datetime.datetime.utcnow()
+            is_update = False
+            log_date = None
+            if item.get("log_date"):
+                try:
+                    log_date = datetime.datetime.fromisoformat(item["log_date"])
+                except (ValueError, TypeError):
+                    log_date = datetime.datetime.utcnow()
+            else:
+                log_date = datetime.datetime.utcnow()
 
-        log = LogEntry(
-            user_id=user_id,
-            media_item_id=media_item.id,
-            log_date=log_date,
-            status=log_status,
-            hours_spent=hours,
-            platform="Steam",
-            family_share=bool(item.get("family_share", False)),
-        )
-        db.add(log)
-        db.flush()
+            log = LogEntry(
+                user_id=user_id,
+                media_item_id=media_item.id,
+                log_date=log_date,
+                status=log_status,
+                hours_spent=hours,
+                platform="Steam",
+                family_share=new_family_share,
+            )
+            db.add(log)
+            db.flush()
 
-        review_entry = LogReview(
-            log_id=log.id,
-            platform="Steam",
-            created_at=log_date,
-        )
-        db.add(review_entry)
-        created += 1
-        job.add_imported({"title": title, "action": "created"})
+            review_entry = LogReview(
+                log_id=log.id,
+                platform="Steam",
+                created_at=log_date,
+            )
+            db.add(review_entry)
 
         ach_count = 0
         achievements_checked = False
@@ -723,6 +730,10 @@ def _run_steam_import(job, db, user_id: int, resolved_steam_id: str, items: list
                             Achievement.external_id == ext_id,
                         ).first()
                         if existing_ach:
+                            # Re-import: atualiza o estado de unlocked dos achievements existentes
+                            new_unlocked = a.get("achieved", 0) == 1
+                            if existing_ach.unlocked != new_unlocked:
+                                existing_ach.unlocked = new_unlocked
                             continue
                         ach_count += 1
                         db.add(Achievement(
@@ -776,12 +787,20 @@ def _run_steam_import(job, db, user_id: int, resolved_steam_id: str, items: list
             log.status = LogStatus.COMPLETED
             db.add(log)
 
-        # Games with <2h and no achievements go to library
-        if hours is not None and hours < 2 and achievements_checked and ach_count == 0:
+        # Games with <2h and no achievements go to library (apenas na criação;
+        # no re-import o status manual do usuário não é rebaixado)
+        if not is_update and hours is not None and hours < 2 and achievements_checked and ach_count == 0:
             log.status = LogStatus.LIBRARY
             db.add(log)
 
-        job.progress(current=idx + 1, created=created, skipped=skipped)
+        if is_update:
+            updated += 1
+            job.add_imported({"title": title, "action": "updated"})
+        else:
+            created += 1
+            job.add_imported({"title": title, "action": "created"})
+
+        job.progress(current=idx + 1, created=created, skipped=skipped, updated=updated)
 
     db.commit()
 
@@ -793,7 +812,7 @@ def _run_steam_import(job, db, user_id: int, resolved_steam_id: str, items: list
     except Exception:
         pass
 
-    return {"created": created, "skipped": skipped, "total": len(items)}
+    return {"created": created, "skipped": skipped, "updated": updated, "total": len(items)}
 
 
 @router.post("/trakt/preview", response_model=ImportPreview)

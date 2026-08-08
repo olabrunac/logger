@@ -1,4 +1,6 @@
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ChevronRight } from 'lucide-react';
 import type { TimelineEntry, GroupItem } from '../types/feed';
 import { TYPE_META } from '../constants/designSystem';
 import { statusLabels } from '../constants/statusLabels';
@@ -11,6 +13,26 @@ const groupItemUrl = (item: GroupItem): string => {
 };
 
 const LogGroupCard = ({ entry }: { entry: TimelineEntry }) => {
+  const [expanded, setExpanded] = useState(false);
+  const [clamped, setClamped] = useState(false);
+  const [twoLinesHeight, setTwoLinesHeight] = useState(0);
+  const itemsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = itemsRef.current;
+    if (!el) return;
+    const check = () => {
+      const rowH = el.firstElementChild?.getBoundingClientRect().height || 0;
+      const twoLines = rowH * 2 + 8;
+      setTwoLinesHeight(twoLines);
+      setClamped(twoLines > 0 && el.scrollHeight > twoLines);
+    };
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [entry.group_items]);
+
   if (!entry.user || !entry.media_item || !entry.group_items) return null;
   const meta = TYPE_META[entry.media_item.media_type as keyof typeof TYPE_META] || TYPE_META.game;
   const avatarUrl = imageUrl(entry.user.avatar_url);
@@ -40,7 +62,11 @@ const LogGroupCard = ({ entry }: { entry: TimelineEntry }) => {
             <span className="text-white/40">{meta.emoji}</span>
           </div>
 
-          <div className="flex gap-2 flex-wrap">
+          <div
+            ref={itemsRef}
+            className={`flex gap-2 flex-wrap ${!expanded && clamped ? 'overflow-hidden' : ''}`}
+            style={!expanded && clamped && twoLinesHeight > 0 ? { maxHeight: twoLinesHeight } : undefined}
+          >
             {entry.group_items.map((item) => {
               const itemStatusLabel = item.status ? statusLabels[item.media_type || '']?.[item.status] : null;
               return (
@@ -64,6 +90,17 @@ const LogGroupCard = ({ entry }: { entry: TimelineEntry }) => {
               );
             })}
           </div>
+
+          {clamped && (
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="mt-2 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide transition-colors"
+              style={{ color: 'var(--accent)' }}
+            >
+              {expanded ? 'Ver menos' : `Ver mais ${entry.group_count} ${meta.singular.toLowerCase()}s`}
+              <ChevronRight size={12} className={`transition-transform ${expanded ? 'rotate-90' : ''}`} />
+            </button>
+          )}
 
           <div className="flex items-center gap-3 mt-3 text-[10px] text-white/30">
             {entry.log_date && (
