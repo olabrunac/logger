@@ -51,7 +51,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
   const [customLists, setCustomLists] = useState<CustomList[]>([]);
   const [editingLayout, setEditingLayout] = useState(false);
 
-  const isMobile = useMediaQuery('(max-width: 767px)');
+  const isMobile = useMediaQuery('(max-width: 1023px)');
   const deviceKey = isMobile ? 'mobile' : 'desktop';
 
   const displayUsername = username || currentUser.username;
