@@ -312,10 +312,9 @@ def wipe_user_data(
         raise HTTPException(status_code=404, detail="User not found")
 
     from app.models.media import LogEntry, EpisodeWatched, Achievement, LogReview, TopListItem, CustomList, CustomListItem
-    from app.models.post import Post, PostImage, PostReply, PostLike
+    from app.models.post import PostLike
     from app.models.notification import Notification
     from app.models.user_badge import UserBadge
-    from app.models.user_follow import UserFollow
 
     log_ids = [l.id for l in db.query(LogEntry).filter(LogEntry.user_id == user_id).all()]
     if log_ids:
@@ -331,17 +330,8 @@ def wipe_user_data(
         db.query(CustomListItem).filter(CustomListItem.custom_list_id.in_(custom_ids)).delete(synchronize_session=False)
         db.query(CustomList).filter(CustomList.id.in_(custom_ids)).delete(synchronize_session=False)
 
-    post_ids = [p.id for p in db.query(Post).filter(Post.user_id == user_id).all()]
-    if post_ids:
-        db.query(Notification).filter(Notification.post_id.in_(post_ids)).delete(synchronize_session=False)
-        db.query(PostLike).filter(PostLike.post_id.in_(post_ids)).delete(synchronize_session=False)
-        db.query(PostReply).filter(PostReply.post_id.in_(post_ids)).delete(synchronize_session=False)
-        db.query(PostImage).filter(PostImage.post_id.in_(post_ids)).delete(synchronize_session=False)
-        db.query(Post).filter(Post.id.in_(post_ids)).delete(synchronize_session=False)
-
-    reply_ids = [r.id for r in db.query(PostReply).filter(PostReply.user_id == user_id).all()]
-    if reply_ids:
-        db.query(PostReply).filter(PostReply.id.in_(reply_ids)).delete(synchronize_session=False)
+    # Posts, replies e follows são PRESERVADOS no wipe: o usuário mantém sua
+    # timeline (posts), suas respostas, quem segue e seus seguidores.
 
     like_ids = [l.id for l in db.query(PostLike).filter(PostLike.user_id == user_id).all()]
     if like_ids:
@@ -353,12 +343,6 @@ def wipe_user_data(
     if notif_ids:
         db.query(Notification).filter(Notification.id.in_(notif_ids)).delete(synchronize_session=False)
 
-    follow_ids = [f.id for f in db.query(UserFollow).filter(
-        (UserFollow.follower_id == user_id) | (UserFollow.following_id == user_id)
-    ).all()]
-    if follow_ids:
-        db.query(UserFollow).filter(UserFollow.id.in_(follow_ids)).delete(synchronize_session=False)
-
     from app.core.badge_definitions import BADGE_DEFS
     special_keys = {k for k, d in BADGE_DEFS.items() if d.special}
     badge_ids = [b.id for b in db.query(UserBadge).filter(
@@ -368,7 +352,7 @@ def wipe_user_data(
         db.query(UserBadge).filter(UserBadge.id.in_(badge_ids)).delete(synchronize_session=False)
 
     db.commit()
-    return {"message": "Dados limpos com sucesso. Avatar, banner, cor e badges especiais mantidos."}
+    return {"message": "Dados limpos com sucesso. Posts, respostas, seguidores, seguindo, avatar, banner, cor e badges especiais mantidos."}
 
 @router.get("/{user_id}/achievements")
 def get_user_achievements(
