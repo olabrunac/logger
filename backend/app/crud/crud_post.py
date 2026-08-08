@@ -92,6 +92,9 @@ def delete_post(db: Session, post_id: int, user_id: int) -> bool:
     post = db.query(Post).filter(Post.id == post_id, Post.user_id == user_id).first()
     if not post:
         return False
+    from app.models.notification import Notification
+    db.query(PostLike).filter(PostLike.post_id == post_id).delete(synchronize_session=False)
+    db.query(Notification).filter(Notification.post_id == post_id).delete(synchronize_session=False)
     db.delete(post)
     db.commit()
     return True
