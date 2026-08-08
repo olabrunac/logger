@@ -526,6 +526,7 @@ def get_timeline(
             "review": log.review,
             "platform": log.platform,
             "is_favorite": log.is_favorite,
+            "family_share": log.family_share,
             "hours_spent": effective_hours(db, log, watched_counts.get(log.id, 0)),
         })
 
@@ -545,6 +546,7 @@ def get_timeline(
                 "platform": item["platform"],
                 "log_date": g["log_date"],
                 "is_favorite": item["is_favorite"],
+                "family_share": item["family_share"],
                 "hours_spent": item["hours_spent"],
                 "replies_count": replies_count.get(item["log_id"], 0),
                 "likes_count": likes_count.get(item["log_id"], 0),

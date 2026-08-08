@@ -65,6 +65,7 @@ export interface LogEntry {
   relog_count?: number;
   platform?: string;
   hours_spent?: number;
+  family_share?: boolean;
   pages_read?: number;
   review?: string;
   status: LogStatus;
