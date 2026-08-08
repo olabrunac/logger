@@ -49,6 +49,9 @@ Site pessoal para registrar e acompanhar filmes, séries, jogos e livros, inspir
 - **Hashtags coloridas (#16)**: `#tag` em posts/logs/reviews pinta com a accent color do usuário
 
 ### 🔄 Em Andamento / Pendente
-1. **Filtro de importação TV Time**: Escolher importar só séries, só filmes ou tudo antes de confirmar
-2. **Jogos do Family Share na importação Steam**: Fluxo documentado (access token via sessão web), implementação adiada
-3. **Início (HomePage)**: Ajustes finais na página inicial
+Nenhuma pendência ativa — backlog encerrado, nova leva de edições em definição.
+
+### 📦 Arquivadas / Ideias futuras
+- **Filtro de importação TV Time**: importação parcial (só séries, só filmes ou tudo)
+- **Jogos do Family Share na importação Steam**: fluxo documentado (access token via sessão web), adiado
+- **Início (HomePage)**: ajustes finais na página inicial

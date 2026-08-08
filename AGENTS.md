@@ -40,21 +40,15 @@
 - **Contador de stats**: `completed + in_progress + dropped` (exclui wishlist).
 - **Wishlist**: Fetch separado via `/media/wishlist` (merge manual com logs nas páginas de perfil).
 
-## 📋 Pendências (TODO) — agrupadas em ondas por afinidade (fácil → complexo)
-### Onda 5 — Grandes
-13. **Jogos do Family Share na importação Steam**: Importar também os jogos compartilhados pela família (não comprados). **Decisão (05/08): documentado, implementação adiada** — segue o layout mobile. Fluxo técnico pesquisado (implementação futura):
-   - **Access token**: o fluxo OAuth oficial (redirect/login) exige um **Client ID da Valve** (aprovado caso a caso — sem isso é inviável por cross-origin). Abordagem usada pelas ferramentas da comunidade (Playnite, bots): o usuário **cola o access token** da sessão web do Steam (curta duração ≈24h; obtido via `https://login.steampowered.com/jwt/steamjwt` a partir do cookie `steamLoginSecure`, ou do localStorage do site do Steam). Fluxo no app: campo opcional na aba Steam + instruções de extração + salvar no localStorage.
-   - **Endpoints** (`api.steampowered.com/IFamilyGroupsService/...`, param `access_token`, sem `key`):
-     - `GetFamilyGroupForUser/v1/` → `family_groupid` (params: `include_family_group_response=1`; `steamid` omitido para o usuário autenticado).
-     - `GetSharedLibraryApps/v1/` → `{"apps": [{appid, name, owner_steamids}]}` (params: `family_groupid`, `include_own=false`, `include_free=false`, `include_non_games=false`, `language`).
-     - `GetPlaytimeSummary/v1/` → playtimes por app (params: `family_groupid`).
-   - **Integração**: `steam_preview` (`import_data.py`) passa a aceitar `access_token` opcional; mescla jogos do Family Share com os próprios (dedup por `appid`, marcação `family_share` no item para o `ImportItem`), regra de `library`/`dropped` igual à atual.
-14. **Publicação (#10)**: Resolvido — deploy automático do **Railway** ao mergear na main.
+## 📋 Pendências (TODO)
+Nenhuma pendência ativa no momento — backlog encerrado (ver issues/PRs abertos). Nova leva de edições em definição.
 
-### Onda 6 — Next
-17. **Filtro de importação TV Time**: permitir importação **parcial** — o usuário escolhe entre **só séries, só filmes ou tudo** antes de confirmar (UI de seleção na aba TV Time + filtro por `media_type` dos items no `import_data.py`).
+### Arquivadas / Futuras (fora do backlog ativo)
+- **Jogos do Family Share na importação Steam** (decisão 05/08: adiada). Fluxo técnico pesquisado: o OAuth oficial exige um **Client ID da Valve** (aprovado caso a caso — inviável por cross-origin); abordagem da comunidade (Playnite, bots): o usuário **cola o access token** da sessão web do Steam (curta duração ≈24h, obtido via `https://login.steampowered.com/jwt/steamjwt` a partir do cookie `steamLoginSecure` ou do localStorage do site). Endpoints (`api.steampowered.com/IFamilyGroupsService/...`, param `access_token`, sem `key`): `GetFamilyGroupForUser/v1/` → `family_groupid` (params: `include_family_group_response=1`; `steamid` omitido para o usuário autenticado); `GetSharedLibraryApps/v1/` → `{"apps": [{appid, name, owner_steamids}]}` (params: `family_groupid`, `include_own=false`, `include_free=false`, `include_non_games=false`, `language`); `GetPlaytimeSummary/v1/` → playtimes. Integração futura: `steam_preview` (`import_data.py`) aceita `access_token` opcional, mescla jogos da família com os próprios (dedup por `appid`, marcação `family_share` no `ImportItem`), regra `library`/`dropped` igual à atual.
+- **Filtro de importação TV Time**: importação **parcial** — escolher **só séries, só filmes ou tudo** antes de confirmar (UI de seleção na aba TV Time + filtro por `media_type` dos items em `import_data.py`).
 
 ## ✅ Implementado
+- **Publicação (#10/#14)**: Resolvido — deploy automático do **Railway** ao mergear na main.
 - **Onda 6 — #15 e #16 concluídos**: **#15** Lista de seguidores/seguindo clicável — clicar no contador abre `FollowersFollowingModal` (avatar, nome, username, link ao perfil) alimentado por `GET /users/{user_id}/followers` e `.../following` (que já retornam `display_name`/`accent_color`); **#16** Hashtags coloridas — `HashtagText.tsx` parseia `#tag` no corpo de posts/logs/reviews e pinta com a accent color, aplicado em `PostCard`, `LogCard`, `LogGroupCard`, `DiaryPage`, `MediaDetailPage`, `ReviewsPage`, `ProfilePage` e `MediaTypeProfilePage`.
 - **Horas automáticas em filmes e séries**: tempo manual **bloqueado** nessas mídias — filme = `runtime/60`, série = `runtime/60 × episódios assistidos`. Precisão de **minutos** com 2 casas (`round(..., 2)`; ex.: 119 min = **1.98h**). Backend: helpers `_manual_hours_allowed`/`_calc_media_hours` (`media.py`) em create/update/patch de log, `_update_series_status` e `backfill_hours`; serialização (`user_log`) e stats usam `effective_hours`; `hours_service.py`/`import_data.py` com round 2; migração em `init_db.py` zera `hours_spent` de logs `movie`/`series`. Frontend: `LogForm.tsx` esconde o campo de horas para filme/série (hint "Tempo calculado automaticamente..."), input de horas com `step="0.01"` e aceita vírgula (`Number(String(h).replace(',', '.'))`).
 - **"Limpar dados" preserva posts, respostas e follows**: o wipe (Settings → Segurança) apaga logs, reviews, episódios, conquistas, listas, curtidas do usuário, notificações e badges não especiais — mas **mantém** os posts do usuário, as próprias respostas, seguidores, seguindo, avatar, banner, cor e badges com `special=True` (`users.py`: deleções de `Post`/`PostImage`/`PostReply`/`UserFollow` removidas do wipe).
