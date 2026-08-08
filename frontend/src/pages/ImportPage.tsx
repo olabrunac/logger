@@ -18,10 +18,12 @@ interface ImportPageProps {
 
 type Tab = 'letterboxd' | 'steam' | 'trakt' | 'tvtime';
 type Phase = 'upload' | 'preview' | 'importing' | 'done';
+type TvTimeFilter = 'all' | 'series' | 'movie';
 
 interface ImportItem {
   title: string;
   year?: number;
+  media_type?: string;
   rating?: number;
   review?: string;
   hours_spent?: number;
@@ -106,7 +108,7 @@ const ImportPage = ({ user }: ImportPageProps) => {
       }
     }
   };
-  const [selectAll, setSelectAll] = useState(true);
+  const [tvTimeFilter, setTvTimeFilter] = useState<TvTimeFilter>('all');
   const [rawFile, setRawFile] = useState<File | null>(null);
   const [importProgress, setImportProgress] = useState<{ current: number; total: number; etaSeconds: number | null }>({ current: 0, total: 0, etaSeconds: null });
   const [isDragOver, setIsDragOver] = useState(false);
@@ -138,7 +140,7 @@ const ImportPage = ({ user }: ImportPageProps) => {
     setItems([]);
     setResult(null);
     setError(null);
-    setSelectAll(true);
+    setTvTimeFilter('all');
     setSteamId('');
     setRawFile(null);
     setIsDragOver(false);
@@ -156,12 +158,26 @@ const ImportPage = ({ user }: ImportPageProps) => {
   };
 
   const toggleAll = () => {
-    const newSelectAll = !selectAll;
-    setSelectAll(newSelectAll);
-    setItems(prev => prev.map(item => ({ ...item, selected: newSelectAll })));
+    const visible = items.filter(i => tvTimeFilter === 'all' || i.media_type === tvTimeFilter);
+    const newSelectAll = visible.length === 0 || !visible.every(i => i.selected);
+    setItems(prev => prev.map(item => {
+      const matches = tvTimeFilter === 'all' || item.media_type === tvTimeFilter;
+      if (!matches) return item;
+      return { ...item, selected: newSelectAll };
+    }));
+  };
+
+  const applyTvTimeFilter = (filter: TvTimeFilter) => {
+    setTvTimeFilter(filter);
+    setItems(prev => prev.map(item => ({
+      ...item,
+      selected: filter === 'all' || item.media_type === filter,
+    })));
   };
 
   const getSelected = () => items.filter(i => i.selected);
+  const visibleItems = items.filter(i => tvTimeFilter === 'all' || i.media_type === tvTimeFilter);
+  const allVisibleSelected = visibleItems.length > 0 && visibleItems.every(i => i.selected);
 
   const processFile = useCallback(async (file: File) => {
     setLoading(true);
@@ -281,7 +297,7 @@ const ImportPage = ({ user }: ImportPageProps) => {
       } else if (tab === 'steam') {
         res = await steamImport(user.id, steamId, cleanItems);
       } else if (tab === 'tvtime' && rawFile) {
-        res = await tvtimeImport(user.id, cleanItems, rawFile);
+        res = await tvtimeImport(user.id, cleanItems, rawFile, tvTimeFilter);
       } else {
         res = await traktImport(user.id, cleanItems);
       }
@@ -446,7 +462,7 @@ const ImportPage = ({ user }: ImportPageProps) => {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="font-display text-xl font-bold">{items.length} itens encontrados</h2>
+              <h2 className="font-display text-xl font-bold">{visibleItems.length} itens encontrados</h2>
               <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                 Desmarque os itens que nao deseja importar.
               </p>
@@ -456,16 +472,38 @@ const ImportPage = ({ user }: ImportPageProps) => {
                 Voltar
               </button>
               <label className="flex items-center gap-2 text-sm cursor-pointer" style={{ color: 'var(--text-muted)' }}>
-                <input type="checkbox" checked={selectAll} onChange={toggleAll}
+                <input type="checkbox" checked={allVisibleSelected} onChange={toggleAll}
                   className="w-4 h-4 rounded accent-[var(--accent)]" />
                 Todos
               </label>
             </div>
           </div>
 
+          {tab === 'tvtime' && (
+            <div className="flex items-center gap-2">
+              {([['all', 'Tudo'], ['series', 'Só séries'], ['movie', 'Só filmes']] as const).map(([key, label]) => {
+                const count = key === 'all'
+                  ? items.length
+                  : items.filter(i => i.media_type === key).length;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => applyTvTimeFilter(key)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                    style={tvTimeFilter === key
+                      ? { background: 'var(--accent)', color: '#000' }
+                      : { background: 'var(--mdf-bg)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+                  >
+                    {label} ({count})
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           <div className="rounded-xl overflow-hidden border" style={{ borderColor: 'var(--border)', background: 'var(--mdf-surface)' }}>
             <div className="max-h-[420px] overflow-y-auto">
-              {items.map((item, idx) => (
+              {visibleItems.map((item, idx) => (
                 <div
                   key={idx}
                   className="flex items-center gap-3 px-4 py-3 border-b last:border-b-0 transition-colors"
@@ -490,6 +528,14 @@ const ImportPage = ({ user }: ImportPageProps) => {
                       {item.review && <span> · 📝 review</span>}
                     </div>
                   </div>
+                  {tab === 'tvtime' && item.media_type && (
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full flex-shrink-0"
+                      style={item.media_type === 'series'
+                        ? { background: 'rgba(59,130,246,0.2)', color: '#60a5fa' }
+                        : { background: 'rgba(244,63,94,0.2)', color: '#fb7185' }}>
+                      {item.media_type === 'series' ? 'série' : 'filme'}
+                    </span>
+                  )}
                   {item.status === 'wishlist' && (
                     <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: 'rgba(168,85,247,0.2)', color: '#a855f7' }}>
                       wishlist
