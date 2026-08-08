@@ -163,7 +163,7 @@ const tabs = [
             </div>
 
             {(bio || showLocation) && (
-              <div className="flex items-center gap-3 mt-3 max-w-2xl">
+              <div className="flex items-center justify-center gap-3 mt-3 max-w-2xl mx-auto">
                 {showLocation && (
                   <span className="flex items-center gap-1.5 text-sm text-white/50 shrink-0">
                     {countryCode && (
@@ -182,17 +182,13 @@ const tabs = [
               </div>
             )}
 
-            <div className="flex items-center justify-center md:justify-start gap-5 mt-4 text-xs text-white/50 lg:hidden">
-              <span className="flex items-center gap-1.5">
-                <span className="font-bold text-white tabular-nums">{activeMediaTypes.length}</span>
-                Títulos
-              </span>
+            <div className="flex items-center justify-center gap-6 mt-4 mb-4 text-xs text-white/50 lg:hidden">
               <button onClick={() => setListModal('following')} className="flex items-center gap-1.5 transition-colors hover:text-white/80">
-                <span className="font-bold text-white tabular-nums">{profileUser.following_count ?? 0}</span>
+                <span className="font-bold text-white tabular-nums inline-block text-center min-w-[3ch]">{profileUser.following_count ?? 0}</span>
                 Seguindo
               </button>
               <button onClick={() => setListModal('followers')} className="flex items-center gap-1.5 transition-colors hover:text-white/80">
-                <span className="font-bold text-white tabular-nums">{profileUser.followers_count ?? 0}</span>
+                <span className="font-bold text-white tabular-nums inline-block text-center min-w-[3ch]">{profileUser.followers_count ?? 0}</span>
                 Seguidores
               </button>
             </div>
