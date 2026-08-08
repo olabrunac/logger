@@ -72,6 +72,7 @@ class LogEntry(Base):
     relog_count = Column(Integer, default=0)
     platform = Column(String, nullable=True)
     hours_spent = Column(Float, nullable=True)
+    family_share = Column(Boolean, default=False)
     pages_read = Column(Integer, nullable=True)
     review = Column(Text, nullable=True)
     status = Column(Enum(LogStatus), nullable=False)
