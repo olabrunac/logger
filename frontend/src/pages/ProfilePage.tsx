@@ -589,7 +589,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
     );
   });
 
-  const renderGrid = (title: string, gridLogs: LogEntry[], sortByTitle = false, limit = 12) => {
+  const renderGrid = (title: string, gridLogs: LogEntry[], sortByTitle = false, limit = 12, linkTo?: string) => {
     let items = gridLogs;
     if (sortByTitle) {
       items = [...gridLogs].sort((a, b) => (a.media_item?.title || '').localeCompare(b.media_item?.title || '', 'pt-BR', { sensitivity: 'base', numeric: true }));
@@ -597,7 +597,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
     const visible = items.slice(0, limit);
     return (
       <section>
-        <SectionHeader title={title} count={items.length} />
+        <SectionHeader title={title} count={items.length} linkTo={linkTo} />
         <div className="hidden lg:grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
           {visible.map(log => <YgpCard key={log.id} log={log} accentColor={accentColor} />)}
         </div>
@@ -616,14 +616,14 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
     const singular = TYPE_META[type]?.singular || type;
     const sectionLogs = viewLogs.filter(l => l.media_item.media_type === type && l.status === status);
     if (sectionLogs.length === 0) return null;
-    return renderGrid(`${label} ${singular}`, sectionLogs, status === 'library');
+    return renderGrid(`${label} ${singular}`, sectionLogs, status === 'library', 12, `/profile/${profileUser?.username}/${status}/${TYPE_META[type]?.slug}`);
   };
 
   const renderAllType = (type: string) => {
     const meta = TYPE_META[type];
     const typeLogs = viewLogs.filter(l => l.media_item.media_type === type);
     if (typeLogs.length === 0) return null;
-    return renderGrid(`Todos ${meta?.label}`, typeLogs, true);
+    return renderGrid(`Todos ${meta?.label}`, typeLogs, true, 12, `/profile/${profileUser?.username}/all/${meta?.slug}`);
   };
 
   const renderCustomListsAll = () => ['game', 'movie', 'series', 'book'].map(type => {
@@ -697,7 +697,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
     reviews: renderReviews,
     posts: renderPosts,
     top_5: renderTop5All,
-    general_all: () => renderGrid('Geral', viewLogs, true),
+    general_all: () => renderGrid('Geral', viewLogs, true, 12, `/profile/${profileUser?.username}/all/all`),
     custom_lists: renderCustomListsAll,
   };
 

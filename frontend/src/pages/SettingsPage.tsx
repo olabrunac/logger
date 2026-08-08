@@ -6,6 +6,7 @@ import RightSidebar from '../components/RightSidebar';
 import LayoutPreview from '../components/LayoutPreview';
 import type { User } from '../types';
 import { imageUrl } from '../utils';
+import { TYPE_META } from '../constants/designSystem';
 import {
   User as UserIcon,
   Shield,
@@ -45,20 +46,47 @@ interface LayoutSectionDef {
   id: string; label: string; icon: React.ReactNode; visible: boolean; premium: boolean;
 }
 
+const STATUS_LABELS: { id: string; label: string }[] = [
+  { id: 'in_progress', label: 'Em Progresso' },
+  { id: 'completed', label: 'Finalizados' },
+  { id: 'wishlist', label: 'Lista de Desejos' },
+  { id: 'library', label: 'Biblioteca' },
+  { id: 'dropped', label: 'Abandonados' },
+];
+
+const MEDIA_TYPES = ['movie', 'series', 'game', 'book'] as const;
+const mediaIcon = (type: string) => <span className="text-xs leading-none">{TYPE_META[type]?.emoji || '📄'}</span>;
+
+const GENERAL_EXTRA: LayoutSectionDef[] = [
+  { id: 'top_5', label: 'Top 5', icon: <Trophy className="h-3.5 w-3.5" />, visible: false, premium: false },
+  { id: 'general_all', label: 'Geral (todos os logs)', icon: <Layers className="h-3.5 w-3.5" />, visible: false, premium: false },
+  { id: 'custom_lists', label: 'Listas Personalizadas', icon: <Menu className="h-3.5 w-3.5" />, visible: false, premium: false },
+  ...MEDIA_TYPES.map(type => ({
+    id: `all_${type}`,
+    label: `Todos ${TYPE_META[type]?.label}`,
+    icon: mediaIcon(type),
+    visible: false,
+    premium: false,
+  })),
+  ...STATUS_LABELS.flatMap(s =>
+    MEDIA_TYPES.map(type => ({
+      id: `${s.id}_${type}`,
+      label: `${s.label} ${TYPE_META[type]?.singular}`,
+      icon: mediaIcon(type),
+      visible: false,
+      premium: false,
+    })),
+  ),
+];
+
 const GENERAL_DESKTOP: LayoutSectionDef[] = [
-  { id: 'stats_grid', label: 'Estatísticas', icon: <BarChart2 className="h-3.5 w-3.5" />, visible: true, premium: false },
   { id: 'favorite_games', label: 'Favoritos', icon: <Heart className="h-3.5 w-3.5" />, visible: true, premium: false },
   { id: 'recent_games', label: 'Logs recentes', icon: <Clock className="h-3.5 w-3.5" />, visible: true, premium: false },
   { id: 'reviews', label: 'Reviews', icon: <Star className="h-3.5 w-3.5" />, visible: true, premium: false },
   { id: 'posts', label: 'Posts', icon: <MessageCircle className="h-3.5 w-3.5" />, visible: true, premium: false },
+  ...GENERAL_EXTRA,
 ];
-const GENERAL_MOBILE: LayoutSectionDef[] = [
-  { id: 'stats_grid', label: 'Estatísticas', icon: <BarChart2 className="h-3.5 w-3.5" />, visible: true, premium: false },
-  { id: 'favorite_games', label: 'Favoritos', icon: <Heart className="h-3.5 w-3.5" />, visible: true, premium: false },
-  { id: 'recent_games', label: 'Logs recentes', icon: <Clock className="h-3.5 w-3.5" />, visible: true, premium: false },
-  { id: 'reviews', label: 'Reviews', icon: <Star className="h-3.5 w-3.5" />, visible: true, premium: false },
-  { id: 'posts', label: 'Posts', icon: <MessageCircle className="h-3.5 w-3.5" />, visible: true, premium: false },
-];
+const GENERAL_MOBILE: LayoutSectionDef[] = GENERAL_DESKTOP;
 const GENERAL_SIDEBAR: LayoutSectionDef[] = [
   { id: 'favorites', label: 'Favoritos', icon: <Heart className="h-3.5 w-3.5" />, visible: false, premium: false },
   { id: 'top_5', label: 'Top 5', icon: <Trophy className="h-3.5 w-3.5" />, visible: false, premium: false },
@@ -72,7 +100,6 @@ const GENERAL_SIDEBAR: LayoutSectionDef[] = [
 ];
 
 const MEDIA_DESKTOP: LayoutSectionDef[] = [
-  { id: 'stats_grid', label: 'Estatísticas', icon: <BarChart2 className="h-3.5 w-3.5" />, visible: true, premium: false },
   { id: 'top_5', label: 'Top 5', icon: <Heart className="h-3.5 w-3.5" />, visible: true, premium: false },
   { id: 'recent', label: 'Logs recentes', icon: <Clock className="h-3.5 w-3.5" />, visible: true, premium: false },
   { id: 'in_progress', label: 'Em Progresso', icon: <Target className="h-3.5 w-3.5" />, visible: true, premium: false },
@@ -84,13 +111,7 @@ const MEDIA_DESKTOP: LayoutSectionDef[] = [
   { id: 'all_items', label: 'Todos', icon: <Layers className="h-3.5 w-3.5" />, visible: true, premium: false },
   { id: 'custom_lists', label: 'Listas Personalizadas', icon: <Menu className="h-3.5 w-3.5" />, visible: true, premium: false },
 ];
-const MEDIA_MOBILE: LayoutSectionDef[] = [
-  { id: 'stats_grid', label: 'Estatísticas', icon: <BarChart2 className="h-3.5 w-3.5" />, visible: true, premium: false },
-  { id: 'recent', label: 'Logs recentes', icon: <Clock className="h-3.5 w-3.5" />, visible: true, premium: false },
-  { id: 'in_progress', label: 'Em Progresso', icon: <Target className="h-3.5 w-3.5" />, visible: true, premium: false },
-  { id: 'completed', label: 'Finalizados', icon: <CheckCircle className="h-3.5 w-3.5" />, visible: true, premium: false },
-  { id: 'reviews', label: 'Reviews', icon: <Star className="h-3.5 w-3.5" />, visible: true, premium: false },
-];
+const MEDIA_MOBILE: LayoutSectionDef[] = MEDIA_DESKTOP;
 const MEDIA_SIDEBAR: LayoutSectionDef[] = GENERAL_SIDEBAR.map((s) =>
   s.id === 'badges' ? { ...s, visible: false } : s,
 );

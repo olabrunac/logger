@@ -88,7 +88,7 @@ const tabs = [
   return (
     <div className="relative">
       <div
-        className="h-[140px] md:h-72 rounded-b-2xl overflow-hidden relative border-b border-white/5"
+        className="h-[140px] lg:h-72 rounded-b-2xl overflow-hidden relative border-b border-white/5"
         style={bannerUrl ? {
           backgroundImage: `url(${bannerUrl})`,
           backgroundSize: 'cover',
@@ -100,11 +100,11 @@ const tabs = [
         <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, var(--mdf-bg), transparent 60%)' }} />
       </div>
 
-      <div className="relative z-10 px-6 -mt-16 md:-mt-24">
-        <div className="flex flex-col md:flex-row md:items-end gap-4 md:gap-6">
-          <div className="flex-shrink-0 self-center md:self-end">
+      <div className="relative z-10 px-6 -mt-16 lg:-mt-24">
+        <div className="flex flex-col lg:flex-row lg:items-end gap-4 lg:gap-6">
+          <div className="flex-shrink-0 self-center lg:self-end">
             <div
-              className="w-[88px] h-[88px] md:w-56 md:h-56 rounded-full overflow-hidden border-4 flex-shrink-0 ring-2"
+              className="w-[88px] h-[88px] lg:w-56 lg:h-56 rounded-full overflow-hidden border-4 flex-shrink-0 ring-2"
               style={{
                 borderColor: 'var(--mdf-bg)',
                 background: avatarUrl ? 'transparent' : `linear-gradient(135deg, ${accentColor}, #a855f7)`,
@@ -114,25 +114,25 @@ const tabs = [
               {avatarUrl ? (
                 <img src={avatarUrl} alt={profileUser.username} className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center font-display text-2xl md:text-6xl font-black text-white/60">
+                <div className="w-full h-full flex items-center justify-center font-display text-2xl lg:text-6xl font-black text-white/60">
                   {profileUser.username.charAt(0).toUpperCase()}
                 </div>
               )}
             </div>
           </div>
 
-          <div className="flex-1 text-center md:text-left">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div className="flex-1 text-center lg:text-left">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
               <div>
-                <div className="flex items-center justify-center md:justify-start gap-2.5 flex-wrap">
-                  <h1 className="font-display text-2xl md:text-4xl font-black tracking-tight text-white">
+                <div className="flex items-center justify-center lg:justify-start gap-2.5 flex-wrap">
+                  <h1 className="font-display text-2xl lg:text-4xl font-black tracking-tight text-white">
                     {displayName}
                   </h1>
-                  <span className="text-sm md:text-base text-white/50">@{profileUser.username}</span>
+                  <span className="text-sm lg:text-base text-white/50">@{profileUser.username}</span>
                 </div>
               </div>
 
-              <div className="flex items-center justify-center md:justify-end gap-2">
+              <div className="flex items-center justify-center lg:justify-end gap-2">
                 {isOwnProfile ? (
                   <Link to="/settings" className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition-all"
                     style={{ background: `${accentColor}22`, color: accentColor, border: `1px solid ${accentColor}44` }}>
@@ -163,9 +163,9 @@ const tabs = [
             </div>
 
             {(bio || showLocation) && (
-              <div className="flex items-center justify-center gap-3 mt-3 max-w-2xl mx-auto">
+              <div className="flex flex-col items-center gap-2 mt-3 max-w-2xl mx-auto text-center lg:flex-row lg:items-center lg:gap-3 lg:text-left lg:mx-0 lg:max-w-none">
                 {showLocation && (
-                  <span className="flex items-center gap-1.5 text-sm text-white/50 shrink-0">
+                  <span className="flex items-center justify-center gap-1.5 text-sm text-white/50 shrink-0">
                     {countryCode && (
                       <img
                         src={`https://flagcdn.com/w40/${countryCode.toLowerCase()}.png`}
@@ -177,8 +177,8 @@ const tabs = [
                     {locationText}
                   </span>
                 )}
-                {bio && showLocation && <div className="w-px self-stretch bg-white/10" />}
-                {bio && <p className="text-sm text-white/60 leading-relaxed flex-1">{bio}</p>}
+                {bio && showLocation && <div className="hidden lg:block w-px self-stretch bg-white/10" />}
+                {bio && <p className="text-sm text-white/60 leading-relaxed">{bio}</p>}
               </div>
             )}
 
