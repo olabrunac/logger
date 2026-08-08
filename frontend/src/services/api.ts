@@ -200,10 +200,11 @@ export const tvtimePreview = (formData: FormData) => {
   return uploadApi.post('/import/tvtime/preview', formData);
 };
 
-export const tvtimeImport = (userId: number, items: object[], zipFile: File) => {
+export const tvtimeImport = (userId: number, items: object[], zipFile: File, mediaTypeFilter: string = 'all') => {
   const formData = new FormData();
   formData.append('user_id', String(userId));
   formData.append('items_json', JSON.stringify(items));
+  formData.append('media_type_filter', mediaTypeFilter);
   formData.append('raw_zip', zipFile);
   return uploadApi.post('/import/tvtime/import', formData);
 };

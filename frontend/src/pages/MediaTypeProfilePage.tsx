@@ -160,9 +160,23 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
   const loadTop5Favorites = async () => {
     setLoadingTop5Fav(true);
     try {
-      const res = await getUserFavorites(profileUser!.id, mediaType);
-      setTop5Favorites(res.data || []);
-    } catch { /* ignore */ }
+      const favsFromLogs = Array.from(
+        new Map(
+          viewLogs
+            .filter(l => l.is_favorite && l.media_item?.media_type === mediaType)
+            .map(l => [l.media_item.id, l.media_item]),
+        ).values(),
+      );
+      if (favsFromLogs.length > 0) {
+        setTop5Favorites(favsFromLogs);
+      } else {
+        const res = await getUserFavorites(profileUser!.id, mediaType);
+        setTop5Favorites(res.data || []);
+      }
+    } catch (err) {
+      console.error('Falha ao carregar favoritos para o Top 5', err);
+      setTop5Favorites([]);
+    }
     setLoadingTop5Fav(false);
   };
 
