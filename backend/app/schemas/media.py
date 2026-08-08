@@ -82,6 +82,7 @@ class LogEntryBase(BaseModel):
     relog_count: Optional[int] = 0
     platform: Optional[str] = None
     hours_spent: Optional[float] = None
+    family_share: Optional[bool] = False
     pages_read: Optional[int] = None
     review: Optional[str] = None
     status: LogStatus

@@ -47,6 +47,7 @@ const StatusDirectoryPage = ({ currentUser }: StatusDirectoryPageProps) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [targetUser, setTargetUser] = useState<User | null>(null);
+  const [onlyShared, setOnlyShared] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -76,7 +77,8 @@ const StatusDirectoryPage = ({ currentUser }: StatusDirectoryPageProps) => {
 
   const filtered = logs.filter(l =>
     (statusKey === 'all' || l.status === statusKey) &&
-    (mediaTypeVal === 'all' || l.media_item?.media_type === mediaTypeVal),
+    (mediaTypeVal === 'all' || l.media_item?.media_type === mediaTypeVal) &&
+    (!onlyShared || l.family_share),
   );
   const items = sortLogs(filtered, statusKey);
 
@@ -146,6 +148,15 @@ const StatusDirectoryPage = ({ currentUser }: StatusDirectoryPageProps) => {
           {displayTitle}
           <span className="text-white/40 text-sm ml-1">({items.length})</span>
         </div>
+        <button
+          onClick={() => setOnlyShared(v => !v)}
+          className="flex-shrink-0 text-xs font-bold px-3 py-1.5 rounded-full transition-all"
+          style={onlyShared
+            ? { background: 'rgba(34,211,238,0.15)', color: '#22d3ee', border: '1px solid rgba(34,211,238,0.35)' }
+            : { background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+        >
+          Compartilhados
+        </button>
       </div>
 
       {items.length === 0 ? (

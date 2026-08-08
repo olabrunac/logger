@@ -693,6 +693,7 @@ def read_media_by_api(*, db: Session = Depends(deps.get_db), media_type: str, ap
                 "log_date": log.log_date.isoformat() if log.log_date else None,
                 "platform": log.platform,
                 "hours_spent": effective_hours(db, log),
+                "family_share": log.family_share,
                 "pages_read": log.pages_read,
                 "is_favorite": log.is_favorite,
                 "relog_count": log.relog_count,

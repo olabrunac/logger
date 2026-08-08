@@ -30,6 +30,7 @@ interface ImportItem {
   status: string;
   platform?: string;
   log_date?: string;
+  family_share?: boolean;
   selected?: boolean;
 }
 
@@ -549,6 +550,11 @@ const ImportPage = ({ user }: ImportPageProps) => {
                   {item.status === 'dropped' && (
                     <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: 'rgba(239,68,68,0.2)', color: '#f87171' }}>
                       abandonado
+                    </span>
+                  )}
+                  {item.family_share && (
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: 'rgba(34,211,238,0.15)', color: '#22d3ee' }}>
+                      compartilhado
                     </span>
                   )}
                 </div>
