@@ -47,11 +47,15 @@ Site pessoal para registrar e acompanhar filmes, séries, jogos e livros, inspir
 - **Sidebar padrão + editor de layout alinhado**: Ordem Favoritos → Top 5 → Avaliações → Estatísticas → Gêneros / Categorias → Horas por Mídia → Mapa de Atividade → Logs recentes → Medalhas; Favoritos e Top 5 ocultos por padrão; Medalhas só no Geral; nomes dos blocos do editor idênticos aos títulos da sidebar
 - **Lista de seguidores/seguindo clicável (#15)**: Contador abre modal com avatar, nome, username e link ao perfil
 - **Hashtags coloridas (#16)**: `#tag` em posts/logs/reviews pinta com a accent color do usuário
+- **Filtro de importação TV Time**: importação parcial — só séries, só filmes ou tudo antes de confirmar (chips segmentados no preview)
+- **Diretório de listas de status (Onda D)**: página `/profile/:user/:status/:tipo` listando todos os itens da seção, com "Ver mais" nos headers
+- **Scroll horizontal nas listas do perfil (mobile)**: faixas roláveis nos grids do perfil no mobile; desktop inalterado
+- **Editor de layout alinhado (Onda E)**: defaults do editor idênticos ao render real da sidebar e das seções do perfil; preview ao vivo desktop/mobile; layout mobile estendido a tablets
+- **Family Share "do nosso jeito" (import Steam)**: mescla jogos comprados + 50 recentes jogados (dedup por appid), marca `family_share`, com badge "Compartilhado" e filtro no diretório de status
 
 ### 🔄 Em Andamento / Pendente
-Nenhuma pendência ativa — backlog encerrado, nova leva de edições em definição.
+Nenhuma pendência ativa — backlog zerado, v0.3 em produção.
 
 ### 📦 Arquivadas / Ideias futuras
-- **Filtro de importação TV Time**: importação parcial (só séries, só filmes ou tudo)
-- **Jogos do Family Share na importação Steam**: fluxo documentado (access token via sessão web), adiado
+- **Lista de jogos por achievement**: viabilidade confirmada (endpoint `IPlayerService/GetTopAchievementsForGames/v1/` em lote), implementação adiada
 - **Início (HomePage)**: ajustes finais na página inicial

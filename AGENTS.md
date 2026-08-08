@@ -41,7 +41,7 @@
 - **Wishlist**: Fetch separado via `/media/wishlist` (merge manual com logs nas páginas de perfil).
 
 ## 📋 Pendências (TODO)
-Nova leva de edições em definição — concluídas até aqui: Onda A (fix Top 5 + logo mobile), Onda B (ProfileHero), filtro de importação TV Time, Onda C (scroll horizontal nas listas do perfil no mobile) e Onda D (diretório de listas de status). Próxima onda em andamento (editor de layout).
+Nova leva de edições em definição — concluídas até aqui: Onda A (fix Top 5 + logo mobile), Onda B (ProfileHero), filtro de importação TV Time, Onda C (scroll horizontal nas listas do perfil no mobile), Onda D (diretório de listas de status), Onda E (editor de layout alinhado) e Family Share no import Steam.
 
 ### Arquivadas / Futuras (fora do backlog ativo)
 - **Family Share via access token (OAuth estilo Playnite)**: o OAuth oficial exige um **Client ID da Valve** (aprovado caso a caso — inviável por cross-origin); abordagem da comunidade (Playnite, bots): o usuário **cola o access token** da sessão web do Steam (curta duração ≈24h, obtido via `https://login.steampowered.com/jwt/steamjwt` a partir do cookie `steamLoginSecure` ou do localStorage do site). Endpoints (`api.steampowered.com/IFamilyGroupsService/...`, param `access_token`, sem `key`): `GetFamilyGroupForUser/v1/` → `family_groupid`; `GetSharedLibraryApps/v1/` → `{"apps": [{appid, name, owner_steamids}]}`; `GetPlaytimeSummary/v1/` → playtimes. **Não implementado** — substituído pela abordagem "owned + 50 recentes" (abaixo), que não precisa de token.
