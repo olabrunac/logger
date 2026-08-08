@@ -427,7 +427,7 @@ def _run_letterboxd_import(job, db, user_id: int, items: list) -> dict:
 
         # Auto-calc hours from runtime for movies
         if log.hours_spent is None and media_item.runtime and media_item.media_type == MediaType.MOVIE:
-            log.hours_spent = round(media_item.runtime / 60, 1)
+            log.hours_spent = round(media_item.runtime / 60, 2)
             db.add(log)
 
         job.progress(current=idx + 1, created=created, skipped=skipped, enriched=enriched)
@@ -961,7 +961,7 @@ def _run_trakt_import(job, db, user_id: int, items: list) -> dict:
                 pass
 
         if log.hours_spent is None and media_item.runtime and media_item.total_episodes and log.status == LogStatus.COMPLETED:
-            log.hours_spent = round((media_item.runtime / 60) * media_item.total_episodes, 1)
+            log.hours_spent = round((media_item.runtime / 60) * media_item.total_episodes, 2)
             db.add(log)
 
         job.progress(current=idx + 1, created=created, skipped=skipped)
@@ -1400,7 +1400,7 @@ def _run_tvtime_import(job, db, user_id: int, selected_titles: set, data: dict) 
 
         # Auto-calc hours from runtime x watched episodes
         if media_item.runtime and num_watched > 0 and log.hours_spent is None:
-            log.hours_spent = round((media_item.runtime / 60) * num_watched, 1)
+            log.hours_spent = round((media_item.runtime / 60) * num_watched, 2)
             db.add(log)
 
     for movie in data["movies"]:
@@ -1496,7 +1496,7 @@ def _run_tvtime_import(job, db, user_id: int, selected_titles: set, data: dict) 
                 pass
 
         if log.hours_spent is None and media_item.runtime:
-            log.hours_spent = round(media_item.runtime / 60, 1)
+            log.hours_spent = round(media_item.runtime / 60, 2)
             db.add(log)
 
     for wl_name, wl_data in data.get("wishlist_series", {}).items():
