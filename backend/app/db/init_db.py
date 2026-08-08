@@ -90,6 +90,11 @@ def init_db() -> None:
     # em produção (https), então normaliza tudo para https de uma vez.
     _exec("UPDATE mediaitem SET cover_image_url = 'https://' || substr(cover_image_url, 8) WHERE cover_image_url LIKE 'http://%'")
 
+    # Filmes/séries: horas são sempre derivadas da própria mídia (runtime, e
+    # runtime × episódios assistidos para séries). Limpa horas manuais antigas
+    # para o effective_hours recomputar o valor automático.
+    _exec("UPDATE logentry SET hours_spent = NULL WHERE media_item_id IN (SELECT id FROM mediaitem WHERE media_type IN ('movie', 'series'))")
+
     # Seed admin user
     admin = crud.user.get_by_username(db, username="admin")
     if not admin:

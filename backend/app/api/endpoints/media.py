@@ -14,6 +14,23 @@ import math
 
 router = APIRouter()
 
+def _manual_hours_allowed(media_type: MediaType) -> bool:
+    """Filmes e séries têm as horas sempre derivadas da própria mídia
+    (runtime para filmes; runtime × episódios assistidos para séries) — o
+    usuário não pode informar horas manualmente."""
+    return media_type not in (MediaType.MOVIE, MediaType.SERIES)
+
+def _calc_media_hours(media_type: MediaType, runtime, watched_episodes: int = 0) -> Optional[float]:
+    """Horas automáticas de filmes/séries a partir do runtime, com precisão
+    de minutos (2 casas decimais, ex.: 119 min = 1.98h)."""
+    if not runtime or runtime <= 0:
+        return None
+    if media_type == MediaType.MOVIE:
+        return round(runtime / 60, 2)
+    if media_type == MediaType.SERIES and watched_episodes > 0:
+        return round((runtime / 60) * watched_episodes, 2)
+    return None
+
 def _levenshtein(s1: str, s2: str) -> int:
     if len(s1) < len(s2):
         return _levenshtein(s2, s1)
@@ -371,8 +388,10 @@ def create_log_entry(*, db: Session = Depends(deps.get_db), payload: schemas.Log
         existing_log.status = LogStatus(new_status)
         if payload.log_in.rating:
             existing_log.rating = payload.log_in.rating
-        if payload.log_in.hours_spent:
+        if payload.log_in.hours_spent and _manual_hours_allowed(media_item.media_type):
             existing_log.hours_spent = (existing_log.hours_spent or 0) + payload.log_in.hours_spent
+        elif not _manual_hours_allowed(media_item.media_type):
+            existing_log.hours_spent = None
         if payload.log_in.pages_read:
             existing_log.pages_read = (existing_log.pages_read or 0) + payload.log_in.pages_read
         if payload.log_in.platform:
@@ -408,6 +427,8 @@ def create_log_entry(*, db: Session = Depends(deps.get_db), payload: schemas.Log
         # First time logging this media — create new entry
         log_entry_data = payload.log_in.dict()
         log_entry_data.pop("media_item")
+        if not _manual_hours_allowed(media_item.media_type):
+            log_entry_data["hours_spent"] = None
         log = LogEntry(**log_entry_data, user_id=user_id, media_item_id=media_id)
         db.add(log)
         db.flush()
@@ -477,15 +498,14 @@ def create_log_entry(*, db: Session = Depends(deps.get_db), payload: schemas.Log
     # Auto-calc hours_spent from runtime if not manually set
     if log.hours_spent is None and log.media_item.runtime:
         if log.media_item.media_type == MediaType.MOVIE:
-            log.hours_spent = round(log.media_item.runtime / 60, 1)
+            log.hours_spent = _calc_media_hours(MediaType.MOVIE, log.media_item.runtime)
         elif log.media_item.media_type == MediaType.SERIES:
             watched = db.query(EpisodeWatched).filter(
                 EpisodeWatched.log_id == log.id,
                 EpisodeWatched.watched == True,
                 EpisodeWatched.season_number > 0,
             ).count()
-            if watched > 0:
-                log.hours_spent = round((log.media_item.runtime / 60) * watched, 1)
+            log.hours_spent = _calc_media_hours(MediaType.SERIES, log.media_item.runtime, watched)
         db.add(log)
         db.commit()
 
@@ -672,7 +692,7 @@ def read_media_by_api(*, db: Session = Depends(deps.get_db), media_type: str, ap
                 "review": log.review,
                 "log_date": log.log_date.isoformat() if log.log_date else None,
                 "platform": log.platform,
-                "hours_spent": log.hours_spent,
+                "hours_spent": effective_hours(db, log),
                 "pages_read": log.pages_read,
                 "is_favorite": log.is_favorite,
                 "relog_count": log.relog_count,
@@ -908,8 +928,10 @@ def update_log_entry(*, db: Session = Depends(deps.get_db), log_id: int, updates
                 existing_log.status = LogStatus.PLATINATED
             if update_data.get('rating'):
                 existing_log.rating = update_data['rating']
-            if update_data.get('hours_spent'):
+            if update_data.get('hours_spent') and _manual_hours_allowed(log.media_item.media_type):
                 existing_log.hours_spent = (existing_log.hours_spent or 0) + update_data['hours_spent']
+            elif not _manual_hours_allowed(log.media_item.media_type):
+                existing_log.hours_spent = None
             if update_data.get('platform'):
                 existing_log.platform = update_data['platform']
             if update_data.get('review'):
@@ -955,6 +977,8 @@ def update_log_entry(*, db: Session = Depends(deps.get_db), log_id: int, updates
         db.add(review_entry)
 
     for field, value in update_data.items():
+        if field == 'hours_spent' and not _manual_hours_allowed(log.media_item.media_type):
+            continue
         setattr(log, field, value)
     db.add(log)
     db.commit()
@@ -1022,15 +1046,14 @@ def update_log_entry(*, db: Session = Depends(deps.get_db), log_id: int, updates
     # Auto-calc hours_spent from runtime if not manually set
     if log.hours_spent is None and log.media_item.runtime:
         if log.media_item.media_type == MediaType.MOVIE:
-            log.hours_spent = round(log.media_item.runtime / 60, 1)
+            log.hours_spent = _calc_media_hours(MediaType.MOVIE, log.media_item.runtime)
         elif log.media_item.media_type == MediaType.SERIES:
             watched = db.query(EpisodeWatched).filter(
                 EpisodeWatched.log_id == log.id,
                 EpisodeWatched.watched == True,
                 EpisodeWatched.season_number > 0,
             ).count()
-            if watched > 0:
-                log.hours_spent = round((log.media_item.runtime / 60) * watched, 1)
+            log.hours_spent = _calc_media_hours(MediaType.SERIES, log.media_item.runtime, watched)
         db.add(log)
         db.commit()
 
@@ -1048,6 +1071,8 @@ def patch_log_entry(*, db: Session = Depends(deps.get_db), log_id: int, updates:
     if not log:
         raise HTTPException(status_code=404, detail="Log not found")
     update_data = updates.dict(exclude_unset=True)
+    if not _manual_hours_allowed(log.media_item.media_type):
+        update_data.pop('hours_spent', None)
     for field, value in update_data.items():
         setattr(log, field, value)
     db.add(log)
@@ -1071,7 +1096,7 @@ def backfill_hours(*, db: Session = Depends(deps.get_db), user_id: int) -> Any:
         if not log.media_item.runtime:
             continue
         if log.media_item.media_type == MediaType.MOVIE:
-            log.hours_spent = round(log.media_item.runtime / 60, 1)
+            log.hours_spent = _calc_media_hours(MediaType.MOVIE, log.media_item.runtime)
             updated += 1
         elif log.media_item.media_type == MediaType.SERIES:
             watched = db.query(EpisodeWatched).filter(
@@ -1080,7 +1105,7 @@ def backfill_hours(*, db: Session = Depends(deps.get_db), user_id: int) -> Any:
                 EpisodeWatched.season_number > 0,
             ).count()
             if log.media_item.runtime and watched > 0:
-                log.hours_spent = round((log.media_item.runtime / 60) * watched, 1)
+                log.hours_spent = _calc_media_hours(MediaType.SERIES, log.media_item.runtime, watched)
                 updated += 1
         db.add(log)
     db.commit()
@@ -1121,7 +1146,7 @@ def get_user_stats(*, db: Session = Depends(deps.get_db), user_id: int) -> Any:
     stats_logs = db.query(LogEntry).options(joinedload(LogEntry.media_item)).filter(LogEntry.user_id == user_id, LogEntry.status.notin_(non_log)).all()
     hours_total = sum(v or 0 for v in effective_hours_batch(db, stats_logs).values())
     wishlist_count = db.query(LogEntry).filter(LogEntry.user_id == user_id, LogEntry.status.in_(non_log)).count()
-    return {"total_logs": total_logs, "favorites": favorites, "completed": completed, "hours_total": round(hours_total, 1), "wishlist": wishlist_count}
+    return {"total_logs": total_logs, "favorites": favorites, "completed": completed, "hours_total": round(hours_total, 2), "wishlist": wishlist_count}
 
 @router.get("/wishlist", response_model=List[schemas.LogEntryInDB])
 def get_wishlist(*, db: Session = Depends(deps.get_db), user_id: int, media_type: Optional[str] = None) -> Any:
@@ -1198,8 +1223,7 @@ def _update_series_status(db: Session, log: LogEntry):
     elif watched_eps > 0:
         log.status = LogStatus.IN_PROGRESS
     # Auto-calc hours from runtime x watched episodes
-    if log.media_item.runtime and watched_eps > 0:
-        log.hours_spent = round((log.media_item.runtime / 60) * watched_eps, 1)
+    log.hours_spent = _calc_media_hours(MediaType.SERIES, log.media_item.runtime, watched_eps)
     db.add(log)
     db.commit()
 
