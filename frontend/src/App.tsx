@@ -11,6 +11,7 @@ import SettingsPage from './pages/SettingsPage';
 import ListsPage from './pages/ListsPage';
 import DiaryPage from './pages/DiaryPage';
 import ReviewsPage from './pages/ReviewsPage';
+import StatusDirectoryPage from './pages/StatusDirectoryPage';
 import TimelinePage from './pages/TimelinePage';
 import NotificationsPage from './pages/NotificationsPage';
 import ImportPage from './pages/ImportPage';
@@ -247,6 +248,12 @@ function AppInner() {
               path="/me"
               element={
                 user ? <Navigate to={`/profile/${user.username}`} /> : <Navigate to="/login" />
+              }
+            />
+            <Route
+              path="/profile/:username/:status/:mediaType"
+              element={
+                user ? <StatusDirectoryPage currentUser={user} /> : <Navigate to="/login" />
               }
             />
             <Route
