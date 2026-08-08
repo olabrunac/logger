@@ -594,11 +594,19 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
     if (sortByTitle) {
       items = [...gridLogs].sort((a, b) => (a.media_item?.title || '').localeCompare(b.media_item?.title || '', 'pt-BR', { sensitivity: 'base', numeric: true }));
     }
+    const visible = items.slice(0, limit);
     return (
       <section>
         <SectionHeader title={title} count={items.length} />
-        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
-          {items.slice(0, limit).map(log => <YgpCard key={log.id} log={log} accentColor={accentColor} />)}
+        <div className="hidden lg:grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
+          {visible.map(log => <YgpCard key={log.id} log={log} accentColor={accentColor} />)}
+        </div>
+        <div className="scrollbar-hide -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 lg:hidden">
+          {visible.map(log => (
+            <div key={log.id} className="w-[28%] shrink-0">
+              <YgpCard log={log} accentColor={accentColor} />
+            </div>
+          ))}
         </div>
       </section>
     );
