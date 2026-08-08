@@ -45,6 +45,7 @@ def _steam_cover_url(appid: int) -> Optional[str]:
 class ImportItem(BaseModel):
     title: str
     year: Optional[int] = None
+    media_type: Optional[str] = None
     tmdb_id: Optional[int] = None
     appid: Optional[int] = None
     rating: Optional[float] = None
@@ -1149,6 +1150,7 @@ async def tvtime_preview(
         num_watched = len(show_data["episodes_watched"])
         items.append(ImportItem(
             title=show_name,
+            media_type="series",
             status="completed",
             log_date=show_data["last_date"].isoformat() if show_data["last_date"] else None,
             hours_spent=float(num_watched),
@@ -1162,6 +1164,7 @@ async def tvtime_preview(
         seen_movies.add(key)
         items.append(ImportItem(
             title=movie["title"],
+            media_type="movie",
             year=movie.get("year"),
             status="completed",
             log_date=movie.get("log_date"),
@@ -1171,12 +1174,14 @@ async def tvtime_preview(
     for wl_name in data.get("wishlist_series", {}):
         items.append(ImportItem(
             title=wl_name,
+            media_type="series",
             status="wishlist",
         ))
 
     for wl_movie in data.get("wishlist_movies", []):
         items.append(ImportItem(
             title=wl_movie["title"],
+            media_type="movie",
             year=wl_movie.get("year"),
             status="wishlist",
         ))
@@ -1189,6 +1194,7 @@ async def tvtime_import(
     *,
     user_id: int = Form(...),
     items_json: str = Form(...),
+    media_type_filter: str = Form("all"),
     raw_zip: UploadFile = File(...),
 ):
     try:
@@ -1206,12 +1212,15 @@ async def tvtime_import(
         source="tvtime",
         total=len(selected_items),
         baseline_seconds_per_item=1.2,
-        fn=lambda job, db: _run_tvtime_import(job, db, user_id, selected_titles, data),
+        fn=lambda job, db: _run_tvtime_import(job, db, user_id, selected_titles, data, media_type_filter),
     )
     return {"job_id": job_id}
 
 
-def _run_tvtime_import(job, db, user_id: int, selected_titles: set, data: dict) -> dict:
+def _run_tvtime_import(job, db, user_id: int, selected_titles: set, data: dict, media_type_filter: str = "all") -> dict:
+    def _skip_filtered(item_type: str) -> bool:
+        return media_type_filter in ("series", "movie") and item_type != media_type_filter
+
     created = 0
     skipped = 0
     updated = 0
@@ -1226,6 +1235,11 @@ def _run_tvtime_import(job, db, user_id: int, selected_titles: set, data: dict) 
         if show_name.lower().strip() not in selected_titles:
             skipped += 1
             skipped_items.append({"title": show_name, "reason": "not_selected"})
+            continue
+
+        if _skip_filtered("series"):
+            skipped += 1
+            skipped_items.append({"title": show_name, "reason": "filtered"})
             continue
 
         tmdb_id = None
@@ -1411,6 +1425,11 @@ def _run_tvtime_import(job, db, user_id: int, selected_titles: set, data: dict) 
             skipped_items.append({"title": movie["title"], "reason": "not_selected"})
             continue
 
+        if _skip_filtered("movie"):
+            skipped += 1
+            skipped_items.append({"title": movie["title"], "reason": "filtered"})
+            continue
+
         tmdb_id = None
         cover_url = None
         results = tmdb_service.search_media(query=movie["title"], media_type="movie", year=movie.get("year"))
@@ -1507,6 +1526,11 @@ def _run_tvtime_import(job, db, user_id: int, selected_titles: set, data: dict) 
             skipped_items.append({"title": wl_name, "reason": "not_selected"})
             continue
 
+        if _skip_filtered("series"):
+            skipped += 1
+            skipped_items.append({"title": wl_name, "reason": "filtered"})
+            continue
+
         tmdb_id = None
         cover_url = None
         results = tmdb_service.search_media(query=wl_name, media_type="tv")
@@ -1575,6 +1599,11 @@ def _run_tvtime_import(job, db, user_id: int, selected_titles: set, data: dict) 
         if wl_movie["title"].lower().strip() not in selected_titles:
             skipped += 1
             skipped_items.append({"title": wl_movie["title"], "reason": "not_selected"})
+            continue
+
+        if _skip_filtered("movie"):
+            skipped += 1
+            skipped_items.append({"title": wl_movie["title"], "reason": "filtered"})
             continue
 
         tmdb_id = None
