@@ -62,7 +62,7 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
   const displayUsername = username || currentUser.username;
   const isOwnProfile = displayUsername === currentUser.username;
   const hasInitialData = !!(propProfileUser && propLogs);
-  const isMobile = useMediaQuery('(max-width: 767px)');
+  const isMobile = useMediaQuery('(max-width: 1023px)');
   const deviceKey = isMobile ? 'mobile' : 'desktop';
 
   useEffect(() => {
