@@ -509,17 +509,32 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
         {sectionLogs.length === 0 ? (
           <div className="mdf-card p-6 text-center text-white/30 text-sm">{emptyMsg}</div>
         ) : (
-          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
-            {(expanded ? sectionLogs : sectionLogs.slice(0, 10)).map(log => (
-              <YgpCard key={log.id} log={log} accentColor={accentColor} />
-            ))}
-            {sectionLogs.length > 10 && (
-              <button onClick={() => toggleExpand(statusId)} className="flex flex-col items-center justify-center gap-1 rounded-lg transition-colors hover:bg-white/[0.02]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', aspectRatio: '3/4' }}>
-                <span className="text-lg font-bold text-white/40">{expanded ? '−' : '+'}</span>
-                <span className="text-[10px] text-white/30">{expanded ? 'Ver menos' : `${sectionLogs.length - 10} mais`}</span>
-              </button>
-            )}
-          </div>
+          <>
+            <div className="hidden lg:grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
+              {(expanded ? sectionLogs : sectionLogs.slice(0, 10)).map(log => (
+                <YgpCard key={log.id} log={log} accentColor={accentColor} />
+              ))}
+              {sectionLogs.length > 10 && (
+                <button onClick={() => toggleExpand(statusId)} className="flex flex-col items-center justify-center gap-1 rounded-lg transition-colors hover:bg-white/[0.02]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', aspectRatio: '3/4' }}>
+                  <span className="text-lg font-bold text-white/40">{expanded ? '−' : '+'}</span>
+                  <span className="text-[10px] text-white/30">{expanded ? 'Ver menos' : `${sectionLogs.length - 10} mais`}</span>
+                </button>
+              )}
+            </div>
+            <div className="scrollbar-hide -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 lg:hidden">
+              {(expanded ? sectionLogs : sectionLogs.slice(0, 10)).map(log => (
+                <div key={log.id} className="w-[28%] shrink-0">
+                  <YgpCard log={log} accentColor={accentColor} />
+                </div>
+              ))}
+              {sectionLogs.length > 10 && (
+                <button onClick={() => toggleExpand(statusId)} className="flex w-[28%] shrink-0 flex-col items-center justify-center gap-1 rounded-lg transition-colors hover:bg-white/[0.02]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', aspectRatio: '3/4' }}>
+                  <span className="text-lg font-bold text-white/40">{expanded ? '−' : '+'}</span>
+                  <span className="text-[10px] text-white/30">{expanded ? 'Ver menos' : `${sectionLogs.length - 10} mais`}</span>
+                </button>
+              )}
+            </div>
+          </>
         )}
       </section>
     );
@@ -531,17 +546,32 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
       {filteredLogs.length === 0 ? (
         <div className="mdf-card p-6 text-center text-white/30 text-sm">Nenhuma mídia registrada.</div>
       ) : (
-        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
-          {(showExpanded.recent ? filteredLogs : filteredLogs.slice(0, 10)).map(log => (
-            <YgpCard key={log.id} log={log} accentColor={accentColor} />
-          ))}
-          {filteredLogs.length > 10 && (
-            <button onClick={() => toggleExpand('recent')} className="flex flex-col items-center justify-center gap-1 rounded-lg transition-colors hover:bg-white/[0.02]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', aspectRatio: '3/4' }}>
-              <span className="text-lg font-bold text-white/40">{showExpanded.recent ? '−' : '+'}</span>
-              <span className="text-[10px] text-white/30">{showExpanded.recent ? 'Recolher' : `${filteredLogs.length - 10} mais`}</span>
-            </button>
-          )}
-        </div>
+        <>
+          <div className="hidden lg:grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
+            {(showExpanded.recent ? filteredLogs : filteredLogs.slice(0, 10)).map(log => (
+              <YgpCard key={log.id} log={log} accentColor={accentColor} />
+            ))}
+            {filteredLogs.length > 10 && (
+              <button onClick={() => toggleExpand('recent')} className="flex flex-col items-center justify-center gap-1 rounded-lg transition-colors hover:bg-white/[0.02]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', aspectRatio: '3/4' }}>
+                <span className="text-lg font-bold text-white/40">{showExpanded.recent ? '−' : '+'}</span>
+                <span className="text-[10px] text-white/30">{showExpanded.recent ? 'Recolher' : `${filteredLogs.length - 10} mais`}</span>
+              </button>
+            )}
+          </div>
+          <div className="scrollbar-hide -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 lg:hidden">
+            {(showExpanded.recent ? filteredLogs : filteredLogs.slice(0, 10)).map(log => (
+              <div key={log.id} className="w-[28%] shrink-0">
+                <YgpCard log={log} accentColor={accentColor} />
+              </div>
+            ))}
+            {filteredLogs.length > 10 && (
+              <button onClick={() => toggleExpand('recent')} className="flex w-[28%] shrink-0 flex-col items-center justify-center gap-1 rounded-lg transition-colors hover:bg-white/[0.02]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', aspectRatio: '3/4' }}>
+                <span className="text-lg font-bold text-white/40">{showExpanded.recent ? '−' : '+'}</span>
+                <span className="text-[10px] text-white/30">{showExpanded.recent ? 'Recolher' : `${filteredLogs.length - 10} mais`}</span>
+              </button>
+            )}
+          </div>
+        </>
       )}
     </section>
   );
@@ -638,17 +668,32 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
       {filteredLogs.length === 0 ? (
         <div className="mdf-card p-6 text-center text-white/30 text-sm">Nenhuma mídia registrada.</div>
       ) : (
-        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
-          {(showExpanded.all ? filteredLogs : filteredLogs.slice(0, 10)).map(log => (
-            <YgpCard key={log.id} log={log} accentColor={accentColor} />
-          ))}
-          {filteredLogs.length > 10 && (
-            <button onClick={() => toggleExpand('all')} className="flex flex-col items-center justify-center gap-1 rounded-lg transition-colors hover:bg-white/[0.02]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', aspectRatio: '3/4' }}>
-              <span className="text-lg font-bold text-white/40">{showExpanded.all ? '−' : '+'}</span>
-              <span className="text-[10px] text-white/30">{showExpanded.all ? 'Recolher' : `${filteredLogs.length - 10} mais`}</span>
-            </button>
-          )}
-        </div>
+        <>
+          <div className="hidden lg:grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
+            {(showExpanded.all ? filteredLogs : filteredLogs.slice(0, 10)).map(log => (
+              <YgpCard key={log.id} log={log} accentColor={accentColor} />
+            ))}
+            {filteredLogs.length > 10 && (
+              <button onClick={() => toggleExpand('all')} className="flex flex-col items-center justify-center gap-1 rounded-lg transition-colors hover:bg-white/[0.02]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', aspectRatio: '3/4' }}>
+                <span className="text-lg font-bold text-white/40">{showExpanded.all ? '−' : '+'}</span>
+                <span className="text-[10px] text-white/30">{showExpanded.all ? 'Recolher' : `${filteredLogs.length - 10} mais`}</span>
+              </button>
+            )}
+          </div>
+          <div className="scrollbar-hide -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 lg:hidden">
+            {(showExpanded.all ? filteredLogs : filteredLogs.slice(0, 10)).map(log => (
+              <div key={log.id} className="w-[28%] shrink-0">
+                <YgpCard log={log} accentColor={accentColor} />
+              </div>
+            ))}
+            {filteredLogs.length > 10 && (
+              <button onClick={() => toggleExpand('all')} className="flex w-[28%] shrink-0 flex-col items-center justify-center gap-1 rounded-lg transition-colors hover:bg-white/[0.02]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', aspectRatio: '3/4' }}>
+                <span className="text-lg font-bold text-white/40">{showExpanded.all ? '−' : '+'}</span>
+                <span className="text-[10px] text-white/30">{showExpanded.all ? 'Recolher' : `${filteredLogs.length - 10} mais`}</span>
+              </button>
+            )}
+          </div>
+        </>
       )}
     </section>
   );
