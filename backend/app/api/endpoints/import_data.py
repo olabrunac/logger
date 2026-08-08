@@ -54,6 +54,7 @@ class ImportItem(BaseModel):
     hours_spent: Optional[float] = None
     platform: Optional[str] = None
     log_date: Optional[str] = None
+    family_share: bool = False
 
 
 class ImportPreview(BaseModel):
@@ -479,14 +480,43 @@ async def steam_preview(
             timeout=15,
         )
         r.raise_for_status()
-        data = r.json().get("response", {})
+        owned_data = r.json().get("response", {})
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching Steam data: {str(e)}")
 
-    games = data.get("games", [])
+    # "Family share do nosso jeito": jogos emprestados pela família aparecem nos
+    # "jogados recentemente" (GetRecentlyPlayedGames) mesmo sem serem da conta.
+    # Merge dedup por appid: comprados (GetOwnedGames) têm prioridade; jogos que
+    # só aparecem nos recentes são marcados como compartilhados (sem access token).
+    recent_games = {}
+    try:
+        r2 = requests.get(
+            "https://api.steampowered.com/IPlayerService/GetRecentlyPlayedGames/v1/",
+            params={
+                "key": settings.STEAM_API_KEY,
+                "steamid": steam_id,
+                "count": 50,
+            },
+            timeout=15,
+        )
+        r2.raise_for_status()
+        recent_games = {g.get("appid"): g for g in r2.json().get("response", {}).get("games", []) or []}
+    except Exception:
+        recent_games = {}
+
+    owned_games = {g.get("appid"): g for g in owned_data.get("games", []) or []}
+    all_games = {}
+    for appid, g in owned_games.items():
+        all_games[appid] = {"game": g, "family_share": False}
+    for appid, g in recent_games.items():
+        if appid in all_games:
+            continue
+        all_games[appid] = {"game": g, "family_share": True}
+
     items: List[ImportItem] = []
-    for g in games:
-        name = g.get("name", "").strip()
+    for entry in all_games.values():
+        g = entry["game"]
+        name = (g.get("name") or "").strip()
         if not name:
             continue
         appid = g.get("appid")
@@ -511,6 +541,7 @@ async def steam_preview(
             status=status,
             platform="Steam",
             log_date=log_date,
+            family_share=entry["family_share"],
         ))
 
     items.sort(key=lambda x: x.hours_spent or 0, reverse=True)
@@ -643,6 +674,7 @@ def _run_steam_import(job, db, user_id: int, resolved_steam_id: str, items: list
             status=log_status,
             hours_spent=hours,
             platform="Steam",
+            family_share=bool(item.get("family_share", False)),
         )
         db.add(log)
         db.flush()

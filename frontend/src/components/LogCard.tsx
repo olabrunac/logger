@@ -123,6 +123,11 @@ const LogCard = ({ entry, currentUser, onReply, onLike }: LogCardProps) => {
                   {entry.platform && (
                     <span className="text-[10px] text-white/40">{entry.platform}</span>
                   )}
+                  {entry.family_share && (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.55)' }}>
+                      Compartilhado
+                    </span>
+                  )}
                 </div>
                 {entry.rating != null && entry.rating > 0 && (
                   <div className="flex items-center gap-0.5 mt-1.5">

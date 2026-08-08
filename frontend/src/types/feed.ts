@@ -55,6 +55,7 @@ export interface TimelineEntry {
   log_date: string | null;
   is_favorite: boolean | null;
   hours_spent: number | null;
+  family_share?: boolean;
   group_count?: number;
   group_items?: GroupItem[];
   replies_count?: number;

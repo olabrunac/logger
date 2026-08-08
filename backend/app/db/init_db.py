@@ -66,6 +66,7 @@ def init_db() -> None:
     _add_column('"user"', 'show_achievements', 'ALTER TABLE "user" ADD COLUMN show_achievements BOOLEAN DEFAULT TRUE')
     _add_column('"user"', 'show_hours', 'ALTER TABLE "user" ADD COLUMN show_hours BOOLEAN DEFAULT FALSE')
     _add_column('"user"', 'show_stats', 'ALTER TABLE "user" ADD COLUMN show_stats BOOLEAN DEFAULT TRUE')
+    _add_column('logentry', 'family_share', 'ALTER TABLE logentry ADD COLUMN family_share BOOLEAN DEFAULT FALSE')
 
     # Badge de primeiro log removida do sistema de badges (tabela real: userbadge)
     _exec("DELETE FROM userbadge WHERE badge_key = 'first_log'")

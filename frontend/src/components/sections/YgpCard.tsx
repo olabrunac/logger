@@ -85,6 +85,13 @@ const YgpCard = ({ log, accentColor, showStatus = true, actions, rank, className
         </span>
       )}
 
+      {log.family_share && (
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 flex h-5 items-center rounded-full px-1.5 text-[8px] font-bold tracking-wide backdrop-blur-sm"
+          style={{ background: 'rgba(0,0,0,0.55)', color: 'rgba(255,255,255,0.85)', border: '1px solid rgba(255,255,255,0.15)' }}>
+          Compartilhado
+        </div>
+      )}
+
       <div className="absolute bottom-0 left-0 flex flex-col items-start gap-1 p-2.5">
         {(achievements || episodes) && (
           <div className="flex h-5 items-center rounded bg-black/50 px-1.5 text-[10px] text-white/80 tabular-nums backdrop-blur-sm">
