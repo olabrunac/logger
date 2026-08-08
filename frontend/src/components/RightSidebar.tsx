@@ -19,15 +19,6 @@ interface RightSidebarProps {
   embedded?: boolean;
 }
 
-const SIDEBAR_TOP_IDS = ['favorites', 'top_5'];
-const SIDEBAR_BOTTOM_IDS = ['badges'];
-
-const enforceSidebarIds = (ids: string[]): string[] => [
-  ...ids.filter(id => SIDEBAR_TOP_IDS.includes(id)),
-  ...ids.filter(id => !SIDEBAR_TOP_IDS.includes(id) && !SIDEBAR_BOTTOM_IDS.includes(id)),
-  ...ids.filter(id => SIDEBAR_BOTTOM_IDS.includes(id)),
-];
-
 const MEDIA_TYPE_MAP: Record<string, string> = {
   movies: 'movie',
   tvshows: 'series',
@@ -93,7 +84,7 @@ const RightSidebar = ({ user, isCollapsed, onToggleCollapse, previewOrder, embed
 
   const sidebarOrder = useMemo(() => {
     const defaults = ['favorites', 'top_5', 'rating_distribution', 'stats', 'top_genres', 'hours', 'activity_map', 'recent_activity', 'badges'];
-    if (previewOrder) return enforceSidebarIds(previewOrder);
+    if (previewOrder) return previewOrder;
     try {
       const raw = user?.section_order;
       if (raw) {
@@ -107,11 +98,11 @@ const RightSidebar = ({ user, isCollapsed, onToggleCollapse, previewOrder, embed
           const order = sidebar.map((s: { id: string }) => s.id);
           const ordered = defaults.filter(id => order.includes(id)).sort((a, b) => order.indexOf(a) - order.indexOf(b));
           for (const d of defaults) if (!order.includes(d)) ordered.push(d);
-          return enforceSidebarIds(ordered.filter(id => configMap.get(id) !== false));
+          return ordered.filter(id => configMap.get(id) !== false);
         }
       }
     } catch {}
-    return enforceSidebarIds(defaults.filter((id) => !(id === 'favorites' || id === 'top_5' || (activeMediaType && id === 'badges'))));
+    return defaults.filter((id) => !(id === 'favorites' || id === 'top_5' || (activeMediaType && id === 'badges')));
   }, [user?.section_order, activeMediaType, previewOrder]);
 
   const accentColor = user.accent_color || '#00e054';
