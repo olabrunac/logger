@@ -15,7 +15,7 @@ def effective_hours(db: Session, log: LogEntry, watched_episodes: Optional[int] 
     if not media or not media.runtime:
         return None
     if media.media_type == MediaType.MOVIE:
-        return round(media.runtime / 60, 1)
+        return round(media.runtime / 60, 2)
     if media.media_type == MediaType.SERIES:
         if watched_episodes is None:
             watched = db.query(EpisodeWatched).filter(
@@ -26,12 +26,12 @@ def effective_hours(db: Session, log: LogEntry, watched_episodes: Optional[int] 
         else:
             watched = watched_episodes
         if watched > 0:
-            return round((media.runtime / 60) * watched, 1)
+            return round((media.runtime / 60) * watched, 2)
     return None
 
 
 def total_effective_hours(db: Session, logs) -> float:
-    return round(sum(effective_hours(db, log) or 0 for log in logs), 1)
+    return round(sum(effective_hours(db, log) or 0 for log in logs), 2)
 
 
 def effective_hours_batch(db: Session, logs: List[LogEntry]) -> Dict[int, Optional[float]]:

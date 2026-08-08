@@ -96,6 +96,7 @@ const LogForm: React.FC<LogFormProps> = ({ onSubmit, onCancel, initialData, medi
   }, [onCancel]);
 
   const isWishlist = status === 'wishlist' || status === 'soon';
+  const showManualTime = mediaType === 'game' || mediaType === 'book';
 
   const handleSubmit = () => {
     if (isWishlist) {
@@ -115,7 +116,7 @@ const LogForm: React.FC<LogFormProps> = ({ onSubmit, onCancel, initialData, medi
         status,
         rating: rating || null,
         platform: platform || null,
-        hours_spent: mediaType === 'book' ? (hoursSpent ? Number(String(hoursSpent).replace(',', '.')) : null) : (hoursSpent ? Number(String(hoursSpent).replace(',', '.')) : null),
+        hours_spent: hoursSpent ? Number(String(hoursSpent).replace(',', '.')) : null,
         pages_read: mediaType === 'book' ? (pagesRead ? Number(pagesRead) : null) : undefined,
         log_date: logDate ? new Date(logDate).toISOString() : new Date().toISOString(),
         is_favorite: isFavorite,
@@ -339,57 +340,68 @@ const LogForm: React.FC<LogFormProps> = ({ onSubmit, onCancel, initialData, medi
                 </div>
               )}
 
-              <button
-                type="button"
-                onClick={() => setShowTime(!showTime)}
-                className="w-full flex items-center justify-between p-3 rounded-xl transition-colors"
-                style={{ background: 'rgba(255,255,255,0.03)' }}
-              >
-                <div className="flex items-center gap-3">
-                  <Clock size={18} style={{ color: 'rgba(255,255,255,0.4)' }} />
-                  <span className="text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                    {mediaType === 'book' ? 'Páginas e tempo' : 'Adicionar tempo'}
-                  </span>
-                </div>
-                {showTime ? <ChevronUp size={16} style={{ color: 'rgba(255,255,255,0.3)' }} /> : <ChevronDown size={16} style={{ color: 'rgba(255,255,255,0.3)' }} />}
-              </button>
-              {showTime && (
-                <div className="px-3 pb-3 space-y-2">
-                  {mediaType === 'book' ? (
-                    <>
-                      <input
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={pagesRead}
-                        onChange={(e) => setPagesRead(e.target.value)}
-                        placeholder="Páginas"
-                        className="w-full text-sm p-2 rounded-lg outline-none"
-                        style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.08)' }}
-                      />
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.5"
-                        value={hoursSpent}
-                        onChange={(e) => setHoursSpent(e.target.value)}
-                        placeholder="Horas"
-                        className="w-full text-sm p-2 rounded-lg outline-none"
-                        style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.08)' }}
-                      />
-                    </>
-                  ) : (
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.5"
-                      value={hoursSpent}
-                      onChange={(e) => setHoursSpent(e.target.value)}
-                      placeholder="Horas"
-                      className="w-full text-sm p-2 rounded-lg outline-none"
-                      style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.08)' }}
-                    />
+              {showManualTime ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setShowTime(!showTime)}
+                    className="w-full flex items-center justify-between p-3 rounded-xl transition-colors"
+                    style={{ background: 'rgba(255,255,255,0.03)' }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Clock size={18} style={{ color: 'rgba(255,255,255,0.4)' }} />
+                      <span className="text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                        {mediaType === 'book' ? 'Páginas e tempo' : 'Adicionar tempo'}
+                      </span>
+                    </div>
+                    {showTime ? <ChevronUp size={16} style={{ color: 'rgba(255,255,255,0.3)' }} /> : <ChevronDown size={16} style={{ color: 'rgba(255,255,255,0.3)' }} />}
+                  </button>
+                  {showTime && (
+                    <div className="px-3 pb-3 space-y-2">
+                      {mediaType === 'book' ? (
+                        <>
+                          <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={pagesRead}
+                            onChange={(e) => setPagesRead(e.target.value)}
+                            placeholder="Páginas"
+                            className="w-full text-sm p-2 rounded-lg outline-none"
+                            style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.08)' }}
+                          />
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={hoursSpent}
+                            onChange={(e) => setHoursSpent(e.target.value)}
+                            placeholder="Horas (ex.: 1.98)"
+                            className="w-full text-sm p-2 rounded-lg outline-none"
+                            style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.08)' }}
+                          />
+                        </>
+                      ) : (
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={hoursSpent}
+                          onChange={(e) => setHoursSpent(e.target.value)}
+                          placeholder="Horas (ex.: 1.98)"
+                          className="w-full text-sm p-2 rounded-lg outline-none"
+                          style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.08)' }}
+                        />
+                      )}
+                    </div>
                   )}
+                </>
+              ) : (
+                <div className="flex items-center gap-3 p-3 rounded-xl text-xs text-white/40" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                  <Clock size={18} style={{ color: 'rgba(255,255,255,0.3)' }} />
+                  <span>
+                    Tempo calculado automaticamente{mediaType === 'series' ? ' pelos episódios assistidos' : ' pela duração do filme'}
+                  </span>
                 </div>
               )}
 
