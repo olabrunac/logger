@@ -15,8 +15,9 @@
 - **Status**: 7 valores — `completed`, `in_progress`, `dropped`, `wishlist`, `soon`, `platinated`, `library` (def. em `models/media.py`).
 - **Favorito**: Booleano independente do status.
 - **Layout**:
-  - Sidebar esquerda: 203px fixa, não colapsa. Sidebar direita: colapsável 324px/56px.
-  - Conteúdo central: `marginLeft: 203px; marginRight: 324px` — não redimensiona.
+  - Sidebar esquerda: 203px fixa (160px no tablet 1024–1279px), não colapsa. Sidebar direita: colapsável 324px/56px.
+  - Conteúdo central: `marginLeft: 203px; marginRight: 324px` — não redimensiona (no tablet 1024–1279px: `marginLeft: 160px`, direita começa colapsada 56px, expandível).
+  - Tablet (`useMediaQuery('(min-width: 1024px) and (max-width: 1279px)')`): left sidebar `lg:w-[160px] xl:w-[203px]`, right sidebar inicia colapsada (`useEffect` sincroniza `isSidebarCollapsed` ao entrar na faixa), margens seguem em `App.tsx` (`fixedSidebarWidths`), `FloatingLogButton` usa `--fab-right-offset` definido no `main`.
   - Páginas de feed (Timeline, Notificações, Diário, Reviews, Calendário): `max-w-[1844px] mx-auto`.
   - **Sidebar direita (padrão)**: ordem `Favoritos → Top 5 → Avaliações → Estatísticas → Gêneros / Categorias → Horas por Mídia → Mapa de Atividade → Logs recentes → Medalhas`, com **Favoritos e Top 5 ocultos** por padrão e **Medalhas só no Geral** (desativada em Jogos/Filmes/Séries/Livros). `Favoritos`/`Top 5` sempre no topo, `Medalhas` sempre no final (`SIDEBAR_TOP_IDS`/`SIDEBAR_BOTTOM_IDS`). Configurável no editor de layout (Settings e perfil), cujos **nomes de bloco são idênticos aos títulos da sidebar**. Gêneros filtra por categoria (`GenreChart` recebe `mediaType`) igual ao mapa de atividade.
 - **Design System** (`constants/designSystem.ts`):
