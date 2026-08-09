@@ -396,27 +396,75 @@ def get_timeline(
     before: Optional[str] = None,
 ):
     from app.crud import crud_follow
-    from app.models.media import LogEntry, LogReply, LogLike, EpisodeWatched, MediaType
+    from app.models.media import LogEntry, LogReply, LogLike, EpisodeWatched, MediaItem, MediaType
     from app.models.user import User
-    from sqlalchemy import func as sa_func
+    from sqlalchemy import func as sa_func, or_, and_
     from sqlalchemy.orm import joinedload
 
     following_ids_raw = crud_follow.get_following(db, user_id=user_id)
     following_ids = [u.id for u in following_ids_raw]
     user_ids = list(set(following_ids + [user_id]))
 
-    query = (
-        db.query(LogEntry)
-        .options(joinedload(LogEntry.media_item))
-        .filter(LogEntry.user_id.in_(user_ids))
-    )
+    # Paginate GROUPS (user + media_type + day) in SQL so one user with many
+    # logs on a single day cannot push everyone else out of the page.
+    def _group_base():
+        return (
+            db.query(
+                LogEntry.user_id,
+                MediaItem.media_type,
+                sa_func.date(LogEntry.log_date).label("gdate"),
+            )
+            .outerjoin(MediaItem, LogEntry.media_item_id == MediaItem.id)
+            .filter(LogEntry.user_id.in_(user_ids), LogEntry.log_date.isnot(None))
+        )
+
+    group_q = _group_base()
     if before:
         try:
             before_dt = datetime.datetime.strptime(before, "%Y-%m-%d")
-            query = query.filter(LogEntry.log_date < before_dt)
+            group_q = group_q.filter(LogEntry.log_date < before_dt)
         except ValueError:
             pass
-    logs = query.order_by(LogEntry.log_date.desc()).limit(limit * 4).all()
+    group_keys = (
+        group_q
+        .group_by(LogEntry.user_id, MediaItem.media_type, sa_func.date(LogEntry.log_date))
+        .order_by(sa_func.date(LogEntry.log_date).desc())
+        .limit(limit)
+        .all()
+    )
+    # Se o corte caiu no meio de um dia, incluir todos os grupos do mesmo dia
+    if group_keys:
+        last_date = group_keys[-1].gdate
+        extra = (
+            _group_base()
+            .filter(sa_func.date(LogEntry.log_date) == last_date)
+            .group_by(LogEntry.user_id, MediaItem.media_type, sa_func.date(LogEntry.log_date))
+            .order_by(sa_func.date(LogEntry.log_date).desc())
+            .all()
+        )
+        existing = {(g[0], g[1], g[2]) for g in group_keys}
+        for gk in extra:
+            if gk not in existing:
+                group_keys.append(gk)
+
+    conds = []
+    for (uid, mt, d) in group_keys:
+        c = and_(LogEntry.user_id == uid, sa_func.date(LogEntry.log_date) == d)
+        if mt is None:
+            c = and_(c, LogEntry.media_item_id.is_(None))
+        else:
+            c = and_(c, MediaItem.media_type == mt)
+        conds.append(c)
+    if conds:
+        logs = (
+            db.query(LogEntry)
+            .options(joinedload(LogEntry.media_item))
+            .outerjoin(MediaItem, LogEntry.media_item_id == MediaItem.id)
+            .filter(or_(*conds))
+            .all()
+        )
+    else:
+        logs = []
 
     def _media_ref(mi):
         if not mi:
@@ -591,18 +639,4 @@ def get_timeline(
             })
 
     result.sort(key=lambda x: x["log_date"], reverse=True)
-
-    page = []
-    for g in result:
-        page.append(g)
-        if len(page) >= limit:
-            break
-    # Se o corte caiu no meio de um dia, incluir todos os grupos do mesmo dia
-    if page and len(result) > len(page):
-        last_date = page[-1]["log_date"]
-        for g in result[len(page):]:
-            if g["log_date"] == last_date:
-                page.append(g)
-            else:
-                break
-    return page
+    return result
