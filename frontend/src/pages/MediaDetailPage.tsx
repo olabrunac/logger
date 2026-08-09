@@ -138,6 +138,15 @@ const MediaDetailPage = () => {
 
   const fetchLog = useCallback(async () => {
     if (!mediaType || !apiId) return;
+    setLoading(true);
+    setLog(null);
+    setSeasons([]);
+    setOpenSeason(null);
+    setEpisodes({});
+    setWatchedMap({});
+    setAchievements([]);
+    setBookmarked(false);
+    setWishlistLogId(null);
     try {
       const user = JSON.parse(localStorage.getItem('user') || '{}');
       const byApi = await getMediaByApi(mediaType, apiId, user.id);
