@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../services/api';
 import type { User, LogEntry } from '../types';
 import { ChevronRight } from 'lucide-react';
-import { imageUrl, bannerPosition } from '../utils';
+import { imageUrl, bannerPosition, sortLogsByDate } from '../utils';
 import YgpCard from '../components/sections/YgpCard';
 
 interface HomePageProps {
@@ -21,7 +21,7 @@ const HomePage = ({ user }: HomePageProps) => {
   const fetchData = async () => {
     try {
       const logsRes = await api.get('/media/logs', { params: { user_id: user.id, limit: 12 } });
-      const sorted = (logsRes.data || []).sort((a: LogEntry, b: LogEntry) => b.id - a.id);
+      const sorted = sortLogsByDate(logsRes.data || []);
       setLogs(sorted);
     } catch (err) {
       console.error('Failed to fetch home data', err);
