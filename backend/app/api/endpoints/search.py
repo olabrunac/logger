@@ -330,7 +330,10 @@ class TrackSearchRequest(BaseModel):
 def popular_searches(*, db: Session = Depends(deps.get_db)) -> List[str]:
     terms = (
         db.query(SearchTerm.term)
-        .filter(func.length(SearchTerm.term) >= 3)
+        .filter(
+            func.length(SearchTerm.term) >= 3,
+            SearchTerm.term.notlike("@%"),
+        )
         .order_by(SearchTerm.count.desc(), SearchTerm.last_searched_at.desc())
         .limit(10)
         .all()
@@ -341,7 +344,7 @@ def popular_searches(*, db: Session = Depends(deps.get_db)) -> List[str]:
 @router.post("/track")
 def track_search(*, db: Session = Depends(deps.get_db), payload: TrackSearchRequest) -> dict:
     q = payload.query.strip()
-    if len(q) < 2:
+    if len(q) < 2 or q.startswith("@"):
         return {"ok": True}
     term = db.query(SearchTerm).filter(SearchTerm.term == q).first()
     if term:
