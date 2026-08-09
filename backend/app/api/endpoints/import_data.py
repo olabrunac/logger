@@ -14,7 +14,7 @@ from pydantic import BaseModel
 from app import crud, schemas
 from app.api import deps
 from app.core.config import settings
-from app.models.media import MediaType, LogStatus, MediaItem, LogEntry, LogReview, EpisodeWatched, Achievement
+from app.models.media import MediaType, LogStatus, MediaItem, LogEntry, EpisodeWatched, Achievement
 from app.crud.crud_media import CRUDMediaItem
 from app.services import tmdb_service, steam_service
 
@@ -65,6 +65,7 @@ class ImportPreview(BaseModel):
 
 class SteamImportRequest(BaseModel):
     steam_id: str
+    abandoned_days: int = 120
 
 
 class TraktItem(BaseModel):
@@ -403,15 +404,6 @@ def _run_letterboxd_import(job, db, user_id: int, items: list) -> dict:
         )
         db.add(log)
         db.flush()
-
-        if review_text or rating is not None:
-            review_entry = LogReview(
-                log_id=log.id,
-                review_text=review_text,
-                rating=rating,
-                created_at=log_date,
-            )
-            db.add(review_entry)
         created += 1
         job.add_imported({"title": title, "action": "created"})
 
@@ -524,7 +516,7 @@ async def steam_preview(
         hours = round(playtime_minutes / 60, 1) if playtime_minutes > 0 else None
         log_date = None
         rtime = g.get("rtime_last_played")
-        ABANDONED_SECONDS = 120 * 24 * 3600
+        ABANDONED_SECONDS = body.abandoned_days * 24 * 3600
         if playtime_minutes > 0 and rtime and (datetime.datetime.now().timestamp() - rtime) > ABANDONED_SECONDS:
             status = "dropped"
         else:
@@ -687,13 +679,6 @@ def _run_steam_import(job, db, user_id: int, resolved_steam_id: str, items: list
             )
             db.add(log)
             db.flush()
-
-            review_entry = LogReview(
-                log_id=log.id,
-                platform="Steam",
-                created_at=log_date,
-            )
-            db.add(review_entry)
 
         ach_count = 0
         achievements_checked = False
@@ -990,14 +975,6 @@ def _run_trakt_import(job, db, user_id: int, items: list) -> dict:
         )
         db.add(log)
         db.flush()
-
-        review_entry = LogReview(
-            log_id=log.id,
-            rating=rating,
-            platform="Trakt",
-            created_at=datetime.datetime.utcnow(),
-        )
-        db.add(review_entry)
         created += 1
         job.add_imported({"title": title, "action": "created"})
 
@@ -1423,13 +1400,6 @@ def _run_tvtime_import(job, db, user_id: int, selected_titles: set, data: dict, 
         db.add(log)
         db.flush()
 
-        review_entry = LogReview(
-            log_id=log.id,
-            rating=rating,
-            created_at=log.log_date or datetime.datetime.utcnow(),
-        )
-        db.add(review_entry)
-
         for ep_code in sorted(episodes_watched):
             try:
                 parts = ep_code.split("x")
@@ -1544,13 +1514,6 @@ def _run_tvtime_import(job, db, user_id: int, selected_titles: set, data: dict, 
         )
         db.add(log)
         db.flush()
-
-        review_entry = LogReview(
-            log_id=log.id,
-            rating=movie.get("rating"),
-            created_at=log_date,
-        )
-        db.add(review_entry)
         created += 1
         imported_items.append({"title": movie["title"], "action": "created"})
 

@@ -5,6 +5,7 @@ import type { LogEntry, User } from '../types';
 import YgpCard from '../components/sections/YgpCard';
 import { TYPE_META } from '../constants/designSystem';
 import { ArrowLeft } from 'lucide-react';
+import { sortLogsByDate } from '../utils';
 
 interface StatusDirectoryPageProps {
   currentUser: User;
@@ -31,10 +32,9 @@ const sortLogs = (logs: LogEntry[], statusKey: string) => {
   const list = [...logs];
   if (statusKey === 'library' || statusKey === 'all') {
     list.sort((a, b) => (a.media_item?.title || '').localeCompare(b.media_item?.title || '', 'pt-BR', { sensitivity: 'base', numeric: true }));
-  } else {
-    list.sort((a, b) => b.id - a.id);
+    return list;
   }
-  return list;
+  return sortLogsByDate(logs);
 };
 
 const StatusDirectoryPage = ({ currentUser }: StatusDirectoryPageProps) => {

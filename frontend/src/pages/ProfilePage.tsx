@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import api, { getUserCustomLists, resolveUserByUsername } from '../services/api';
-import type { LogEntry, LogReview, User, TopListItem, CustomList } from '../types';
+import type { LogEntry, User, TopListItem, CustomList } from '../types';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import ProfileHero from '../components/ProfileHero';
 import MediaTypeProfilePage from './MediaTypeProfilePage';
@@ -13,7 +13,7 @@ import PostCard from '../components/PostCard';
 import HashtagText from '../components/HashtagText';
 import { TYPE_META, getStars } from '../constants/designSystem';
 import type { Post } from '../types/feed';
-import { imageUrl, getLogUrl, findBestLogForMedia } from '../utils';
+import { imageUrl, getLogUrl, findBestLogForMedia, sortLogsByDate } from '../utils';
 import { Heart, Clock, Star, MessageCircle, Trophy, Layers, Menu } from 'lucide-react';
 
 interface ProfilePageProps {
@@ -41,7 +41,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
   const view = searchParams.get('view');
   const [profileUser, setProfileUser] = useState<User | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [reviewMap, setReviewMap] = useState<Map<number, LogReview[]>>(new Map());
+  const [reviewLogs, setReviewLogs] = useState<LogEntry[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -101,12 +101,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
 
       const reviewLogs = allLogs.filter((l: LogEntry) => l.review && l.review.trim().length > 0);
       if (reviewLogs.length > 0) {
-        const r = await api.post('/media/logs/reviews-batch', reviewLogs.map((l: LogEntry) => l.id));
-        const map = new Map<number, LogReview[]>();
-        Object.entries(r.data).forEach(([logId, reviews]) => {
-          if ((reviews as LogReview[]).length > 0) map.set(Number(logId), reviews as LogReview[]);
-        });
-        setReviewMap(map);
+        setReviewLogs(reviewLogs);
       }
     } catch (err) {
       console.error('Failed to fetch profile data', err);
@@ -130,19 +125,27 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
   }, [logs, isOwnProfile, profileUser?.show_hours, profileUser?.show_achievements]);
 
   const recentLogs = useMemo(() => {
-    return [...viewLogs].sort((a, b) => b.id - a.id).slice(0, 12);
+    return sortLogsByDate(viewLogs).slice(0, 12);
   }, [viewLogs]);
 
   const reviewEntries = useMemo(() => {
-    const entries: { review: LogReview; log: LogEntry }[] = [];
-    viewLogs.forEach(l => {
-      const reviews = reviewMap.get(l.id);
-      if (reviews) {
-        reviews.forEach(r => entries.push({ review: r, log: l }));
-      }
+    const entries: { review: { id: number; log_id: number; review_text: string; rating?: number; platform?: string; created_at: string }; log: LogEntry }[] = [];
+    reviewLogs.forEach(l => {
+      if (!l.review || !l.review.trim()) return;
+      entries.push({
+        review: {
+          id: l.id,
+          log_id: l.id,
+          review_text: l.review,
+          rating: l.rating,
+          platform: l.platform,
+          created_at: l.log_date,
+        },
+        log: l,
+      });
     });
     return entries.sort((a, b) => b.review.created_at.localeCompare(a.review.created_at));
-  }, [viewLogs, reviewMap]);
+  }, [reviewLogs]);
 
   const accentColor = profileUser?.accent_color || '#ff6b35';
 
