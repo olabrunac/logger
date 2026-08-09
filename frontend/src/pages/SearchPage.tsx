@@ -109,7 +109,6 @@ const SearchPage = () => {
         const { data } = await globalSearch(q, currentUserId, filters);
         setResults({ media: data?.media || [], users: data?.users || [] });
         setSearched(true);
-        if (q) rememberSearch(q);
       } catch (err) {
         console.error('Global search failed', err);
         setResults({ media: [], users: [] });
@@ -256,6 +255,7 @@ const SearchPage = () => {
                 <Link
                   key={item.id || item.tmdb_id || item.igdb_id || item.google_books_id || item.title}
                   to={getMediaUrl(item)}
+                  onClick={() => rememberSearch(item.title)}
                   className="mdf-card overflow-hidden hover:bg-white/5 transition-colors group"
                 >
                   <div className="relative w-full" style={{ aspectRatio: '3/4', background: meta.color + '22' }}>
