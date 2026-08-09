@@ -33,6 +33,11 @@ def register(
     if existing_email:
         raise HTTPException(status_code=400, detail="Email already registered")
     user = crud.user.create(db, obj_in=user_in)
+    # Admin segue automaticamente todo novo usuário
+    from app.crud import crud_follow
+    admin = crud.user.get_by_username(db, username="admin")
+    if admin and admin.id != user.id:
+        crud_follow.follow_user(db, follower_id=admin.id, following_id=user.id)
     return _enrich_user(user, db)
 
 
