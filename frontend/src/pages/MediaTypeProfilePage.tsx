@@ -1,14 +1,14 @@
 ﻿import { useEffect, useState, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api, { getUserCustomLists, getUserFavorites, resolveUserByUsername } from '../services/api';
-import type { LogEntry, LogReview, User, CustomList, TopListItem, MediaItem } from '../types';
+import type { LogEntry, User, CustomList, TopListItem, MediaItem } from '../types';
 import ProfileHero from '../components/ProfileHero';
 import YgpCard from '../components/sections/YgpCard';
 import SectionHeader from '../components/sections/SectionHeader';
 import LayoutEditorModal from '../components/sections/LayoutEditorModal';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { TYPE_META, getStars } from '../constants/designSystem';
-import { getLogUrl, findBestLogForMedia } from '../utils';
+import { getLogUrl, findBestLogForMedia, sortLogsByDate } from '../utils';
 import HashtagText from '../components/HashtagText';
 import { Heart, Clock, Star, Target, CheckCircle, BookOpen, X, Layers, Menu, ChevronUp, ChevronDown, Trash2 } from 'lucide-react';
 
@@ -49,7 +49,6 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
   const { username, mediaType: urlMediaType } = useParams<{ username: string; mediaType: string }>();
   const [profileUser, setProfileUser] = useState<User | null>(propProfileUser ?? null);
   const [logs, setLogs] = useState<LogEntry[]>(propLogs ?? []);
-  const [reviewMap, setReviewMap] = useState<Map<number, LogReview[]>>(new Map());
   const [loading, setLoading] = useState(!propProfileUser || !propLogs);
   const [error, setError] = useState<string | null>(null);
   const [showExpanded, setShowExpanded] = useState<Record<string, boolean>>({});
@@ -67,16 +66,6 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
 
   useEffect(() => {
     if (hasInitialData) {
-      const reviewLogs = (propLogs || []).filter((l: LogEntry) => l.review && l.review.trim().length > 0);
-      if (reviewLogs.length > 0) {
-        api.post('/media/logs/reviews-batch', reviewLogs.map((l: LogEntry) => l.id)).then(r => {
-          const map = new Map<number, LogReview[]>();
-          Object.entries(r.data).forEach(([logId, reviews]) => {
-            if ((reviews as LogReview[]).length > 0) map.set(Number(logId), reviews as LogReview[]);
-          });
-          setReviewMap(map);
-        }).catch(() => {});
-      }
       return;
     }
     setLoading(true);
@@ -101,16 +90,6 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
         setLogs(allLogs);
         setCustomLists(customListsRes.data || []);
         setTopListItems(topListRes.data || []);
-
-        const reviewLogs = allLogs.filter((l: LogEntry) => l.review && l.review.trim().length > 0);
-        if (reviewLogs.length > 0) {
-          const r = await api.post('/media/logs/reviews-batch', reviewLogs.map((l: LogEntry) => l.id));
-          const map = new Map<number, LogReview[]>();
-          Object.entries(r.data).forEach(([logId, reviews]) => {
-            if ((reviews as LogReview[]).length > 0) map.set(Number(logId), reviews as LogReview[]);
-          });
-          setReviewMap(map);
-        }
       } catch (err) {
         console.error('Failed to fetch profile data', err);
         setError('Perfil nao encontrado');
@@ -135,13 +114,23 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
 
   const filteredLogs = useMemo(() => viewLogs.filter(l => l.media_item.media_type === mediaType), [viewLogs, mediaType]);
   const reviewEntries = useMemo(() => {
-    const entries: { review: LogReview; log: LogEntry }[] = [];
+    const entries: { review: { id: number; log_id: number; review_text: string; rating?: number; platform?: string; created_at: string }; log: LogEntry }[] = [];
     filteredLogs.forEach(l => {
-      const reviews = reviewMap.get(l.id);
-      if (reviews) reviews.forEach(r => entries.push({ review: r, log: l }));
+      if (!l.review || !l.review.trim()) return;
+      entries.push({
+        review: {
+          id: l.id,
+          log_id: l.id,
+          review_text: l.review,
+          rating: l.rating,
+          platform: l.platform,
+          created_at: l.log_date,
+        },
+        log: l,
+      });
     });
     return entries.sort((a, b) => b.review.created_at.localeCompare(a.review.created_at));
-  }, [filteredLogs, reviewMap]);
+  }, [filteredLogs]);
   const filteredCustomLists = useMemo(() =>
     customLists.filter(list => list.items.some(item => item.media_item?.media_type === mediaType)),
     [customLists, mediaType]);
@@ -540,41 +529,44 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
     );
   };
 
-  const renderRecent = () => (
-    <section>
-      <SectionHeader title="Logs recentes" count={filteredLogs.length} linkTo={`/profile/${profileUser?.username}/all/${rawMediaType}`} />
-      {filteredLogs.length === 0 ? (
-        <div className="mdf-card p-6 text-center text-white/30 text-sm">Nenhuma mídia registrada.</div>
-      ) : (
-        <>
-          <div className="hidden lg:grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
-            {(showExpanded.recent ? filteredLogs : filteredLogs.slice(0, 10)).map(log => (
-              <YgpCard key={log.id} log={log} accentColor={accentColor} />
-            ))}
-            {filteredLogs.length > 10 && (
-              <button onClick={() => toggleExpand('recent')} className="flex flex-col items-center justify-center gap-1 rounded-lg transition-colors hover:bg-white/[0.02]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', aspectRatio: '3/4' }}>
-                <span className="text-lg font-bold text-white/40">{showExpanded.recent ? '−' : '+'}</span>
-                <span className="text-[10px] text-white/30">{showExpanded.recent ? 'Recolher' : `${filteredLogs.length - 10} mais`}</span>
-              </button>
-            )}
-          </div>
-          <div className="scrollbar-hide -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 lg:hidden">
-            {(showExpanded.recent ? filteredLogs : filteredLogs.slice(0, 10)).map(log => (
-              <div key={log.id} className="w-[28%] shrink-0">
-                <YgpCard log={log} accentColor={accentColor} />
-              </div>
-            ))}
-            {filteredLogs.length > 10 && (
-              <button onClick={() => toggleExpand('recent')} className="flex w-[28%] shrink-0 flex-col items-center justify-center gap-1 rounded-lg transition-colors hover:bg-white/[0.02]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', aspectRatio: '3/4' }}>
-                <span className="text-lg font-bold text-white/40">{showExpanded.recent ? '−' : '+'}</span>
-                <span className="text-[10px] text-white/30">{showExpanded.recent ? 'Recolher' : `${filteredLogs.length - 10} mais`}</span>
-              </button>
-            )}
-          </div>
-        </>
-      )}
-    </section>
-  );
+  const renderRecent = () => {
+    const recentSorted = sortLogsByDate(filteredLogs);
+    return (
+      <section>
+        <SectionHeader title="Logs recentes" count={filteredLogs.length} linkTo={`/profile/${profileUser?.username}/all/${rawMediaType}`} />
+        {filteredLogs.length === 0 ? (
+          <div className="mdf-card p-6 text-center text-white/30 text-sm">Nenhuma mídia registrada.</div>
+        ) : (
+          <>
+            <div className="hidden lg:grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
+              {(showExpanded.recent ? recentSorted : recentSorted.slice(0, 10)).map(log => (
+                <YgpCard key={log.id} log={log} accentColor={accentColor} />
+              ))}
+              {filteredLogs.length > 10 && (
+                <button onClick={() => toggleExpand('recent')} className="flex flex-col items-center justify-center gap-1 rounded-lg transition-colors hover:bg-white/[0.02]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', aspectRatio: '3/4' }}>
+                  <span className="text-lg font-bold text-white/40">{showExpanded.recent ? '−' : '+'}</span>
+                  <span className="text-[10px] text-white/30">{showExpanded.recent ? 'Recolher' : `${filteredLogs.length - 10} mais`}</span>
+                </button>
+              )}
+            </div>
+            <div className="scrollbar-hide -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 lg:hidden">
+              {(showExpanded.recent ? recentSorted : recentSorted.slice(0, 10)).map(log => (
+                <div key={log.id} className="w-[28%] shrink-0">
+                  <YgpCard log={log} accentColor={accentColor} />
+                </div>
+              ))}
+              {filteredLogs.length > 10 && (
+                <button onClick={() => toggleExpand('recent')} className="flex w-[28%] shrink-0 flex-col items-center justify-center gap-1 rounded-lg transition-colors hover:bg-white/[0.02]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', aspectRatio: '3/4' }}>
+                  <span className="text-lg font-bold text-white/40">{showExpanded.recent ? '−' : '+'}</span>
+                  <span className="text-[10px] text-white/30">{showExpanded.recent ? 'Recolher' : `${filteredLogs.length - 10} mais`}</span>
+                </button>
+              )}
+            </div>
+          </>
+        )}
+      </section>
+    );
+  };
 
   const renderReviews = () => {
     if (reviewEntries.length === 0) {
