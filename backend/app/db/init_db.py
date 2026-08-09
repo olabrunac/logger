@@ -68,6 +68,20 @@ def init_db() -> None:
     _add_column('"user"', 'show_stats', 'ALTER TABLE "user" ADD COLUMN show_stats BOOLEAN DEFAULT TRUE')
     _add_column('logentry', 'family_share', 'ALTER TABLE logentry ADD COLUMN family_share BOOLEAN DEFAULT FALSE')
 
+    # Buscas recentes/populares guardam a referência da mídia clicada para
+    # renderizar poster-tiles (tipo + IDs + capa) em vez de só o texto.
+    _add_column('searchterm', 'media_type', 'ALTER TABLE searchterm ADD COLUMN media_type VARCHAR')
+    _add_column('searchterm', 'tmdb_id', 'ALTER TABLE searchterm ADD COLUMN tmdb_id INTEGER')
+    _add_column('searchterm', 'igdb_id', 'ALTER TABLE searchterm ADD COLUMN igdb_id INTEGER')
+    _add_column('searchterm', 'google_books_id', 'ALTER TABLE searchterm ADD COLUMN google_books_id VARCHAR')
+    _add_column('searchterm', 'steam_appid', 'ALTER TABLE searchterm ADD COLUMN steam_appid INTEGER')
+    _add_column('searchterm', 'cover_image_url', 'ALTER TABLE searchterm ADD COLUMN cover_image_url VARCHAR')
+
+    # Reset das buscas populares: entradas antigas são só strings (termo digitado,
+    # sem referência de mídia). Apaga tudo para a nova implementação começar limpa,
+    # gravando o título + IDs + capa da mídia clicada.
+    _exec("DELETE FROM searchterm")
+
     # Badge de primeiro log removida do sistema de badges (tabela real: userbadge)
     _exec("DELETE FROM userbadge WHERE badge_key = 'first_log'")
 
