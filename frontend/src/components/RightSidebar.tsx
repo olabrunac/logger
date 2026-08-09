@@ -3,7 +3,7 @@ import { useLocation, Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import api from '../services/api';
 import StatsSection from './sections/StatsSection';
-import { getLogUrl } from '../utils';
+import { getLogUrl, sortLogsByDate } from '../utils';
 import RatingDistribution from './sections/RatingDistribution';
 import GenreChart from './sections/GenreChart';
 import ActivityGraph from './sections/ActivityGraph';
@@ -190,9 +190,8 @@ const RightSidebar = ({ user, isCollapsed, onToggleCollapse, previewOrder, embed
             <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-2">Logs recentes</div>
             {logs.length > 0 ? (
               <div className="flex gap-1.5 overflow-x-auto pb-1">
-                {[...logs]
+                {sortLogsByDate(logs)
                   .filter(l => !activeMediaType || l.media_item.media_type === activeMediaType)
-                  .sort((a, b) => b.id - a.id)
                   .slice(0, 5)
                   .map(log => (
                     <Link key={log.id} to={getLogUrl(log.media_item)} className="w-[44px] h-[60px] rounded-md overflow-hidden flex-shrink-0 relative group border" style={{ borderColor: 'var(--border)', borderBottom: '3px solid ' + (MEDIA_COLORS[log.media_item.media_type] || '#666') }} title={log.media_item.title}>
