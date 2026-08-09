@@ -123,12 +123,22 @@ export const globalSearch = (query: string, userId?: number, filters?: GlobalSea
   return api.get('/search', { params: { q: query, user_id: userId, ...(filters || {}) } });
 };
 
+export interface PopularSearchItem {
+  term: string;
+  media_type?: string;
+  tmdb_id?: number | null;
+  igdb_id?: number | null;
+  google_books_id?: string | null;
+  steam_appid?: number | null;
+  cover_image_url?: string | null;
+}
+
 export const getPopularSearches = () => {
   return api.get('/search/popular');
 };
 
-export const trackSearch = (query: string) => {
-  return api.post('/search/track', { query });
+export const trackSearch = (query: string, media?: Partial<PopularSearchItem>) => {
+  return api.post('/search/track', { query, ...(media || {}) });
 };
 
 export const getMediaByApi = (mediaType: string, apiId: string, userId?: number) => {
