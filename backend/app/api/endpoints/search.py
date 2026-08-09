@@ -324,21 +324,40 @@ def global_search(
 
 class TrackSearchRequest(BaseModel):
     query: str
+    media_type: Optional[str] = None
+    tmdb_id: Optional[int] = None
+    igdb_id: Optional[int] = None
+    google_books_id: Optional[str] = None
+    steam_appid: Optional[int] = None
+    cover_image_url: Optional[str] = None
+
+
+def _serialize_search_term(term: SearchTerm) -> dict:
+    return {
+        "term": term.term,
+        "media_type": term.media_type,
+        "tmdb_id": term.tmdb_id,
+        "igdb_id": term.igdb_id,
+        "google_books_id": term.google_books_id,
+        "steam_appid": term.steam_appid,
+        "cover_image_url": term.cover_image_url,
+    }
 
 
 @router.get("/popular")
-def popular_searches(*, db: Session = Depends(deps.get_db)) -> List[str]:
+def popular_searches(*, db: Session = Depends(deps.get_db)) -> List[dict]:
     terms = (
-        db.query(SearchTerm.term)
+        db.query(SearchTerm)
         .filter(
             func.length(SearchTerm.term) >= 3,
             SearchTerm.term.notlike("@%"),
+            SearchTerm.media_type.isnot(None),
         )
         .order_by(SearchTerm.count.desc(), SearchTerm.last_searched_at.desc())
         .limit(10)
         .all()
     )
-    return [t[0] for t in terms]
+    return [_serialize_search_term(t) for t in terms]
 
 
 @router.post("/track")
@@ -350,7 +369,28 @@ def track_search(*, db: Session = Depends(deps.get_db), payload: TrackSearchRequ
     if term:
         term.count += 1
         term.last_searched_at = datetime.datetime.utcnow()
+        if payload.media_type:
+            term.media_type = payload.media_type
+        if payload.tmdb_id is not None:
+            term.tmdb_id = payload.tmdb_id
+        if payload.igdb_id is not None:
+            term.igdb_id = payload.igdb_id
+        if payload.google_books_id:
+            term.google_books_id = payload.google_books_id
+        if payload.steam_appid is not None:
+            term.steam_appid = payload.steam_appid
+        if payload.cover_image_url:
+            term.cover_image_url = payload.cover_image_url
     else:
-        db.add(SearchTerm(term=q, count=1))
+        db.add(SearchTerm(
+            term=q,
+            count=1,
+            media_type=payload.media_type,
+            tmdb_id=payload.tmdb_id,
+            igdb_id=payload.igdb_id,
+            google_books_id=payload.google_books_id,
+            steam_appid=payload.steam_appid,
+            cover_image_url=payload.cover_image_url,
+        ))
     db.commit()
     return {"ok": True}

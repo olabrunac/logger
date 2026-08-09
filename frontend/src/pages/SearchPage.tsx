@@ -3,7 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { Search, User, X, Clock, TrendingUp } from 'lucide-react';
 import type { MediaItem, MediaType } from '../types/media';
 import type { User as UserType } from '../types';
-import { globalSearch, getPopularSearches, trackSearch } from '../services/api';
+import { globalSearch, getPopularSearches, trackSearch, type PopularSearchItem } from '../services/api';
 import type { GlobalSearchFilters } from '../services/api';
 import { getMediaUrl, imageUrl } from '../utils';
 import { TYPE_META } from '../constants/designSystem';
@@ -19,15 +19,27 @@ interface GlobalSearchResult {
 }
 
 const RECENT_KEY = 'recent_searches';
-const MAX_RECENT = 8;
+const MAX_RECENT = 12;
 
-const loadRecent = (): string[] => {
+const loadRecent = (): SearchMediaItem[] => {
   try {
     const raw = localStorage.getItem(RECENT_KEY);
     const arr = raw ? JSON.parse(raw) : [];
-    return Array.isArray(arr) ? arr.filter((s: unknown): s is string => typeof s === 'string') : [];
+    return Array.isArray(arr)
+      ? arr.filter((s: unknown): s is SearchMediaItem => !!s && typeof s === 'object' && typeof (s as SearchMediaItem).title === 'string')
+      : [];
   } catch { return []; }
 };
+
+const toMediaItem = (p: PopularSearchItem): SearchMediaItem => ({
+  title: p.term,
+  media_type: (p.media_type || 'movie') as MediaType,
+  tmdb_id: p.tmdb_id ?? undefined,
+  igdb_id: p.igdb_id ?? undefined,
+  google_books_id: p.google_books_id ?? undefined,
+  steam_appid: p.steam_appid ?? undefined,
+  cover_image_url: p.cover_image_url ?? undefined,
+});
 
 const SearchPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -40,8 +52,8 @@ const SearchPage = () => {
   const [results, setResults] = useState<GlobalSearchResult>({ media: [], users: [] });
   const [isLoading, setIsLoading] = useState(false);
   const [searched, setSearched] = useState(false);
-  const [popular, setPopular] = useState<string[]>([]);
-  const [recent, setRecent] = useState<string[]>(loadRecent);
+  const [popular, setPopular] = useState<PopularSearchItem[]>([]);
+  const [recent, setRecent] = useState<SearchMediaItem[]>(loadRecent);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -59,20 +71,29 @@ const SearchPage = () => {
     getPopularSearches().then(r => setPopular(r.data || [])).catch(() => {});
   }, []);
 
-  const rememberSearch = (q: string) => {
-    const term = q.trim();
-    if (term.length < 2) return;
+  const rememberSearch = (item: SearchMediaItem) => {
+    const title = item?.title?.trim();
+    if (!title || title.length < 2) return;
+    const entry: SearchMediaItem = {
+      title,
+      media_type: item.media_type,
+      tmdb_id: item.tmdb_id,
+      igdb_id: item.igdb_id,
+      google_books_id: item.google_books_id,
+      steam_appid: item.steam_appid,
+      cover_image_url: item.cover_image_url,
+    };
     setRecent(prev => {
-      const next = [term, ...prev.filter(s => s.toLowerCase() !== term.toLowerCase())].slice(0, MAX_RECENT);
+      const next = [entry, ...prev.filter(s => s.title.toLowerCase() !== title.toLowerCase())].slice(0, MAX_RECENT);
       try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)); } catch { /* ignore */ }
       return next;
     });
-    trackSearch(term).catch(() => {});
+    trackSearch(title, entry).catch(() => {});
   };
 
-  const removeRecent = (term: string) => {
+  const removeRecent = (title: string) => {
     setRecent(prev => {
-      const next = prev.filter(s => s !== term);
+      const next = prev.filter(s => s.title !== title);
       try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)); } catch { /* ignore */ }
       return next;
     });
@@ -214,14 +235,24 @@ const SearchPage = () => {
                 </h3>
                 <button onClick={clearRecent} className="text-xs text-white/40 hover:text-white transition-colors">Limpar</button>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {recent.map(term => (
-                  <button key={term} onClick={() => setQuery(term)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm bg-white/5 text-white/70 hover:bg-white/10 transition-colors group">
-                    {term}
-                    <X size={12} onClick={(e) => { e.stopPropagation(); removeRecent(term); }}
-                      className="text-white/40 group-hover:text-white transition-colors" />
-                  </button>
+              <div className="flex flex-wrap gap-3">
+                {recent.map(item => (
+                  <div key={`${item.title}-${item.media_type}`} className="relative">
+                    <Link to={getMediaUrl(item)} className="block w-24 group">
+                      <div className="relative w-24 overflow-hidden rounded-lg" style={{ aspectRatio: '3/4', background: (TYPE_META[item.media_type]?.color || '#ff6b35') + '22' }}>
+                        {item.cover_image_url ? (
+                          <img src={imageUrl(item.cover_image_url) || ''} alt={item.title} className="w-full h-full object-cover" loading="lazy" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-2xl">{TYPE_META[item.media_type]?.emoji || '🎬'}</div>
+                        )}
+                      </div>
+                      <div className="mt-1 text-xs text-white/70 truncate group-hover:text-white transition-colors">{item.title}</div>
+                    </Link>
+                    <button onClick={() => removeRecent(item.title)}
+                      className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-black/70 text-white/60 hover:text-white flex items-center justify-center transition-colors">
+                      <X size={11} />
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>
@@ -232,13 +263,22 @@ const SearchPage = () => {
               <h3 className="flex items-center gap-1.5 px-1 mb-2 text-xs font-semibold uppercase tracking-wider text-white/40">
                 <TrendingUp size={12} /> Buscas populares
               </h3>
-              <div className="flex flex-wrap gap-2">
-                {popular.map(term => (
-                  <button key={term} onClick={() => setQuery(term)}
-                    className="px-3 py-1.5 rounded-full text-sm bg-white/5 text-white/70 hover:bg-white/10 transition-colors">
-                    {term}
-                  </button>
-                ))}
+              <div className="flex flex-wrap gap-3">
+                {popular.map(p => {
+                  const item = toMediaItem(p);
+                  return (
+                    <Link key={item.title} to={getMediaUrl(item)} className="block w-24 group">
+                      <div className="relative w-24 overflow-hidden rounded-lg" style={{ aspectRatio: '3/4', background: (TYPE_META[item.media_type]?.color || '#ff6b35') + '22' }}>
+                        {item.cover_image_url ? (
+                          <img src={imageUrl(item.cover_image_url) || ''} alt={item.title} className="w-full h-full object-cover" loading="lazy" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-2xl">{TYPE_META[item.media_type]?.emoji || '🎬'}</div>
+                        )}
+                      </div>
+                      <div className="mt-1 text-xs text-white/70 truncate group-hover:text-white transition-colors">{item.title}</div>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -255,7 +295,7 @@ const SearchPage = () => {
                 <Link
                   key={item.id || item.tmdb_id || item.igdb_id || item.google_books_id || item.title}
                   to={getMediaUrl(item)}
-                  onClick={() => rememberSearch(item.title)}
+                  onClick={() => rememberSearch(item)}
                   className="mdf-card overflow-hidden hover:bg-white/5 transition-colors group"
                 >
                   <div className="relative w-full" style={{ aspectRatio: '3/4', background: meta.color + '22' }}>
