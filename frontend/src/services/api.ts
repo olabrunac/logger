@@ -112,10 +112,6 @@ export const checkBadges = (userId: number) => {
   return api.post(`/badges/check/${userId}`);
 };
 
-export const getLogsReviewsBatch = (logIds: number[]) => {
-  return api.post('/media/logs/reviews-batch', logIds);
-};
-
 // Global Search API
 export interface GlobalSearchFilters {
   media_type?: string;
@@ -172,8 +168,8 @@ export const letterboxdImport = (userId: number, items: object[]) => {
   return uploadApi.post('/import/letterboxd/import', formData);
 };
 
-export const steamPreview = (steamId: string) => {
-  return api.post('/import/steam/preview', { steam_id: steamId });
+export const steamPreview = (steamId: string, abandonedDays?: number) => {
+  return api.post('/import/steam/preview', { steam_id: steamId, abandoned_days: abandonedDays ?? 120 });
 };
 
 export const steamImport = (userId: number, steamId: string, items: object[]) => {

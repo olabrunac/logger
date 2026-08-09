@@ -400,16 +400,6 @@ def create_log_entry(*, db: Session = Depends(deps.get_db), payload: schemas.Log
             existing_log.review = payload.log_in.review
         existing_log.log_date = datetime.datetime.utcnow()
 
-        # Save a review snapshot for this relog
-        review_entry = LogReview(
-            log_id=existing_log.id,
-            review_text=payload.log_in.review,
-            rating=payload.log_in.rating,
-            platform=payload.log_in.platform,
-            created_at=datetime.datetime.utcnow(),
-        )
-        db.add(review_entry)
-
         # Clean up any other duplicate non-wishlist entries for this user+media
         other_duplicates = db.query(LogEntry).filter(
             LogEntry.user_id == user_id,
@@ -431,17 +421,6 @@ def create_log_entry(*, db: Session = Depends(deps.get_db), payload: schemas.Log
             log_entry_data["hours_spent"] = None
         log = LogEntry(**log_entry_data, user_id=user_id, media_item_id=media_id)
         db.add(log)
-        db.flush()
-
-        # Save initial review snapshot
-        review_entry = LogReview(
-            log_id=log.id,
-            review_text=payload.log_in.review,
-            rating=payload.log_in.rating,
-            platform=payload.log_in.platform,
-            created_at=log.log_date or datetime.datetime.utcnow(),
-        )
-        db.add(review_entry)
         db.commit()
         db.refresh(log)
 
@@ -808,23 +787,34 @@ def read_log_reviews(*, db: Session = Depends(deps.get_db), log_id: int) -> Any:
     log = crud.log_entry.get(db, id=log_id)
     if not log:
         raise HTTPException(status_code=404, detail="Log not found")
-    reviews = db.query(LogReview).filter(LogReview.log_id == log_id).order_by(LogReview.created_at.desc()).all()
-    return reviews
+    if not (log.review and log.review.strip()):
+        return []
+    return [{
+        "id": log.id,
+        "log_id": log.id,
+        "review_text": log.review,
+        "rating": log.rating,
+        "platform": log.platform,
+        "created_at": log.log_date or datetime.datetime.utcnow(),
+    }]
 
 
 @router.post("/logs/reviews-batch")
 def read_logs_reviews_batch(*, db: Session = Depends(deps.get_db), log_ids: List[int]) -> Any:
     if not log_ids:
         return {}
-    reviews = (
-        db.query(LogReview)
-        .filter(LogReview.log_id.in_(log_ids))
-        .order_by(LogReview.created_at.desc())
-        .all()
-    )
-    result: dict[int, list] = {lid: [] for lid in log_ids}
-    for r in reviews:
-        result[r.log_id].append(schemas.LogReviewInDB.model_validate(r).model_dump())
+    logs = db.query(LogEntry).filter(LogEntry.id.in_(log_ids)).all()
+    result: dict[int, list] = {}
+    for log in logs:
+        if log.review and log.review.strip():
+            result[log.id] = [{
+                "id": log.id,
+                "log_id": log.id,
+                "review_text": log.review,
+                "rating": log.rating,
+                "platform": log.platform,
+                "created_at": log.log_date or datetime.datetime.utcnow(),
+            }]
     return result
 
 @router.post("/logs/{log_id}/reply")
@@ -939,14 +929,6 @@ def update_log_entry(*, db: Session = Depends(deps.get_db), log_id: int, updates
                 existing_log.review = update_data['review']
             existing_log.log_date = datetime.datetime.utcnow()
 
-            review_entry = LogReview(
-                log_id=existing_log.id,
-                review_text=update_data.get('review'),
-                rating=update_data.get('rating'),
-                platform=update_data.get('platform'),
-                created_at=datetime.datetime.utcnow(),
-            )
-            db.add(review_entry)
             db.add(existing_log)
             db.delete(log)
             db.commit()
@@ -959,24 +941,6 @@ def update_log_entry(*, db: Session = Depends(deps.get_db), log_id: int, updates
             return existing_log
 
     # Save a review snapshot only if review content actually changed
-    new_review = update_data.get('review')
-    new_rating = update_data.get('rating')
-    new_platform = update_data.get('platform')
-    review_changed = (
-        (new_review is not None and new_review != log.review) or
-        (new_rating is not None and new_rating != log.rating) or
-        (new_platform is not None and new_platform != log.platform)
-    )
-    if review_changed:
-        review_entry = LogReview(
-            log_id=log.id,
-            review_text=new_review if new_review is not None else log.review,
-            rating=new_rating if new_rating is not None else log.rating,
-            platform=new_platform if new_platform is not None else log.platform,
-            created_at=datetime.datetime.utcnow(),
-        )
-        db.add(review_entry)
-
     for field, value in update_data.items():
         if field == 'hours_spent' and not _manual_hours_allowed(log.media_item.media_type):
             continue

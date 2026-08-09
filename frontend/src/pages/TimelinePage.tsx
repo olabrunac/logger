@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import api, { uploadFile } from '../services/api';
 import type { User } from '../types';
 import type { Post, TimelineEntry, FeedItem } from '../types/feed';
@@ -13,29 +13,86 @@ interface TimelinePageProps {
 }
 
 const IMAGE_URL = (url: string) => imageUrl(url) || '';
+const PAGE_SIZE = 25;
 
 const TimelinePage = ({ user }: TimelinePageProps) => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [entries, setEntries] = useState<TimelineEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [postOffset, setPostOffset] = useState(0);
+  const [before, setBefore] = useState<string | null>(null);
+  const [hasMorePosts, setHasMorePosts] = useState(true);
+  const [hasMoreLogs, setHasMoreLogs] = useState(true);
   const [newPostText, setNewPostText] = useState('');
   const [posting, setPosting] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const loadingRef = useRef(false);
 
-  const loadFeed = async () => {
+  const loadFeed = useCallback(async () => {
     const [p, e] = await Promise.all([
-      api.get('/posts/posts/feed', { params: { user_id: user.id } }).then(r => r.data).catch(() => []),
-      api.get(`/users/${user.id}/timeline`).then(r => r.data).catch(() => []),
+      api.get('/posts/posts/feed', { params: { user_id: user.id, limit: PAGE_SIZE, offset: 0 } }).then(r => r.data).catch(() => []),
+      api.get(`/users/${user.id}/timeline`, { params: { limit: PAGE_SIZE } }).then(r => r.data).catch(() => []),
     ]);
     setPosts(p.map((x: Post) => ({ ...x, _type: 'post' as const })));
     setEntries(e.map((x: TimelineEntry) => ({ ...x, _type: 'log' as const })));
-  };
+    setPostOffset(p.length);
+    setHasMorePosts(p.length >= PAGE_SIZE);
+    setHasMoreLogs(e.length >= PAGE_SIZE);
+    setBefore(e.length > 0 ? (e[e.length - 1] as TimelineEntry).log_date : null);
+  }, [user.id]);
+
+  const loadMore = useCallback(async () => {
+    if (loadingRef.current || loading) return;
+    if (!hasMorePosts && !hasMoreLogs) return;
+    loadingRef.current = true;
+    setLoadingMore(true);
+    try {
+      const [p, e] = await Promise.all([
+        hasMorePosts
+          ? api.get('/posts/posts/feed', { params: { user_id: user.id, limit: PAGE_SIZE, offset: postOffset } }).then(r => r.data).catch(() => [])
+          : Promise.resolve([]),
+        hasMoreLogs
+          ? api.get(`/users/${user.id}/timeline`, { params: { limit: PAGE_SIZE, before } }).then(r => r.data).catch(() => [])
+          : Promise.resolve([]),
+      ]);
+      if (p.length > 0) {
+        setPosts(prev => {
+          const seen = new Set(prev.map(x => x.id));
+          return [...prev, ...p.filter((x: Post) => !seen.has(x.id)).map((x: Post) => ({ ...x, _type: 'post' as const }))];
+        });
+      }
+      if (e.length > 0) {
+        setEntries(prev => {
+          const seen = new Set(prev.map(x => x.id));
+          return [...prev, ...e.filter((x: TimelineEntry) => !seen.has(x.id)).map((x: TimelineEntry) => ({ ...x, _type: 'log' as const }))];
+        });
+        setBefore((e[e.length - 1] as TimelineEntry).log_date);
+      }
+      setPostOffset(o => o + p.length);
+      setHasMorePosts(p.length >= PAGE_SIZE);
+      setHasMoreLogs(e.length >= PAGE_SIZE);
+    } finally {
+      loadingRef.current = false;
+      setLoadingMore(false);
+    }
+  }, [loading, hasMorePosts, hasMoreLogs, postOffset, before, user.id]);
 
   useEffect(() => {
     loadFeed().then(() => setLoading(false));
-  }, [user.id]);
+  }, [loadFeed]);
+
+  useEffect(() => {
+    if (!sentinelRef.current || loading) return;
+    const observer = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) loadMore();
+    }, { rootMargin: '600px' });
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [loadMore, loading, hasMorePosts, hasMoreLogs]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -268,6 +325,18 @@ const TimelinePage = ({ user }: TimelinePageProps) => {
             ) : (
               <LogCard key={`log-${item.id}`} entry={item as TimelineEntry} currentUser={user} onReply={handleLogReply} onLike={handleLogLike} />
             )
+          )}
+          {(hasMorePosts || hasMoreLogs) && (
+            <div ref={sentinelRef} className="flex items-center justify-center py-6">
+              {loadingMore ? (
+                <div className="text-xs text-white/40">Carregando mais...</div>
+              ) : (
+                <div className="h-1 w-full" />
+              )}
+            </div>
+          )}
+          {!hasMorePosts && !hasMoreLogs && posts.length + entries.length > 0 && (
+            <div className="py-6 text-center text-xs text-white/30">Fim do feed</div>
           )}
         </div>
       )}

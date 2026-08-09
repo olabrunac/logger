@@ -27,6 +27,18 @@ export function getApiId(item: MediaItem): string {
   return String(item.id!);
 }
 
+export function sortLogsByDate(logs: LogEntry[]): LogEntry[] {
+  return [...logs].sort((a, b) => {
+    const aList = a.status === 'wishlist' || a.status === 'soon';
+    const bList = b.status === 'wishlist' || b.status === 'soon';
+    if (aList !== bList) return aList ? 1 : -1;
+    const aDate = a.log_date ? parseServerDate(a.log_date).getTime() : 0;
+    const bDate = b.log_date ? parseServerDate(b.log_date).getTime() : 0;
+    if (bDate !== aDate) return bDate - aDate;
+    return b.id - a.id;
+  });
+}
+
 export function findBestLogForMedia(mediaId: number | undefined, logs: LogEntry[]): LogEntry | undefined {
   if (!mediaId) return undefined;
   const mediaLogs = logs.filter(l => l.media_item.id === mediaId);

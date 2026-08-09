@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getLogUrl } from '../utils';
 import api, { getMediaByApi } from '../services/api';
-import type { LogEntry, LogReview } from '../types';
+import type { LogEntry } from '../types';
 import type { MediaItem } from '../types/media';
 import { ChevronDown, Trash2, CheckCircle2, Circle, Pencil, Bookmark, Heart, Edit3, Star, Plus } from 'lucide-react';
 import LogForm from '../components/LogForm';
@@ -114,8 +114,7 @@ const MediaDetailPage = () => {
   const { mediaType, apiId } = useParams<{ mediaType: string; apiId: string }>();
   const navigate = useNavigate();
   const [media, setMedia] = useState<MediaDetail | null>(null);
-  const [log, setLog] = useState<LogEntry | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [log, setLog] = useState<LogEntry | null>(null);  const [loading, setLoading] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -133,7 +132,6 @@ const MediaDetailPage = () => {
   const [bookmarked, setBookmarked] = useState(false);
   const [wishlistLogId, setWishlistLogId] = useState<number | null>(null);
   const [bookmarking, setBookmarking] = useState(false);
-  const [reviewHistory, setReviewHistory] = useState<LogReview[]>([]);
   const [editingEpReview, setEditingEpReview] = useState<string | null>(null);
   const [epReviewText, setEpReviewText] = useState('');
   const [epReviewRating, setEpReviewRating] = useState(0);
@@ -199,10 +197,6 @@ const MediaDetailPage = () => {
             setBookmarked(!!match);
             setWishlistLogId(match?.id ?? null);
           }).catch(() => {});
-
-        api.get(`/media/logs/${logData.id}/reviews`)
-          .then(r => setReviewHistory(r.data || []))
-          .catch(() => {});
       }
     } catch { setLog(null); } finally { setLoading(false); }
   }, [mediaType, apiId]);
@@ -256,7 +250,6 @@ const MediaDetailPage = () => {
       const { data } = await api.put(`/media/logs/${log.id}`, logDetails);
       setLog(data);
       setShowEditModal(false);
-      api.get(`/media/logs/${log.id}/reviews`).then(r => setReviewHistory(r.data || [])).catch(() => {});
       if (String(data.id) !== String(log.id)) {
         navigate(getLogUrl(data.media_item), { replace: true });
       }
@@ -278,7 +271,6 @@ const MediaDetailPage = () => {
     try {
       const { data } = await api.delete(`/media/logs/${log.id}/review`);
       setLog(data);
-      setReviewHistory([]);
       setShowDeleteReviewConfirm(false);
     } catch (err) {
       console.error('Failed to delete review:', err);
@@ -956,36 +948,6 @@ const MediaDetailPage = () => {
           {/* Reviews */}
           {activeTab === 'reviews' && (
             <div className="space-y-6">
-              {reviewHistory.length > 0 && (
-                <div>
-                  <SectionTitle>Histórico de reviews</SectionTitle>
-                  <div className="space-y-2">
-                    {reviewHistory.map((r) => (
-                      <div key={r.id} className="mdf-card p-4 rounded-xl flex gap-3" style={{ borderLeft: '3px solid rgba(255,255,255,0.08)' }}>
-                        <div className="flex-shrink-0 flex flex-col items-center gap-1 pt-0.5">
-                          {r.rating != null && r.rating > 0 && (
-                            <div className="flex items-center gap-0.5" style={{ color: 'var(--mdf-yellow)' }}>
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="var(--mdf-yellow)" stroke="var(--mdf-yellow)" strokeWidth="2">
-                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                              </svg>
-                              <span className="text-sm font-bold">{r.rating}</span>
-                            </div>
-                          )}
-                          <div className="text-[10px] text-white/30">
-                            {new Date(r.created_at).toLocaleDateString('pt-BR')}
-                          </div>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          {r.platform && <div className="text-xs text-white/40 mb-1">{r.platform}</div>}
-                          {r.review_text && <p className="text-sm text-white/60 leading-relaxed whitespace-pre-wrap"><HashtagText text={r.review_text} /></p>}
-                          {!r.review_text && <p className="text-xs text-white/30 italic">Sem review</p>}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {md.community_reviews && md.community_reviews.length > 0 && (
                 <div>
                   <SectionTitle>Reviews da comunidade</SectionTitle>
@@ -1019,7 +981,7 @@ const MediaDetailPage = () => {
                 </div>
               )}
 
-              {(!reviewHistory || reviewHistory.length === 0) && (!md.community_reviews || md.community_reviews.length === 0) && (
+              {(!md.community_reviews || md.community_reviews.length === 0) && (
                 <div className="mdf-card p-6 text-center text-white/50 text-sm">Nenhuma review ainda.</div>
               )}
             </div>
