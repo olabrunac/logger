@@ -110,6 +110,13 @@ const ImportPage = ({ user }: ImportPageProps) => {
     }
   };
   const [tvTimeFilter, setTvTimeFilter] = useState<TvTimeFilter>('all');
+  const [abandonedDays, setAbandonedDays] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = Number(localStorage.getItem('steam_abandoned_days'));
+      return [60, 90, 120, 150, 180].includes(saved) ? saved : 120;
+    }
+    return 120;
+  });
   const [rawFile, setRawFile] = useState<File | null>(null);
   const [importProgress, setImportProgress] = useState<{ current: number; total: number; etaSeconds: number | null }>({ current: 0, total: 0, etaSeconds: null });
   const [isDragOver, setIsDragOver] = useState(false);
@@ -248,7 +255,7 @@ const ImportPage = ({ user }: ImportPageProps) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await steamPreview(steamId.trim());
+      const res = await steamPreview(steamId.trim(), abandonedDays);
       const previewItems: ImportItem[] = res.data.items.map((item: Record<string, unknown>) => ({
         ...item,
         selected: true,
@@ -269,7 +276,7 @@ const ImportPage = ({ user }: ImportPageProps) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await steamPreview(savedId);
+      const res = await steamPreview(savedId, abandonedDays);
       const previewItems: ImportItem[] = res.data.items.map((item: Record<string, unknown>) => ({
         ...item,
         selected: true,
@@ -414,6 +421,24 @@ const ImportPage = ({ user }: ImportPageProps) => {
                 >
                   {loading ? 'Carregando...' : 'Buscar'}
                 </button>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Abandonar após:</span>
+                {[60, 90, 120, 150, 180].map(days => (
+                  <button
+                    key={days}
+                    onClick={() => {
+                      setAbandonedDays(days);
+                      if (typeof window !== 'undefined') localStorage.setItem('steam_abandoned_days', String(days));
+                    }}
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                    style={abandonedDays === days
+                      ? { background: 'var(--accent)', color: '#000' }
+                      : { background: 'var(--mdf-bg)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+                  >
+                    {days} dias
+                  </button>
+                ))}
               </div>
             </div>
           ) : (
