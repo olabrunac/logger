@@ -52,9 +52,11 @@ Site pessoal para registrar e acompanhar filmes, séries, jogos e livros, inspir
 - **Scroll horizontal nas listas do perfil (mobile)**: faixas roláveis nos grids do perfil no mobile; desktop inalterado
 - **Editor de layout alinhado (Onda E)**: defaults do editor idênticos ao render real da sidebar e das seções do perfil; preview ao vivo desktop/mobile; layout mobile estendido a tablets
 - **Family Share "do nosso jeito" (import Steam)**: mescla jogos comprados + 50 recentes jogados (dedup por appid), marca `family_share`, com badge "Compartilhado" e filtro no diretório de status
+- **Fix estado stale ao trocar de usuário/mídia**: `ProfilePage`, `MediaTypeProfilePage` e `MediaDetailPage` resetam o estado no início de cada fetch — reviews antigas não aparecem mais "duplicadas" em perfis de outros usuários
+- **Timeline paginada por grupo no SQL**: agrupamento por (usuário + tipo + dia) com `GROUP BY` antes da paginação — usuários com muitos logs no mesmo dia não esmagam os demais da timeline
 
 ### 🔄 Em Andamento / Pendente
-Nenhuma pendência ativa — backlog zerado, v0.3 em produção.
+- **Confirmar em produção**: timeline exibindo logs do Doze e lucaswb332 após deploy da PR #61 no Railway
 
 ### 📦 Arquivadas / Ideias futuras
 - **Lista de jogos por achievement**: viabilidade confirmada (endpoint `IPlayerService/GetTopAchievementsForGames/v1/` em lote), implementação adiada
