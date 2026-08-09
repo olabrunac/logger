@@ -65,6 +65,13 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
   const deviceKey = isMobile ? 'mobile' : 'desktop';
 
   useEffect(() => {
+    if (propProfileUser) setProfileUser(propProfileUser);
+    if (propLogs) setLogs(propLogs);
+    if (propCustomLists) setCustomLists(propCustomLists);
+    if (propTopListItems) setTopListItems(propTopListItems);
+  }, [propProfileUser, propLogs, propCustomLists, propTopListItems]);
+
+  useEffect(() => {
     if (hasInitialData) {
       return;
     }

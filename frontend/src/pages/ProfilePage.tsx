@@ -68,6 +68,10 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
   const fetchData = async () => {
     setLoading(true);
     setError(null);
+    setReviewLogs([]);
+    setPosts([]);
+    setTopListItems([]);
+    setCustomLists([]);
     try {
       let targetUser: User;
       if (isOwnProfile) {
@@ -99,10 +103,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
         } catch {}
       }
 
-      const reviewLogs = allLogs.filter((l: LogEntry) => l.review && l.review.trim().length > 0);
-      if (reviewLogs.length > 0) {
-        setReviewLogs(reviewLogs);
-      }
+      setReviewLogs(allLogs.filter((l: LogEntry) => l.review && l.review.trim().length > 0));
     } catch (err) {
       console.error('Failed to fetch profile data', err);
       setError('Perfil não encontrado');
