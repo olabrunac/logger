@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api, { resolveUserByUsername } from '../services/api';
-import type { LogEntry, LogReview, User, MediaType } from '../types';
+import type { LogEntry, User, MediaType } from '../types';
 import { Heart } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -21,15 +21,9 @@ const FILTERS: { key: MediaType | 'all'; label: string }[] = [
   { key: 'book', label: 'Livros' },
 ];
 
-interface ReviewEntry {
-  review: LogReview;
-  log: LogEntry;
-}
-
 const ReviewsPage = ({ currentUser }: ReviewsPageProps) => {
   const [filter, setFilter] = useState<MediaType | 'all'>('all');
   const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [reviewMap, setReviewMap] = useState<Map<number, LogReview[]>>(new Map());
   const [loading, setLoading] = useState(true);
 
   const { username } = useParams<{ username: string }>();
@@ -42,16 +36,6 @@ const ReviewsPage = ({ currentUser }: ReviewsPageProps) => {
       const response = await api.get('/media/logs', { params: { user_id: targetUser.id, limit: 500 } });
       const allLogs = response.data || [];
       setLogs(allLogs);
-
-      const reviewLogs = allLogs.filter((l: LogEntry) => l.review && l.review.trim().length > 0);
-      if (reviewLogs.length > 0) {
-        const r = await api.post('/media/logs/reviews-batch', reviewLogs.map((l: LogEntry) => l.id));
-        const map = new Map<number, LogReview[]>();
-        Object.entries(r.data).forEach(([logId, reviews]) => {
-          if ((reviews as LogReview[]).length > 0) map.set(Number(logId), reviews as LogReview[]);
-        });
-        setReviewMap(map);
-      }
     } catch (err) {
       console.error('Failed to fetch reviews', err);
     } finally {
@@ -62,25 +46,20 @@ const ReviewsPage = ({ currentUser }: ReviewsPageProps) => {
   useEffect(() => { fetchLogs(); }, [fetchLogs]);
 
   const allReviewEntries = useMemo(() => {
-    const entries: ReviewEntry[] = [];
-    logs.forEach(l => {
-      const reviews = reviewMap.get(l.id);
-      if (reviews) {
-        reviews.forEach(r => entries.push({ review: r, log: l }));
-      }
-    });
-    return entries.sort((a, b) => b.review.created_at.localeCompare(a.review.created_at));
-  }, [logs, reviewMap]);
+    return logs
+      .filter(l => l.review && l.review.trim().length > 0)
+      .sort((a, b) => b.log_date.localeCompare(a.log_date));
+  }, [logs]);
 
   const filtered = useMemo(() => {
     if (filter === 'all') return allReviewEntries;
-    return allReviewEntries.filter(e => e.log.media_item.media_type === filter);
+    return allReviewEntries.filter(e => e.media_item.media_type === filter);
   }, [allReviewEntries, filter]);
 
   const groups = useMemo(() => {
-    const g: Record<string, ReviewEntry[]> = {};
+    const g: Record<string, LogEntry[]> = {};
     filtered.forEach(e => {
-      const d = e.review.created_at.split('T')[0];
+      const d = e.log_date.split('T')[0];
       (g[d] = g[d] || []).push(e);
     });
     return Object.entries(g)
@@ -122,31 +101,31 @@ const ReviewsPage = ({ currentUser }: ReviewsPageProps) => {
             </div>
             <div className="space-y-2">
               {items.map(e => {
-                const meta = TYPE_META[e.log.media_item.media_type];
+                const meta = TYPE_META[e.media_item.media_type];
                 return (
-                  <Link key={e.review.id} to={getLogUrl(e.log.media_item)}
+                  <Link key={e.id} to={getLogUrl(e.media_item)}
                     className="mdf-card mdf-card-hover flex items-stretch gap-4 p-3 transition-colors">
                     <div className="w-[72px] -my-3 -ml-3 flex-shrink-0 overflow-hidden bg-white/5" style={{borderBottom: '3px solid ' + (meta?.color || '#666')}}>
-                      {e.log.media_item.cover_image_url ? (
-                        <img src={e.log.media_item.cover_image_url} alt="" className="w-full h-full object-cover" />
+                      {e.media_item.cover_image_url ? (
+                        <img src={e.media_item.cover_image_url} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-xs text-white/40">{e.log.media_item.title.charAt(0).toUpperCase()}</div>
+                        <div className="w-full h-full flex items-center justify-center text-xs text-white/40">{e.media_item.title.charAt(0).toUpperCase()}</div>
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <div className="font-semibold truncate">{e.log.media_item.title}</div>
-                        {e.log.is_favorite && <Heart size={12} className="text-[var(--mdf-pink)] flex-shrink-0" fill="var(--mdf-pink)" />}
+                        <div className="font-semibold truncate">{e.media_item.title}</div>
+                        {e.is_favorite && <Heart size={12} className="text-[var(--mdf-pink)] flex-shrink-0" fill="var(--mdf-pink)" />}
                       </div>
-                      {e.review.platform && <div className="text-xs text-white/50 mt-0.5">{e.review.platform}</div>}
-                      {e.review.review_text && <p className="text-sm text-white/70 mt-1 line-clamp-2"><HashtagText text={e.review.review_text} /></p>}
-                      {!e.review.review_text && <p className="text-xs text-white/30 italic mt-1">Sem review</p>}
+                      {e.platform && <div className="text-xs text-white/50 mt-0.5">{e.platform}</div>}
+                      {e.review && <p className="text-sm text-white/70 mt-1 line-clamp-2"><HashtagText text={e.review} /></p>}
+                      {!e.review && <p className="text-xs text-white/30 italic mt-1">Sem review</p>}
                     </div>
                     <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                      {e.review.rating != null && e.review.rating > 0 && (
+                      {e.rating != null && e.rating > 0 && (
                         <div className="flex items-center gap-1">
                           <span className="text-[var(--mdf-yellow)] text-base">★</span>
-                          <span className="text-sm font-mono">{e.review.rating.toFixed(1)}</span>
+                          <span className="text-sm font-mono">{e.rating.toFixed(1)}</span>
                         </div>
                       )}
                     </div>
