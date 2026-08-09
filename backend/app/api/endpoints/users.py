@@ -2,6 +2,7 @@ import os
 import uuid
 import json
 import datetime
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session, joinedload
 from app import crud, schemas
@@ -392,6 +393,7 @@ def get_timeline(
     db: Session = Depends(deps.get_db),
     user_id: int,
     limit: int = 50,
+    before: Optional[str] = None,
 ):
     from app.crud import crud_follow
     from app.models.media import LogEntry, LogReply, LogLike, EpisodeWatched, MediaType
@@ -403,14 +405,18 @@ def get_timeline(
     following_ids = [u.id for u in following_ids_raw]
     user_ids = list(set(following_ids + [user_id]))
 
-    logs = (
+    query = (
         db.query(LogEntry)
         .options(joinedload(LogEntry.media_item))
         .filter(LogEntry.user_id.in_(user_ids))
-        .order_by(LogEntry.log_date.desc())
-        .limit(limit * 2)
-        .all()
     )
+    if before:
+        try:
+            before_dt = datetime.datetime.strptime(before, "%Y-%m-%d")
+            query = query.filter(LogEntry.log_date < before_dt)
+        except ValueError:
+            pass
+    logs = query.order_by(LogEntry.log_date.desc()).limit(limit * 4).all()
 
     def _media_ref(mi):
         if not mi:
@@ -585,4 +591,18 @@ def get_timeline(
             })
 
     result.sort(key=lambda x: x["log_date"], reverse=True)
-    return result[:limit]
+
+    page = []
+    for g in result:
+        page.append(g)
+        if len(page) >= limit:
+            break
+    # Se o corte caiu no meio de um dia, incluir todos os grupos do mesmo dia
+    if page and len(result) > len(page):
+        last_date = page[-1]["log_date"]
+        for g in result[len(page):]:
+            if g["log_date"] == last_date:
+                page.append(g)
+            else:
+                break
+    return page
