@@ -1,6 +1,7 @@
 ﻿import csv
 import io
 import json
+import re
 import time
 import zipfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -16,9 +17,11 @@ from app.api import deps
 from app.core.config import settings
 from app.models.media import MediaType, LogStatus, MediaItem, LogEntry, EpisodeWatched, Achievement
 from app.crud.crud_media import CRUDMediaItem
-from app.services import tmdb_service, steam_service
+from app.services import tmdb_service, steam_service, igdb_service
 
 router = APIRouter()
+
+_BETA_RE = re.compile(r"public beta", re.IGNORECASE)
 
 
 def _cover_exists(url: str) -> bool:
@@ -39,6 +42,26 @@ def _steam_cover_url(appid: int) -> Optional[str]:
     for url in urls:
         if _cover_exists(url):
             return url
+    return None
+
+
+def _steam_fallback_cover(appid: int) -> Optional[Dict]:
+    """Resolve a cover when Steam has no portrait art: IGDB cover (t_cover_big,
+    retrato) primeiro, capsule paisagem do Steam como último recurso."""
+    try:
+        igdb_id = igdb_service.get_igdb_id_from_steam(appid)
+        if igdb_id:
+            details = igdb_service.get_game_by_id(igdb_id)
+            if details and details.get("cover_image_url"):
+                return {"cover": details["cover_image_url"], "igdb_id": igdb_id}
+    except Exception:
+        pass
+    for url in (
+        f"https://cdn.akamai.steamstatic.com/steam/apps/{appid}/capsule_616x353.jpg",
+        f"https://cdn.akamai.steamstatic.com/steam/apps/{appid}/header.jpg",
+    ):
+        if _cover_exists(url):
+            return {"cover": url, "igdb_id": None}
     return None
 
 
@@ -511,6 +534,8 @@ async def steam_preview(
         name = (g.get("name") or "").strip()
         if not name:
             continue
+        if _BETA_RE.search(name):
+            continue
         appid = g.get("appid")
         playtime_minutes = g.get("playtime_forever", 0)
         hours = round(playtime_minutes / 60, 1) if playtime_minutes > 0 else None
@@ -602,8 +627,21 @@ def _run_steam_import(job, db, user_id: int, resolved_steam_id: str, items: list
             job.progress(current=idx + 1, created=created, skipped=skipped)
             continue
 
+        if _BETA_RE.search(title):
+            skipped += 1
+            job.add_skipped({"title": title, "reason": "public_beta"})
+            job.progress(current=idx + 1, created=created, skipped=skipped)
+            continue
+
         cover_url = cover_map.get(appid)
-        steam_details = None
+        fallback_igdb_id = None
+        if not cover_url:
+            # Tenta ao máximo: capa retrato do IGDB (t_cover_big), depois a
+            # capsule paisagem do Steam. Só pula se não existir nenhuma.
+            fallback = _steam_fallback_cover(appid)
+            if fallback:
+                cover_url = fallback["cover"]
+                fallback_igdb_id = fallback["igdb_id"]
         if not cover_url:
             skipped += 1
             job.add_skipped({"title": title, "reason": "no_cover"})
@@ -622,6 +660,9 @@ def _run_steam_import(job, db, user_id: int, resolved_steam_id: str, items: list
 
         if cover_url:
             media_item.cover_image_url = cover_url
+            db.add(media_item)
+        if fallback_igdb_id and not media_item.igdb_id:
+            media_item.igdb_id = fallback_igdb_id
             db.add(media_item)
 
         if steam_details:

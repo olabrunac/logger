@@ -8,7 +8,8 @@ import type { MediaItem } from '../types/media';
 import { ChevronDown, Trash2, CheckCircle2, Circle, Pencil, Bookmark, Heart, Edit3, Star, Plus } from 'lucide-react';
 import LogForm from '../components/LogForm';
 import HashtagText from '../components/HashtagText';
-import { TYPE_META, STATUS_COLORS, getStars } from '../constants/designSystem';
+import { TYPE_META, STATUS_COLORS } from '../constants/designSystem';
+import Stars from '../components/Stars';
 
 const STATUS_LABELS: Record<string, string> = {
   in_progress: 'Em progresso',
@@ -584,9 +585,7 @@ const MediaDetailPage = () => {
               <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-white/50 mb-3">
                 {log.rating != null && log.rating > 0 && (
                   <div className="flex items-center gap-1" style={{ color: '#fbbf24' }}>
-                    {getStars(log.rating).map((s, i) => (
-                      <Star key={i} size={14} fill={s === 'empty' ? 'none' : '#fbbf24'} className={s === 'empty' ? 'text-white/20' : ''} />
-                    ))}
+                    <Stars rating={log.rating} size={14} />
                     <span className="ml-1 text-white/60 font-mono">{log.rating.toFixed(1)}</span>
                   </div>
                 )}
@@ -976,9 +975,7 @@ const MediaDetailPage = () => {
                           </Link>
                           {r.rating != null && r.rating > 0 && (
                             <span className="flex items-center gap-0.5" style={{ color: '#fbbf24' }}>
-                              {getStars(r.rating).map((s, i) => (
-                                <Star key={i} size={12} fill={s === 'empty' ? 'none' : '#fbbf24'} className={s === 'empty' ? 'text-white/20' : ''} />
-                              ))}
+                              <Stars rating={r.rating} size={12} />
                             </span>
                           )}
                           {r.log_date && <span className="text-xs text-white/40 ml-auto flex-shrink-0">{r.log_date.split('T')[0]}</span>}

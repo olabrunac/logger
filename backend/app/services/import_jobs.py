@@ -96,7 +96,11 @@ def start_job(source: str, total: int, baseline_seconds_per_item: float, fn: Cal
         from app.db.session import SessionLocal
         db = SessionLocal()
         try:
-            result = fn(job, db)
+            result = fn(job, db) or {}
+            # The per-item lists are collected on the job; surface them in the
+            # result dict so the frontend can render imported/skipped lists.
+            result.setdefault("imported_items", list(job.imported_items))
+            result.setdefault("skipped_items", list(job.skipped_items))
             job.result = result
             job.current = job.total
             job.status = "done"

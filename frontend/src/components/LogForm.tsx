@@ -72,6 +72,7 @@ const LogForm: React.FC<LogFormProps> = ({ onSubmit, onCancel, initialData, medi
   const [showTime, setShowTime] = useState(false);
   const [showReview, setShowReview] = useState(false);
   const [hoveredStar, setHoveredStar] = useState<number | null>(null);
+  const draggingRef = useRef(false);
   const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -91,8 +92,13 @@ const LogForm: React.FC<LogFormProps> = ({ onSubmit, onCancel, initialData, medi
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onCancel();
     };
+    const stopDrag = () => { draggingRef.current = false; };
     window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
+    window.addEventListener('pointerup', stopDrag);
+    return () => {
+      window.removeEventListener('keydown', handleEsc);
+      window.removeEventListener('pointerup', stopDrag);
+    };
   }, [onCancel]);
 
   const isWishlist = status === 'wishlist' || status === 'soon';
@@ -126,10 +132,18 @@ const LogForm: React.FC<LogFormProps> = ({ onSubmit, onCancel, initialData, medi
     }
   };
 
+  const starValueFromPointer = (e: React.PointerEvent<HTMLButtonElement>, starValue: number) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    return e.clientX - rect.left < rect.width / 2 ? starValue - 0.5 : starValue;
+  };
+
   const renderStars = () => {
     const displayRating = hoveredStar !== null ? hoveredStar : rating;
     return (
-      <div className="flex items-center gap-1">
+      <div
+        className="flex items-center gap-1"
+        onPointerLeave={() => { if (!draggingRef.current) setHoveredStar(null); }}
+      >
         {Array.from({ length: 5 }, (_, i) => {
           const starValue = i + 1;
           const fillPercent = displayRating >= starValue ? 100
@@ -138,20 +152,17 @@ const LogForm: React.FC<LogFormProps> = ({ onSubmit, onCancel, initialData, medi
             <button
               key={starValue}
               type="button"
-              onClick={(e) => {
-                const rect = e.currentTarget.getBoundingClientRect();
-                const clickX = e.clientX - rect.left;
-                const isLeftHalf = clickX < rect.width / 2;
-                setRating(isLeftHalf ? starValue - 0.5 : starValue);
+              onPointerDown={(e) => {
+                e.preventDefault();
+                draggingRef.current = true;
+                setRating(starValueFromPointer(e, starValue));
               }}
-              onMouseEnter={(e) => {
-                const rect = e.currentTarget.getBoundingClientRect();
-                const hoverX = e.clientX - rect.left;
-                const isLeftHalf = hoverX < rect.width / 2;
-                setHoveredStar(isLeftHalf ? starValue - 0.5 : starValue);
+              onPointerMove={(e) => {
+                const v = starValueFromPointer(e, starValue);
+                if (draggingRef.current) setRating(v);
+                else setHoveredStar(v);
               }}
-              onMouseLeave={() => setHoveredStar(null)}
-              className="relative w-10 h-10 transition-transform hover:scale-110"
+              className="relative w-10 h-10"
               aria-label={`${starValue} estrelas`}
             >
               <Star size={40} className="absolute inset-0 w-full h-full" style={{ color: 'rgba(255,255,255,0.1)' }} />
