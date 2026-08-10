@@ -89,7 +89,7 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
         setProfileUser(targetUser);
 
         const [logsRes, wishlistRes, customListsRes, topListRes] = await Promise.all([
-          api.get('/media/logs', { params: { user_id: targetUser.id, limit: 500 } }),
+          api.get('/media/logs', { params: { user_id: targetUser.id, limit: 9999 } }),
           api.get('/media/wishlist', { params: { user_id: targetUser.id } }),
           getUserCustomLists(targetUser.id),
           api.get(`/media/users/${targetUser.id}/top-list`),
@@ -508,15 +508,9 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
         ) : (
           <>
             <div className="hidden lg:grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
-              {(expanded ? sectionLogs : sectionLogs.slice(0, 10)).map(log => (
+              {(expanded ? sectionLogs : sectionLogs.slice(0, 11)).map(log => (
                 <YgpCard key={log.id} log={log} accentColor={accentColor} />
               ))}
-              {sectionLogs.length > 10 && (
-                <button onClick={() => toggleExpand(statusId)} className="flex flex-col items-center justify-center gap-1 rounded-lg transition-colors hover:bg-white/[0.02]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', aspectRatio: '3/4' }}>
-                  <span className="text-lg font-bold text-white/40">{expanded ? '−' : '+'}</span>
-                  <span className="text-[10px] text-white/30">{expanded ? 'Ver menos' : `${sectionLogs.length - 10} mais`}</span>
-                </button>
-              )}
             </div>
             <div className="scrollbar-hide -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 lg:hidden">
               {(expanded ? sectionLogs : sectionLogs.slice(0, 10)).map(log => (
@@ -547,15 +541,9 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
         ) : (
           <>
             <div className="hidden lg:grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
-              {(showExpanded.recent ? recentSorted : recentSorted.slice(0, 10)).map(log => (
+              {(showExpanded.recent ? recentSorted : recentSorted.slice(0, 11)).map(log => (
                 <YgpCard key={log.id} log={log} accentColor={accentColor} />
               ))}
-              {filteredLogs.length > 10 && (
-                <button onClick={() => toggleExpand('recent')} className="flex flex-col items-center justify-center gap-1 rounded-lg transition-colors hover:bg-white/[0.02]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', aspectRatio: '3/4' }}>
-                  <span className="text-lg font-bold text-white/40">{showExpanded.recent ? '−' : '+'}</span>
-                  <span className="text-[10px] text-white/30">{showExpanded.recent ? 'Recolher' : `${filteredLogs.length - 10} mais`}</span>
-                </button>
-              )}
             </div>
             <div className="scrollbar-hide -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 lg:hidden">
               {(showExpanded.recent ? recentSorted : recentSorted.slice(0, 10)).map(log => (
@@ -664,15 +652,9 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
       ) : (
         <>
           <div className="hidden lg:grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
-            {(showExpanded.all ? filteredLogs : filteredLogs.slice(0, 10)).map(log => (
+            {(showExpanded.all ? filteredLogs : filteredLogs.slice(0, 11)).map(log => (
               <YgpCard key={log.id} log={log} accentColor={accentColor} />
             ))}
-            {filteredLogs.length > 10 && (
-              <button onClick={() => toggleExpand('all')} className="flex flex-col items-center justify-center gap-1 rounded-lg transition-colors hover:bg-white/[0.02]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', aspectRatio: '3/4' }}>
-                <span className="text-lg font-bold text-white/40">{showExpanded.all ? '−' : '+'}</span>
-                <span className="text-[10px] text-white/30">{showExpanded.all ? 'Recolher' : `${filteredLogs.length - 10} mais`}</span>
-              </button>
-            )}
           </div>
           <div className="scrollbar-hide -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 lg:hidden">
             {(showExpanded.all ? filteredLogs : filteredLogs.slice(0, 10)).map(log => (

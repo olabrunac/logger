@@ -33,7 +33,7 @@ const ReviewsPage = ({ currentUser }: ReviewsPageProps) => {
     try {
       let targetUser = currentUser;
       targetUser = await resolveUserByUsername(displayUsername);
-      const response = await api.get('/media/logs', { params: { user_id: targetUser.id, limit: 500 } });
+      const response = await api.get('/media/logs', { params: { user_id: targetUser.id, limit: 9999 } });
       const allLogs = response.data || [];
       setLogs(allLogs);
     } catch (err) {
