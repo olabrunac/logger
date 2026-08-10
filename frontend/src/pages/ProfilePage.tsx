@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import api, { getUserCustomLists, resolveUserByUsername } from '../services/api';
 import type { LogEntry, User, TopListItem, CustomList } from '../types';
-import { useMediaQuery } from '../hooks/useMediaQuery';
+import { useIsMobile } from '../hooks/useIsMobile';
 import ProfileHero from '../components/ProfileHero';
 import MediaTypeProfilePage from './MediaTypeProfilePage';
 import YgpCard from '../components/sections/YgpCard';
@@ -11,7 +11,8 @@ import BadgesSection from '../components/sections/BadgesSection';
 import LayoutEditorModal from '../components/sections/LayoutEditorModal';
 import PostCard from '../components/PostCard';
 import HashtagText from '../components/HashtagText';
-import { TYPE_META, getStars } from '../constants/designSystem';
+import { TYPE_META } from '../constants/designSystem';
+import Stars from '../components/Stars';
 import type { Post } from '../types/feed';
 import { imageUrl, getLogUrl, findBestLogForMedia, sortLogsByDate } from '../utils';
 import { Heart, Clock, Star, MessageCircle, Trophy, Layers, Menu } from 'lucide-react';
@@ -51,7 +52,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
   const [customLists, setCustomLists] = useState<CustomList[]>([]);
   const [editingLayout, setEditingLayout] = useState(false);
 
-  const isMobile = useMediaQuery('(max-width: 1023px)');
+  const isMobile = useIsMobile();
   const deviceKey = isMobile ? 'mobile' : 'desktop';
 
   const displayUsername = username || currentUser.username;
@@ -426,13 +427,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
                   <div className="flex items-center gap-2">
                     {e.review.rating != null && e.review.rating > 0 && (
                       <div className="flex items-center gap-0.5">
-                        {getStars(e.review.rating).map((star, i) => (
-                          <svg key={i} width="12" height="12" viewBox="0 0 24 24"
-                            fill={star === 'full' || star === 'half' ? 'var(--mdf-yellow)' : 'none'}
-                            stroke="var(--mdf-yellow)" strokeWidth="2">
-                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                          </svg>
-                        ))}
+                        <Stars rating={e.review.rating} size={12} />
                       </div>
                     )}
                     <span className="text-[10px] text-white/30">{new Date(e.review.created_at).toLocaleDateString('pt-BR')}</span>
@@ -737,10 +732,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
                   <div className="flex min-w-0 flex-col gap-1.5">
                     <p className="truncate text-sm font-semibold text-white/80">{e.log.media_item.title}</p>
                     {e.review.rating != null && e.review.rating > 0 && (
-                      <div className="flex items-center gap-0.5">{getStars(e.review.rating).map((star, i) => (
-                        <svg key={i} width="12" height="12" viewBox="0 0 24 24" fill={star === 'full' || star === 'half' ? 'var(--mdf-yellow)' : 'none'} stroke="var(--mdf-yellow)" strokeWidth="2">
-                          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                        </svg>))}</div>
+                      <div className="flex items-center gap-0.5"><Stars rating={e.review.rating} size={12} /></div>
                     )}
                     <span className="text-[10px] text-white/30">{new Date(e.review.created_at).toLocaleDateString('pt-BR')}</span>
                     {e.review.review_text && <p className="line-clamp-4 text-[13px] leading-relaxed text-white/50"><HashtagText text={e.review.review_text} /></p>}
@@ -814,10 +806,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
                     </div>
                   </div>
                   {log.rating != null && log.rating > 0 && (
-                    <div className="flex items-center gap-0.5">{getStars(log.rating).map((star, i) => (
-                      <svg key={i} width="10" height="10" viewBox="0 0 24 24" fill={star === 'full' || star === 'half' ? 'var(--mdf-yellow)' : 'none'} stroke="var(--mdf-yellow)" strokeWidth="2">
-                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                      </svg>))}</div>
+                    <div className="flex items-center gap-0.5"><Stars rating={log.rating} size={10} /></div>
                   )}
                 </Link>
               );

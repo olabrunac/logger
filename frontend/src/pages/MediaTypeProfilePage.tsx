@@ -6,8 +6,9 @@ import ProfileHero from '../components/ProfileHero';
 import YgpCard from '../components/sections/YgpCard';
 import SectionHeader from '../components/sections/SectionHeader';
 import LayoutEditorModal from '../components/sections/LayoutEditorModal';
-import { useMediaQuery } from '../hooks/useMediaQuery';
-import { TYPE_META, getStars } from '../constants/designSystem';
+import { useIsMobile } from '../hooks/useIsMobile';
+import { TYPE_META } from '../constants/designSystem';
+import Stars from '../components/Stars';
 import { getLogUrl, findBestLogForMedia, sortLogsByDate } from '../utils';
 import HashtagText from '../components/HashtagText';
 import { Heart, Clock, Star, Target, CheckCircle, BookOpen, X, Layers, Menu, ChevronUp, ChevronDown, Trash2 } from 'lucide-react';
@@ -61,7 +62,7 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
   const displayUsername = username || currentUser.username;
   const isOwnProfile = displayUsername === currentUser.username;
   const hasInitialData = !!(propProfileUser && propLogs);
-  const isMobile = useMediaQuery('(max-width: 1023px)');
+  const isMobile = useIsMobile();
   const deviceKey = isMobile ? 'mobile' : 'desktop';
 
   useEffect(() => {
@@ -637,13 +638,7 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
                   <div className="flex items-center gap-2">
                     {e.review.rating != null && e.review.rating > 0 && (
                       <div className="flex items-center gap-0.5">
-                        {getStars(e.review.rating).map((star, i) => (
-                          <svg key={i} width="12" height="12" viewBox="0 0 24 24"
-                            fill={star === 'full' || star === 'half' ? 'var(--mdf-yellow)' : 'none'}
-                            stroke="var(--mdf-yellow)" strokeWidth="2">
-                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                          </svg>
-                        ))}
+                        <Stars rating={e.review.rating} size={12} />
                       </div>
                     )}
                     <span className="text-[10px] text-white/30">{new Date(e.review.created_at).toLocaleDateString('pt-BR')}</span>

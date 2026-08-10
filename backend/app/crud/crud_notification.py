@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import desc
+from sqlalchemy import asc, desc
 from app.models.notification import Notification
 from app.models.user import User
 from app.models.post import Post, PostReply
@@ -34,7 +34,7 @@ def get_notifications(db: Session, user_id: int, limit: int = 50, offset: int = 
     rows = (
         db.query(Notification)
         .filter(Notification.user_id == user_id)
-        .order_by(desc(Notification.read), desc(Notification.created_at))
+        .order_by(asc(Notification.read), desc(Notification.created_at))
         .offset(offset)
         .limit(limit)
         .all()
