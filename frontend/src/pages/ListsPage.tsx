@@ -190,7 +190,7 @@ const ListsPage = ({ currentUser }: ListsPageProps) => {
 
   const fetchLogs = useCallback(async () => {
     try {
-      const response = await api.get('/media/logs', { params: { user_id: targetUser.id, limit: 500 } });
+      const response = await api.get('/media/logs', { params: { user_id: targetUser.id, limit: 9999 } });
       setLogs(response.data || []);
     } catch (err) { console.error('Failed to fetch logs', err); }
   }, [targetUser.id]);

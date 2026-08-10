@@ -82,7 +82,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
       }
       setProfileUser(targetUser);
       const [logsRes, wishlistRes, topListRes, customListsRes] = await Promise.all([
-        api.get('/media/logs', { params: { user_id: targetUser.id, limit: 500 } }),
+        api.get('/media/logs', { params: { user_id: targetUser.id, limit: 9999 } }),
         api.get('/media/wishlist', { params: { user_id: targetUser.id } }),
         api.get(`/media/users/${targetUser.id}/top-list`),
         getUserCustomLists(targetUser.id).catch(() => ({ data: [] })),
