@@ -1,6 +1,31 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800;900&family=Manrope:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
+/* Manual layout override via <html data-layout="mobile|web">.
+   - auto (no attribute): lg >= 1025px, xl >= 1280px
+   - data-layout="mobile": lg/xl never apply (mobile layout at any width)
+   - data-layout="web":    lg/xl always apply (web layout at any width) */
+@custom-variant lg {
+  &:where(html[data-layout="web"] *) {
+    @slot;
+  }
+  &:where(html:not([data-layout="mobile"]) *) {
+    @media (min-width: 1025px) {
+      @slot;
+    }
+  }
+}
+@custom-variant xl {
+  &:where(html[data-layout="web"] *) {
+    @slot;
+  }
+  &:where(html:not([data-layout="mobile"]) *) {
+    @media (min-width: 80rem) {
+      @slot;
+    }
+  }
+}
+
 :root {
   /* MDF design tokens */
   --mdf-bg: #0A0C10;
@@ -323,11 +348,15 @@ ul {
   margin-right: 0;
   width: 100%;
 }
-@media (min-width: 1024px) {
+@media (min-width: 1025px) {
   .app-main {
     margin-left: var(--app-margin-left, 0px);
     margin-right: var(--app-margin-right, 0px);
   }
+}
+html[data-layout="web"] .app-main {
+  margin-left: var(--app-margin-left, 0px);
+  margin-right: var(--app-margin-right, 0px);
 }
 
 /* Body scroll lock when a mobile drawer is open */

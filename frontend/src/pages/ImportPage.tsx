@@ -44,6 +44,19 @@ interface ImportResult {
   skipped_items: Array<{ title: string; reason: string }>;
 }
 
+const SKIP_REASON_LABELS: Record<string, string> = {
+  duplicate: 'ja existe',
+  no_cover: 'sem capa',
+  public_beta: 'public beta',
+  no_appid: 'sem appid',
+  empty_title: 'titulo vazio',
+  no_api_match: 'sem match na API',
+  filtered: 'filtrado',
+  not_selected: 'nao selecionado',
+};
+
+const skipReasonLabel = (reason: string) => SKIP_REASON_LABELS[reason] || reason || 'ignorado';
+
 const usePrompt = (message: string | null) => {
   const messageRef = useRef(message);
   messageRef.current = message;
@@ -687,7 +700,7 @@ const ImportPage = ({ user }: ImportPageProps) => {
                 <div key={i} className="flex items-center justify-between px-3 py-2 text-sm border-b last:border-b-0" style={{ borderColor: 'var(--border)' }}>
                   <span style={{ color: 'var(--text-muted)' }}>{item.title}</span>
                   <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                    {item.reason === 'duplicate' ? 'ja existe' : 'nao selecionado'}
+                    {skipReasonLabel(item.reason)}
                   </span>
                 </div>
               ))}

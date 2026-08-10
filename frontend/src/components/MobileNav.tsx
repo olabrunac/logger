@@ -4,6 +4,7 @@ import { Home, Clock, Bell, Calendar, List, BookOpen, MessageSquare, Search, Set
 import { getUnreadCount } from '../services/api';
 import type { User as UserType } from '../types';
 import { imageUrl } from '../utils';
+import LayoutModeToggle from './LayoutModeToggle';
 
 interface MobileNavProps {
   user: UserType | null;
@@ -155,9 +156,12 @@ const MobileNav = ({ user, onLogout, refreshUnreadTrigger }: MobileNavProps) => 
           })}
         </nav>
 
-        <div className="border-t px-5 py-4 text-[10px] text-white/25 safe-bottom flex items-center justify-between gap-2" style={{ borderColor: 'var(--border)' }}>
-          <span>Logger v1.0</span>
-          <span className="text-white/15">Powered by IGDB, TMDB</span>
+        <div className="border-t px-5 py-4 text-[10px] text-white/25 safe-bottom flex flex-col gap-3" style={{ borderColor: 'var(--border)' }}>
+          <LayoutModeToggle />
+          <div className="flex items-center justify-between gap-2">
+            <span>Logger v1.0</span>
+            <span className="text-white/15">Powered by IGDB, TMDB</span>
+          </div>
         </div>
       </div>
     </>

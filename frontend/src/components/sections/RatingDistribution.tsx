@@ -24,14 +24,18 @@ const hexToHsl = (hex: string) => {
   return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
 };
 
+const STAR_VALUES = [5, 4.5, 4, 3.5, 3, 2.5, 2, 1.5, 1, 0.5];
+
+const formatStar = (star: number) => (Number.isInteger(star) ? String(star) : star.toFixed(1));
+
 const RatingDistribution = ({ logs, mediaType, color }: RatingDistributionProps) => {
   const data = useMemo(() => {
     const filtered = logs.filter((l) => l.rating && l.rating > 0 && (!mediaType || l.media_item.media_type === mediaType));
-    const buckets = [0, 0, 0, 0, 0];
+    const buckets = new Array(STAR_VALUES.length).fill(0);
     filtered.forEach((l) => {
       const r = Math.round((l.rating || 0) * 2) / 2;
-      const idx = Math.min(Math.floor(r), 4);
-      if (r > 0) buckets[idx]++;
+      const idx = STAR_VALUES.indexOf(r);
+      if (idx >= 0) buckets[idx]++;
     });
     const total = buckets.reduce((s, c) => s + c, 0);
     const maxCount = Math.max(...buckets, 1);
@@ -47,37 +51,57 @@ const RatingDistribution = ({ logs, mediaType, color }: RatingDistributionProps)
     );
   }
 
-  const { h, s } = hexToHsl(color);
-  const barColors = [
-    `hsl(${h}, ${s}%, 35%)`,
-    `hsl(${h}, ${s}%, 45%)`,
-    `hsl(${h}, ${s}%, 52%)`,
-    `hsl(${h}, ${s}%, 60%)`,
-    `hsl(${h}, ${Math.min(s + 5, 100)}%, 65%)`,
-  ];
+  const { h: hue, s } = hexToHsl(color);
 
   const avg = logs.filter((l) => l.rating && l.rating > 0 && (!mediaType || l.media_item.media_type === mediaType)).reduce((s, l) => s + (l.rating || 0), 0) / Math.max(data.total, 1);
 
   return (
     <div>
       <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-2">Avaliações</div>
-      <div className="flex flex-col gap-1.5">
-        {[5, 4, 3, 2, 1].map((star) => {
-          const idx = star - 1;
-          const count = data.buckets[idx];
-          const pct = data.maxCount > 0 ? (count / data.maxCount) * 100 : 0;
-          return (
-            <div key={star} className="flex items-center gap-2">
-              <span className="w-5 text-right text-xs font-semibold" style={{ color: barColors[idx] }}>
-                {star}★
-              </span>
-              <div className="flex-1 h-2.5 rounded-sm overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
-                <div className="h-full rounded-sm transition-all duration-300" style={{ width: pct + '%', background: barColors[idx] }} />
+      <div className="flex flex-col gap-1">
+        <div className="flex items-end gap-1 h-20 pt-2.5">
+          {STAR_VALUES.map((star) => {
+            const idx = STAR_VALUES.indexOf(star);
+            const count = data.buckets[idx];
+            const pct = data.maxCount > 0 ? (count / data.maxCount) * 100 : 0;
+            const isFull = Number.isInteger(star);
+            const barPct = Math.max(count > 0 ? 8 : 2, pct);
+            return (
+              <div key={star} title={`${formatStar(star)}★: ${count}`} className={`relative h-full ${isFull ? 'flex-1' : 'flex-[0.25]'}`}>
+                {count > 0 && (
+                  <span
+                    className="absolute left-0 right-0 text-center text-[8px] leading-none font-semibold text-white/80"
+                    style={{ bottom: barPct + '%', textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}
+                  >
+                    {count}
+                  </span>
+                )}
+                <div
+                  className="absolute bottom-0 left-0 right-0 rounded-t-sm"
+                  style={{
+                    height: barPct + '%',
+                    background: count > 0
+                      ? `hsl(${hue}, ${s}%, ${Math.round(32 + (star / 5) * 33)}%)`
+                      : 'rgba(255,255,255,0.05)',
+                  }}
+                />
               </div>
-              <span className="w-5 text-[10px] text-white/40">{count}</span>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
+        <div className="flex gap-1">
+          {STAR_VALUES.map((star) => {
+            return Number.isInteger(star) ? (
+              <div key={star} className="flex-1 flex flex-col items-center leading-none">
+                <span className="text-[9px] font-semibold" style={{ color: `hsl(${hue}, ${s}%, ${Math.round(32 + (star / 5) * 33)}%)` }}>
+                  {formatStar(star)}★
+                </span>
+              </div>
+            ) : (
+              <div key={star} className="flex-[0.25]" />
+            );
+          })}
+        </div>
       </div>
       <div className="mt-2 text-[10px] text-white/30">
         Média: {avg.toFixed(1)} · {data.total} total

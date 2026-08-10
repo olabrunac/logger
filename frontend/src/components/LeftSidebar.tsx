@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { getUnreadCount } from '../services/api';
 import type { User as UserType } from '../types';
 import { imageUrl } from '../utils';
+import LayoutModeToggle from './LayoutModeToggle';
 
 interface LeftSidebarProps {
   user: UserType | null;
@@ -27,7 +28,7 @@ const LeftSidebar = ({ user, onLogout, refreshUnreadTrigger }: LeftSidebarProps)
   if (!user) {
     return (
       <aside
-        className="hidden lg:flex fixed top-0 left-0 h-screen lg:w-[160px] xl:w-[203px] flex-col z-40 border-r"
+        className="hidden lg:flex fixed top-0 left-0 h-screen w-[203px] flex-col z-40 border-r"
         style={{ background: 'var(--mdf-bg)', borderColor: 'var(--border)' }}
       >
         <Link to="/" className="flex items-center px-5 h-12 flex-shrink-0 border-b transition-colors hover:bg-white/[0.03]"
@@ -45,8 +46,9 @@ const LeftSidebar = ({ user, onLogout, refreshUnreadTrigger }: LeftSidebarProps)
           </NavLink>
         </nav>
 
-        <div className="px-5 py-4 border-t text-[10px] text-white/20" style={{ borderColor: 'var(--border)' }}>
-          Logger v1.0
+        <div className="px-3 py-3 border-t text-[10px] text-white/20 space-y-3" style={{ borderColor: 'var(--border)' }}>
+          <LayoutModeToggle />
+          <div>Logger v1.0</div>
         </div>
       </aside>
     );
@@ -70,7 +72,7 @@ const LeftSidebar = ({ user, onLogout, refreshUnreadTrigger }: LeftSidebarProps)
 
   return (
     <aside
-      className="hidden lg:flex fixed top-0 left-0 h-screen lg:w-[160px] xl:w-[203px] flex-col z-40 border-r"
+      className="hidden lg:flex fixed top-0 left-0 h-screen w-[203px] flex-col z-40 border-r"
       style={{ background: 'var(--mdf-bg)', borderColor: 'var(--border)' }}
     >
       {/* Logo */}
@@ -172,7 +174,8 @@ const LeftSidebar = ({ user, onLogout, refreshUnreadTrigger }: LeftSidebarProps)
       </nav>
 
       {/* Footer - Settings */}
-      <div className="px-3 py-3 border-t flex-shrink-0" style={{ borderColor: 'var(--border)' }}>
+      <div className="px-3 py-3 border-t flex-shrink-0 space-y-1" style={{ borderColor: 'var(--border)' }}>
+        <LayoutModeToggle className="px-3 py-2" />
         <NavLink
           to="/settings"
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/50 hover:text-white/80 hover:bg-white/5 transition-all"

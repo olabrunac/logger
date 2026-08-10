@@ -28,7 +28,7 @@
 - **Timeline messages**: Mapeamento `statusLabels` por tipo de mídia em `TimelinePage.tsx` (ex: "assistiu", "jogou", "leu", "está assistindo").
 - **Badges**: Evolutivas por grupo (1 badge por categoria, tiers substituem anteriores). Descrição no tooltip mostra progresso p/ próximo nível. Ordenadas por raridade decrescente (cósmico primeiro).
 - **Importadores**: Letterboxd (ZIP/CSV), Steam (API), Trakt (JSON/CSV), TV Time (ZIP GDPR). Badge check roda ao final de cada import.
-- **Steam covers**: Usar `library_600x900.jpg` (2:3 retrato). Importação verifica HEAD request antes; pula jogos sem capa válida (DLCs, betas, jogos sem capsule art).
+- **Steam covers**: Usar `library_600x900.jpg` (2:3 retrato). Importação verifica HEAD request antes; jogos sem arte retrato tentam a capa do **IGDB** (`get_igdb_id_from_steam` → `get_game_by_id`, `t_cover_big`) e, por último, a capsule paisagem do Steam (`capsule_616x353.jpg`/`header.jpg`). Só pula (`no_cover`) se nada existir. Jogos com `public beta` no nome são excluídos do preview e da importação (`reason: public_beta`).
 - **Review snapshots**: PUT `/logs/{log_id}` cria `LogReview` só quando review/rating/platform mudam.
 - **Episódios especiais (season 0) excluídos**: `get_tv_seasons` filtra `season_number == 0`; `get_tv_by_id.total_episodes` soma só seasons regulares; contagens de `EpisodeWatched` em `media.py` (stats/`_update_series_status`), `hours_service.py` e `total_episodes_from_tmdb` do import TV Time usam `season_number > 0`. Episódios da season 0 apagados do `logger.db` local.
 

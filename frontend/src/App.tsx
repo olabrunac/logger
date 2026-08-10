@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import api, { resolveUserByUsername } from './services/api';
-import { useMediaQuery } from './hooks/useMediaQuery';
 import LoginPage from './pages/LoginPage';
 import NewLogPage from './pages/NewLogPage';
 import CalendarPage from './pages/CalendarPage';
@@ -142,16 +141,9 @@ function AppInner() {
   const isLoginRoute = location.pathname === '/login';
   const isMediaDetailRoute = /^\/media\//.test(location.pathname);
   const isMainProfileRoute = /^\/profile\/[^/]+$/.test(location.pathname);
-  const isTablet = useMediaQuery('(min-width: 1024px) and (max-width: 1279px)');
-  useEffect(() => {
-    if (isTablet) setIsSidebarCollapsed(true);
-  }, [isTablet]);
   const fixedSidebarWidths = user
-    ? {
-        left: isTablet ? 160 : 203,
-        right: isMediaDetailRoute ? 0 : isMainProfileRoute ? (isTablet ? (isSidebarCollapsed ? 56 : 324) : 324) : 0,
-      }
-    : { left: isLoginRoute ? 0 : isTablet ? 160 : 203, right: 0 };
+    ? { left: 203, right: isMediaDetailRoute ? 0 : isMainProfileRoute ? 324 : 0 }
+    : { left: isLoginRoute ? 0 : 203, right: 0 };
 
   return (
     <div style={accentStyle} className="min-h-screen flex">
@@ -169,7 +161,6 @@ function AppInner() {
           style={{
             ['--app-margin-left' as string]: `${fixedSidebarWidths.left}px`,
             ['--app-margin-right' as string]: `${fixedSidebarWidths.right}px`,
-            ['--fab-right-offset' as string]: `${isMainProfileRoute ? fixedSidebarWidths.right : 324}px`,
           }}
         >
           {user && <FloatingLogButton user={user} />}
