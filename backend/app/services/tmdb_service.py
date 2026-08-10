@@ -170,3 +170,25 @@ def get_tv_details(tmdb_id: int):
     except requests.exceptions.RequestException as e:
         print(f"Error fetching TMDb TV details: {e}")
         return None
+
+def find_by_external_id(external_id: str, source: str = "tvdb_id"):
+    """Resolve an external ID (tvdb_id / imdb_id) to a TMDB TV show.
+
+    Returns the raw tv_results entry dict (or None) for exact match resolution.
+    """
+    if not settings.TMDB_API_KEY or not external_id:
+        return None
+    url = f"{BASE_URL}/find/{external_id}"
+    params = {
+        "api_key": settings.TMDB_API_KEY,
+        "external_source": source,
+        "language": "en-US",
+    }
+    try:
+        response = requests.get(url, params=params, timeout=15)
+        response.raise_for_status()
+        results = response.json().get("tv_results", [])
+        return results[0] if results else None
+    except requests.exceptions.RequestException as e:
+        print(f"Error resolving {source}={external_id}: {e}")
+        return None

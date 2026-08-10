@@ -31,6 +31,28 @@ def _calc_media_hours(media_type: MediaType, runtime, watched_episodes: int = 0)
         return round((runtime / 60) * watched_episodes, 2)
     return None
 
+def _log_with_stats(db: Session, log: LogEntry) -> schemas.LogEntryWithStats:
+    """Serializa um log com os campos computados (watched_episodes,
+    unlocked_achievements, horas efetivas) para não dependermos do endpoint."""
+    stats = {"watched_episodes": None, "total_episodes": None, "unlocked_achievements": None, "total_achievements": None}
+    if log.media_item.media_type == MediaType.SERIES:
+        watched = db.query(EpisodeWatched).filter(
+            EpisodeWatched.log_id == log.id,
+            EpisodeWatched.watched == True,
+            EpisodeWatched.season_number > 0,
+        ).count()
+        stats["watched_episodes"] = watched
+        stats["total_episodes"] = log.media_item.total_episodes
+    elif log.media_item.media_type == MediaType.GAME:
+        unlocked = db.query(Achievement).filter(Achievement.log_id == log.id, Achievement.unlocked == True).count()
+        total = db.query(Achievement).filter(Achievement.log_id == log.id).count()
+        stats["unlocked_achievements"] = unlocked
+        stats["total_achievements"] = total
+    log_dict = schemas.LogEntryInDB.model_validate(log).model_dump()
+    log_dict.update(stats)
+    log_dict["hours_spent"] = effective_hours(db, log)
+    return schemas.LogEntryWithStats(**log_dict)
+
 def _levenshtein(s1: str, s2: str) -> int:
     if len(s1) < len(s2):
         return _levenshtein(s2, s1)
@@ -620,20 +642,7 @@ def read_log_by_item(*, db: Session = Depends(deps.get_db), user_id: int, media_
     log = db.query(LogEntry).filter(LogEntry.user_id == user_id, LogEntry.media_item_id == media_item.id).first()
     if not log:
         raise HTTPException(status_code=404, detail="Log not found")
-    stats = {"watched_episodes": None, "total_episodes": None, "unlocked_achievements": None, "total_achievements": None}
-    if log.media_item.media_type == MediaType.SERIES:
-        watched = db.query(EpisodeWatched).filter(EpisodeWatched.log_id == log.id, EpisodeWatched.watched == True, EpisodeWatched.season_number > 0).count()
-        stats["watched_episodes"] = watched
-        stats["total_episodes"] = log.media_item.total_episodes
-    elif log.media_item.media_type == MediaType.GAME:
-        unlocked = db.query(Achievement).filter(Achievement.log_id == log.id, Achievement.unlocked == True).count()
-        total = db.query(Achievement).filter(Achievement.log_id == log.id).count()
-        stats["unlocked_achievements"] = unlocked
-        stats["total_achievements"] = total
-    log_dict = schemas.LogEntryInDB.model_validate(log).model_dump()
-    log_dict.update(stats)
-    log_dict["hours_spent"] = effective_hours(db, log)
-    return schemas.LogEntryWithStats(**log_dict)
+    return _log_with_stats(db, log)
 
 @router.get("/items/by-api")
 def read_media_by_api(*, db: Session = Depends(deps.get_db), media_type: str, api_id: str, user_id: Optional[int] = None) -> Any:
@@ -767,20 +776,7 @@ def read_log(*, db: Session = Depends(deps.get_db), log_id: int) -> Any:
                 db.commit()
     except Exception:
         db.rollback()
-    stats = {"watched_episodes": None, "total_episodes": None, "unlocked_achievements": None, "total_achievements": None}
-    if log.media_item.media_type == MediaType.SERIES:
-        watched = db.query(EpisodeWatched).filter(EpisodeWatched.log_id == log.id, EpisodeWatched.watched == True, EpisodeWatched.season_number > 0).count()
-        stats["watched_episodes"] = watched
-        stats["total_episodes"] = log.media_item.total_episodes
-    elif log.media_item.media_type == MediaType.GAME:
-        unlocked = db.query(Achievement).filter(Achievement.log_id == log.id, Achievement.unlocked == True).count()
-        total = db.query(Achievement).filter(Achievement.log_id == log.id).count()
-        stats["unlocked_achievements"] = unlocked
-        stats["total_achievements"] = total
-    log_dict = schemas.LogEntryInDB.model_validate(log).model_dump()
-    log_dict.update(stats)
-    log_dict["hours_spent"] = effective_hours(db, log)
-    return schemas.LogEntryWithStats(**log_dict)
+    return _log_with_stats(db, log)
 
 @router.get("/logs/{log_id}/reviews", response_model=List[schemas.LogReviewInDB])
 def read_log_reviews(*, db: Session = Depends(deps.get_db), log_id: int) -> Any:
@@ -876,7 +872,7 @@ def _log_reply_response(reply) -> dict:
         "created_at": reply.created_at.isoformat() if reply.created_at else "",
     }
 
-@router.put("/logs/{log_id}", response_model=schemas.LogEntryInDB)
+@router.put("/logs/{log_id}", response_model=schemas.LogEntryWithStats)
 def update_log_entry(*, db: Session = Depends(deps.get_db), log_id: int, updates: schemas.LogEntryUpdate) -> Any:
     log = crud.log_entry.get(db, id=log_id)
     if not log:
@@ -938,7 +934,7 @@ def update_log_entry(*, db: Session = Depends(deps.get_db), log_id: int, updates
                 check_and_unlock(db, existing_log.user_id)
             except Exception:
                 pass
-            return existing_log
+            return _log_with_stats(db, existing_log)
 
     # Save a review snapshot only if review content actually changed
     for field, value in update_data.items():
@@ -1028,9 +1024,9 @@ def update_log_entry(*, db: Session = Depends(deps.get_db), log_id: int, updates
     except Exception:
         pass
 
-    return log
+    return _log_with_stats(db, log)
 
-@router.patch("/logs/{log_id}", response_model=schemas.LogEntryInDB)
+@router.patch("/logs/{log_id}", response_model=schemas.LogEntryWithStats)
 def patch_log_entry(*, db: Session = Depends(deps.get_db), log_id: int, updates: schemas.LogEntryUpdate) -> Any:
     log = crud.log_entry.get(db, id=log_id)
     if not log:
@@ -1081,6 +1077,10 @@ def delete_log_entry(*, db: Session = Depends(deps.get_db), log_id: int) -> Any:
     log = crud.log_entry.get(db, id=log_id)
     if not log:
         raise HTTPException(status_code=404, detail="Log not found")
+    db.query(TopListItem).filter(
+        TopListItem.user_id == log.user_id,
+        TopListItem.media_item_id == log.media_item_id,
+    ).delete(synchronize_session=False)
     crud.log_entry.remove(db, id=log_id)
     return {"detail": "Log deleted successfully"}
 

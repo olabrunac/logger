@@ -1,7 +1,9 @@
 ﻿import csv
 import io
 import json
+import re
 import time
+import unicodedata
 import zipfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests
@@ -1079,6 +1081,8 @@ def _parse_tvtime_zip(content: bytes) -> dict:
                         "episode_reviews": {},
                         "seasons": set(),
                         "last_date": None,
+                        "tvdb_id": (row.get("series_tvdb_id") or "").strip(),
+                        "imdb_id": (row.get("series_imdb_id") or "").strip(),
                     }
                 show = shows[series_title]
                 s_num = (row.get("season") or "").strip()
@@ -1245,6 +1249,145 @@ async def tvtime_import(
     return {"job_id": job_id}
 
 
+def _normalize_title(s: str) -> str:
+    """Lowercase, strip accents, keep only alphanumerics (for matching)."""
+    n = unicodedata.normalize("NFKD", s or "").encode("ascii", "ignore").decode("ascii")
+    n = re.sub(r"[^a-z0-9]+", " ", n.lower()).strip()
+    return re.sub(r"\s+", " ", n)
+
+
+def _parse_disambiguation(title: str):
+    """Extract (year) and (region) suffixes from a TV Time title.
+
+    e.g. "MasterChef (BR)" -> ("MasterChef", None, "BR")
+         "Cosmos (2014)"   -> ("Cosmos", 2014, None)
+         "Lost in Space (2018)" -> ("Lost in Space", 2018, None)
+    """
+    base = title
+    year = None
+    region = None
+    m = re.search(r"\((\d{4})\)", base)
+    if m:
+        year = int(m.group(1))
+        base = base.replace(m.group(0), "")
+    m = re.search(r"\(([A-Za-z]{2})\)\s*$", base.strip())
+    if m:
+        region = m.group(1).upper()
+        base = base.replace(m.group(0), "")
+    return base.strip(), year, region
+
+
+def _score_series(result: dict, base: str, year, region) -> float:
+    name = _normalize_title(result.get("name") or "")
+    base_norm = _normalize_title(base)
+    score = 0.0
+    if name == base_norm:
+        score += 100
+    elif name.startswith(base_norm) or base_norm.startswith(name):
+        score += 60
+    elif base_norm in name or name in base_norm:
+        score += 30
+
+    air = result.get("first_air_date") or ""
+    if year and air.startswith(str(year)):
+        score += 20
+    elif year and air[:4].isdigit():
+        if abs(int(air[:4]) - year) <= 1:
+            score += 10
+
+    if region == "BR":
+        if "brasil" in name or "brazil" in name:
+            score += 25
+        elif " us " in f" {name} " or " uk " in f" {name} " or "united states" in name:
+            score -= 30
+    elif region:
+        if f" {region.lower()} " in f" {name} " or name.endswith(region.lower()):
+            score += 15
+    return score
+
+
+def _search_tv_series(title: str):
+    """Search TMDB for a series, trying region/year-aware variants.
+
+    TMDB returns 0 results for queries containing parentheses, so we strip
+    the (year)/(region) suffix and retry with a year filter and regional hints
+    (e.g. "MasterChef (BR)" -> "MasterChef Brasil").
+    """
+    base, year, region = _parse_disambiguation(title)
+    attempts = []
+    if base != title:
+        attempts.append((base, year))
+    attempts.append((title, year))
+    if region:
+        attempts.append((f"{base} {region}", year))
+        if region == "BR":
+            attempts.append((f"{base} Brasil", year))
+            attempts.append((f"{base} Brazil", year))
+
+    best = None
+    best_score = -1.0
+    seen = set()
+    for q, y in attempts:
+        key = (q, y)
+        if key in seen:
+            continue
+        seen.add(key)
+        results = tmdb_service.search_media(query=q, media_type="tv", year=y)
+        for r in results:
+            sc = _score_series(r, base, year, region)
+            if sc > best_score:
+                best_score = sc
+                best = r
+    return best
+
+
+def _resolve_series(show_data: dict, show_name: str):
+    """Resolve the best TMDB series for a TV Time show.
+
+    Priority: tvdb_id -> imdb_id -> region/year-aware title search.
+    Returns (result_or_None, resolved_exact: bool).
+    """
+    tvdb_id = (show_data.get("tvdb_id") or "").strip()
+    if tvdb_id:
+        r = tmdb_service.find_by_external_id(tvdb_id, "tvdb_id")
+        if r:
+            return r, True
+
+    imdb_id = (show_data.get("imdb_id") or "").strip()
+    if imdb_id:
+        r = tmdb_service.find_by_external_id(imdb_id, "imdb_id")
+        if r:
+            return r, True
+
+    r = _search_tv_series(show_name)
+    if r:
+        base, _year, _region = _parse_disambiguation(show_name)
+        exact = _normalize_title(r.get("name") or "") == _normalize_title(base)
+        return r, exact
+    return None, False
+
+
+def _effective_episodes(csv_eps: set, tmdb_codes: set, tmdb_total: int, resolved_exact: bool):
+    """Decide which episode codes to import.
+
+    Normally the intersection with TMDB's numbering is used. If the show was
+    resolved exactly (tvdb/imdb/exact-name) but the CSV numbering doesn't line
+    up with TMDB (common for regional versions and renamed shows), fall back to
+    the TV Time codes the user actually watched.
+    """
+    if not tmdb_codes:
+        return csv_eps, len(csv_eps)
+    inter = csv_eps & tmdb_codes
+    if not inter:
+        if resolved_exact:
+            return csv_eps, len(csv_eps)
+        return set(), 0
+    csv_count = len(csv_eps)
+    if csv_count > len(inter) and resolved_exact:
+        return csv_eps, csv_count
+    return inter, len(inter)
+
+
 def _run_tvtime_import(job, db, user_id: int, selected_titles: set, data: dict, media_type_filter: str = "all") -> dict:
     def _skip_filtered(item_type: str) -> bool:
         return media_type_filter in ("series", "movie") and item_type != media_type_filter
@@ -1272,10 +1415,10 @@ def _run_tvtime_import(job, db, user_id: int, selected_titles: set, data: dict, 
 
         tmdb_id = None
         cover_url = None
-        results = tmdb_service.search_media(query=show_name, media_type="tv")
-        if results:
-            tmdb_id = results[0].get("id")
-            poster = results[0].get("poster_path")
+        resolved, resolved_exact = _resolve_series(show_data, show_name)
+        if resolved:
+            tmdb_id = resolved.get("id")
+            poster = resolved.get("poster_path")
             if poster:
                 cover_url = f"https://image.tmdb.org/t/p/w500{poster}"
 
@@ -1284,8 +1427,10 @@ def _run_tvtime_import(job, db, user_id: int, selected_titles: set, data: dict, 
                 MediaItem.title.ilike(show_name),
                 MediaItem.media_type == MediaType.SERIES,
             ).first()
-            if existing:
+            if existing and existing.tmdb_id:
                 tmdb_id = existing.tmdb_id
+                cover_url = existing.cover_image_url
+                resolved_exact = True
 
         if not tmdb_id:
             skipped += 1
@@ -1294,15 +1439,14 @@ def _run_tvtime_import(job, db, user_id: int, selected_titles: set, data: dict, 
 
         total_episodes_from_tmdb = 0
         tmdb_valid_episodes: set = set()
-        if tmdb_id:
-            try:
-                seasons_info = tmdb_service.get_tv_seasons(tmdb_id)
-                for s in seasons_info:
-                    total_episodes_from_tmdb += s.get("episode_count", 0)
-                    for ep_num in range(1, s.get("episode_count", 0) + 1):
-                        tmdb_valid_episodes.add(f"{s['season_number']}x{ep_num}")
-            except Exception:
-                pass
+        try:
+            seasons_info = tmdb_service.get_tv_seasons(tmdb_id)
+            for s in seasons_info:
+                total_episodes_from_tmdb += s.get("episode_count", 0)
+                for ep_num in range(1, s.get("episode_count", 0) + 1):
+                    tmdb_valid_episodes.add(f"{s['season_number']}x{ep_num}")
+        except Exception:
+            pass
 
         media_in = schemas.MediaItemCreate(
             title=show_name,
@@ -1321,17 +1465,17 @@ def _run_tvtime_import(job, db, user_id: int, selected_titles: set, data: dict, 
             skipped_items.append({"title": show_name, "reason": "no_cover"})
             continue
 
-        episodes_watched = show_data["episodes_watched"]
-
-        if tmdb_valid_episodes:
-            episodes_watched = episodes_watched & tmdb_valid_episodes
+        episodes_watched, num_watched = _effective_episodes(
+            show_data["episodes_watched"],
+            tmdb_valid_episodes,
+            total_episodes_from_tmdb,
+            resolved_exact,
+        )
 
         existing_log = db.query(LogEntry).filter(
             LogEntry.user_id == user_id,
             LogEntry.media_item_id == media_item.id,
         ).first()
-
-        num_watched = len(episodes_watched)
 
         if existing_log:
             existing_eps = db.query(EpisodeWatched).filter(
@@ -1383,12 +1527,15 @@ def _run_tvtime_import(job, db, user_id: int, selected_titles: set, data: dict, 
         if ep_ratings:
             rating = round(sum(ep_ratings) / len(ep_ratings), 1)
 
+        if num_watched == 0:
+            skipped += 1
+            skipped_items.append({"title": show_name, "reason": "no_matched_episodes"})
+            continue
+
         if total_episodes_from_tmdb > 0 and num_watched >= total_episodes_from_tmdb:
             log_status = LogStatus.COMPLETED
         elif num_watched > 0:
             log_status = LogStatus.IN_PROGRESS
-        else:
-            log_status = LogStatus.COMPLETED
 
         log = LogEntry(
             user_id=user_id,
