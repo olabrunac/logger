@@ -3,10 +3,11 @@ import { Link } from 'react-router-dom';
 import api from '../services/api';
 import type { User } from '../types';
 import type { TimelineEntry } from '../types/feed';
-import { getStars, TYPE_META, STATUS_COLORS } from '../constants/designSystem';
+import { TYPE_META, STATUS_COLORS } from '../constants/designSystem';
 import { statusLabels } from '../constants/statusLabels';
 import StatusIcon from './StatusIcon';
 import HashtagText from './HashtagText';
+import Stars from './Stars';
 import { Send, Heart, MessageCircle, ThumbsUp } from 'lucide-react';
 import { imageUrl, getLogUrl, timeAgo } from '../utils';
 
@@ -131,13 +132,7 @@ const LogCard = ({ entry, currentUser, onReply, onLike }: LogCardProps) => {
                 </div>
                 {entry.rating != null && entry.rating > 0 && (
                   <div className="flex items-center gap-0.5 mt-1.5">
-                    {getStars(entry.rating).map((star, i) => (
-                      <svg key={i} width="12" height="12" viewBox="0 0 24 24"
-                        fill={star === 'full' || star === 'half' ? 'var(--mdf-yellow)' : 'none'}
-                        stroke="var(--mdf-yellow)" strokeWidth="2">
-                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                      </svg>
-                    ))}
+                    <Stars rating={entry.rating} size={12} />
                   </div>
                 )}
                 {entry.review && (

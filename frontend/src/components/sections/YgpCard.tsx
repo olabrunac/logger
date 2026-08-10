@@ -2,7 +2,8 @@ import { Link } from 'react-router-dom';
 import { Heart, Star } from 'lucide-react';
 import type { CSSProperties, ReactNode } from 'react';
 import type { LogEntry, MediaItem } from '../../types';
-import { TYPE_META, STATUS_COLORS, getStars } from '../../constants/designSystem';
+import { TYPE_META, STATUS_COLORS } from '../../constants/designSystem';
+import Stars from '../Stars';
 import { getLogUrl } from '../../utils';
 import StatusIcon from '../StatusIcon';
 
@@ -85,13 +86,6 @@ const YgpCard = ({ log, accentColor, showStatus = true, actions, rank, className
         </span>
       )}
 
-      {log.family_share && (
-        <div className="absolute top-2 left-1/2 -translate-x-1/2 flex h-5 items-center rounded-full px-1.5 text-[8px] font-bold tracking-wide backdrop-blur-sm"
-          style={{ background: 'rgba(0,0,0,0.55)', color: 'rgba(255,255,255,0.85)', border: '1px solid rgba(255,255,255,0.15)' }}>
-          Compartilhado
-        </div>
-      )}
-
       <div className="absolute bottom-0 left-0 flex flex-col items-start gap-1 p-2.5">
         {(achievements || episodes) && (
           <div className="flex h-5 items-center rounded bg-black/50 px-1.5 text-[10px] text-white/80 tabular-nums backdrop-blur-sm">
@@ -99,17 +93,7 @@ const YgpCard = ({ log, accentColor, showStatus = true, actions, rank, className
           </div>
         )}
         <div className="hidden sm:flex items-center gap-0.5">
-          {(() => {
-            const stars = getStars(log.rating);
-            const list = stars.length > 0 ? stars : ['empty', 'empty', 'empty', 'empty', 'empty'];
-            return list.map((s, i) => (
-              <svg key={i} width="10" height="10" viewBox="0 0 24 24"
-                fill={s === 'full' || s === 'half' ? 'var(--mdf-yellow)' : 'none'}
-                stroke="var(--mdf-yellow)" strokeWidth="2">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-              </svg>
-            ));
-          })()}
+          <Stars rating={log.rating} size={10} />
         </div>
         {log.rating != null && (
           <div className="flex sm:hidden items-center gap-0.5 text-[10px] font-semibold leading-none text-white/85">
