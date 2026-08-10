@@ -41,7 +41,7 @@ const CalendarPage = ({ currentUser }: CalendarPageProps) => {
       if (username && username !== currentUser.username) {
         targetUser = await resolveUserByUsername(username);
       }
-      const response = await api.get('/media/logs', { params: { user_id: targetUser.id, limit: 500 } });
+      const response = await api.get('/media/logs', { params: { user_id: targetUser.id, limit: 9999 } });
       setLogs(response.data || []);
     } catch (err) {
       console.error('Failed to fetch logs', err);
