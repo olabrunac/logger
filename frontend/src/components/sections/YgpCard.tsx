@@ -4,7 +4,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import type { LogEntry, MediaItem } from '../../types';
 import { TYPE_META, STATUS_COLORS } from '../../constants/designSystem';
 import Stars from '../Stars';
-import { getLogUrl } from '../../utils';
+import { getLogUrl, formatHours } from '../../utils';
 import StatusIcon from '../StatusIcon';
 
 interface YgpCardProps {
@@ -105,7 +105,7 @@ const YgpCard = ({ log, accentColor, showStatus = true, actions, rank, className
 
       {hasHours && (
         <div className="absolute bottom-2.5 right-2.5 h-5 items-center rounded bg-black/50 px-1.5 text-[10px] text-white/70 tabular-nums backdrop-blur-sm">
-          {log.hours_spent}h
+          {formatHours(log.hours_spent)}
         </div>
       )}
 

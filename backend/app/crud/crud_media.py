@@ -135,7 +135,7 @@ class CRUDLogEntry(CRUDBase[LogEntry, LogEntryCreate, LogEntryUpdate]):
             result[media_type.value]['completed'] = count
             
         for media_type, total in hours_by_type.items():
-            result[media_type]['hours'] = round(total, 1)
+            result[media_type]['hours'] = round(total, 4)
         
         # Add grand totals (soma apenas os dicts por tipo, não os totais já somados)
         type_keys = [mt.value for mt in [MediaType.MOVIE, MediaType.SERIES, MediaType.GAME, MediaType.BOOK]]

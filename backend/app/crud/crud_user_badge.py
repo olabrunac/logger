@@ -67,9 +67,10 @@ def _count_followers(db: Session, user_id: int) -> int:
 def _compute_badge_counts(db: Session, user_id: int) -> dict:
     """Calcula todos os contadores de badges com queries em lote
     (evita ~12 counts + N por série quando chamado por log/import)."""
-    from app.models.media import LogEntry, LogStatus, MediaItem
+    from app.models.media import LogEntry, LogStatus, MediaItem, MediaType, Achievement
     from app.models.post import Post
     from sqlalchemy.orm import joinedload
+    from sqlalchemy import case
     from app.services.hours_service import effective_hours_batch
 
     non_log = [LogStatus.WISHLIST, LogStatus.SOON]
@@ -86,9 +87,28 @@ def _compute_badge_counts(db: Session, user_id: int) -> dict:
     )
     completed_by_type = {mt.value: c for mt, c in completed_rows}
 
-    platina = db.query(func.count(LogEntry.id)).filter(
+    platina_status = db.query(func.count(LogEntry.id)).filter(
         LogEntry.user_id == user_id, LogEntry.status == LogStatus.PLATINATED
     ).scalar()
+
+    # Jogos com 100% dos achievements desbloqueados também são platinados,
+    # mesmo que o status manual seja 'completed' (mesma regra do YgpCard/frontend
+    # e do import Steam). Conta por log — cada log com todas as conquistas
+    # desbloqueadas entra uma vez.
+    platina_100 = (
+        db.query(func.count(Achievement.log_id))
+        .join(LogEntry, LogEntry.id == Achievement.log_id)
+        .join(MediaItem, MediaItem.id == LogEntry.media_item_id)
+        .filter(
+            LogEntry.user_id == user_id,
+            MediaItem.media_type == MediaType.GAME,
+            LogEntry.status != LogStatus.PLATINATED,
+        )
+        .group_by(Achievement.log_id)
+        .having(func.sum(case((Achievement.unlocked == True, 1), else_=0)) == func.count(Achievement.id))
+        .count()
+    )
+    platina = (platina_status or 0) + platina_100
 
     reviews = db.query(func.count(LogEntry.id)).filter(
         LogEntry.user_id == user_id,
@@ -115,7 +135,7 @@ def _compute_badge_counts(db: Session, user_id: int) -> dict:
         LogEntry.user_id == user_id,
         LogEntry.status.notin_(non_log),
     ).all()
-    hours = round(sum(v or 0 for v in effective_hours_batch(db, hours_logs).values()), 1)
+    hours = round(sum(v or 0 for v in effective_hours_batch(db, hours_logs).values()), 4)
 
     return {
         "movie": completed_by_type.get("movie", 0),
@@ -183,7 +203,7 @@ def check_and_unlock(db: Session, user_id: int) -> List[dict]:
     _upgrade_group([(f"streak_{t}", t) for t in [7, 30, 90, 180, 365, 730, 1095]], streak)
     _upgrade_group([(f"logs_{t}", t) for t in [10, 25, 50, 100, 250, 500, 1000, 2500, 5000]], total)
     _upgrade_group([(f"fav_{t}", t) for t in [5, 25, 100, 250]], fav_count)
-    _upgrade_group([(f"hours_{t}", t) for t in [10, 25, 50, 100, 250, 500, 1000, 2500, 5000]], int(total_hours))
+    _upgrade_group([(f"hours_{t}", t) for t in [100, 500, 1000, 5000, 10000, 20000, 50000, 100000, 200000]], int(total_hours))
     _upgrade_group([("first_follower", 1), ("10_followers", 10), ("50_followers", 50), ("100_followers", 100), ("250_followers", 250), ("500_followers", 500)], follower_count)
 
     checks = []
@@ -297,7 +317,7 @@ def get_user_badges_with_progress(db: Session, user_id: int) -> dict:
     _handle_group([(f"streak_{t}", t) for t in [7, 30, 90, 180, 365, 730, 1095]], streak)
     _handle_group([(f"logs_{t}", t) for t in [10, 25, 50, 100, 250, 500, 1000, 2500, 5000]], total)
     _handle_group([(f"fav_{t}", t) for t in [5, 25, 100, 250]], fav_count)
-    _handle_group([(f"hours_{t}", t) for t in [10, 25, 50, 100, 250, 500, 1000, 2500, 5000]], int(total_hours))
+    _handle_group([(f"hours_{t}", t) for t in [100, 500, 1000, 5000, 10000, 20000, 50000, 100000, 200000]], int(total_hours))
     _handle_group([("first_follower", 1), ("10_followers", 10), ("50_followers", 50), ("100_followers", 100), ("250_followers", 250), ("500_followers", 500)], follower_count)
 
     for key in ["first_post", "omnivoro"]:

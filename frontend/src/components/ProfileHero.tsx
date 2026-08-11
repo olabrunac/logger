@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Settings2, Library, CheckCircle2, Star, Heart, Clock } from 'lucide-react';
 import type { User, LogEntry } from '../types';
-import { imageUrl, bannerPosition } from '../utils';
+import { imageUrl, bannerPosition, formatHours } from '../utils';
 import FollowersFollowingModal from './FollowersFollowingModal';
 
 const COUNTRY_NAMES: Record<string, string> = {
@@ -223,7 +223,7 @@ const tabs = [
                 <span className="text-[10px] uppercase tracking-[0.2em] text-white/40">Favoritos</span>
               </div>
               <div className="flex flex-col items-center md:items-start min-w-[50px]">
-                <span className="font-display text-lg md:text-xl font-black text-white">{Math.round(totalHours)}h</span>
+                <span className="font-display text-lg md:text-xl font-black text-white">{formatHours(totalHours) ?? '0h'}</span>
                 <span className="text-[10px] uppercase tracking-[0.2em] text-white/40">Horas</span>
               </div>
             </div>
@@ -237,7 +237,7 @@ const tabs = [
           { icon: <CheckCircle2 size={14} />, value: finishedCount, label: 'Finalizados' },
           { icon: <Star size={14} />, value: ratedCount, label: 'Avaliados' },
           { icon: <Heart size={14} />, value: favoriteCount, label: 'Favoritos' },
-          { icon: <Clock size={14} />, value: Math.round(totalHours), label: 'Horas', suffix: 'h' },
+          { icon: <Clock size={14} />, value: formatHours(totalHours) ?? '0h', label: 'Horas', suffix: '' },
         ].map(s => (
           s.href ? (
             <Link key={s.label} to={s.href} className="flex flex-col items-center gap-0.5">

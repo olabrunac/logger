@@ -3,6 +3,7 @@ import type { LogStatus } from '../types';
 import type { MediaItem } from '../types/media';
 import { ChevronLeft, ChevronDown, ChevronUp, X, Check, Gamepad2, Film, Tv, Book, Flag, MessageCircle, Skull, Eye, Heart, Clock, Calendar, Star } from 'lucide-react';
 import { TYPE_META } from '../constants/designSystem';
+import { hoursToInput, parseHoursInput } from '../utils';
 
 interface LogFormProps {
   onSubmit: (logDetails: any) => void;
@@ -63,7 +64,8 @@ const LogForm: React.FC<LogFormProps> = ({ onSubmit, onCancel, initialData, medi
   const [status, setStatus] = useState<LogStatus>(initialData?.status || statusConfig.options[0].value);
   const [rating, setRating] = useState<number>(initialData?.rating || 0);
   const [platform, setPlatform] = useState(initialData?.platform || '');
-  const [hoursSpent, setHoursSpent] = useState<string>(initialData?.hours_spent?.toString() || '');
+  const [hoursSpent, setHoursSpent] = useState<string>(hoursToInput(initialData?.hours_spent));
+  const [hoursError, setHoursError] = useState<string>('');
   const [pagesRead, setPagesRead] = useState<string>(initialData?.pages_read?.toString() || '');
   const [logDate, setLogDate] = useState(initialData?.log_date ? initialData.log_date.split('T')[0] : new Date().toISOString().split('T')[0]);
   const [isFavorite, setIsFavorite] = useState(initialData?.is_favorite || false);
@@ -80,7 +82,8 @@ const LogForm: React.FC<LogFormProps> = ({ onSubmit, onCancel, initialData, medi
       setStatus(initialData.status);
       setRating(initialData.rating || 0);
       setPlatform(initialData.platform || '');
-      setHoursSpent(initialData.hours_spent?.toString() || '');
+      setHoursSpent(hoursToInput(initialData.hours_spent));
+      setHoursError('');
       setPagesRead(initialData.pages_read?.toString() || '');
       setLogDate(initialData.log_date ? initialData.log_date.split('T')[0] : new Date().toISOString().split('T')[0]);
       setIsFavorite(initialData.is_favorite || false);
@@ -118,11 +121,16 @@ const LogForm: React.FC<LogFormProps> = ({ onSubmit, onCancel, initialData, medi
         review: null,
       });
     } else {
+      const parsedHours = hoursSpent.trim() ? parseHoursInput(hoursSpent) : null;
+      if (hoursSpent.trim() && parsedHours === null) {
+        setHoursError('Formato inválido — use horas e minutos (ex.: 20h30) ou minutos (ex.: 180m)');
+        return;
+      }
       onSubmit({
         status,
         rating: rating || null,
         platform: platform || null,
-        hours_spent: hoursSpent ? Number(String(hoursSpent).replace(',', '.')) : null,
+        hours_spent: parsedHours,
         pages_read: mediaType === 'book' ? (pagesRead ? Number(pagesRead) : null) : undefined,
         log_date: logDate ? new Date(logDate).toISOString() : new Date().toISOString(),
         is_favorite: isFavorite,
@@ -382,27 +390,35 @@ const LogForm: React.FC<LogFormProps> = ({ onSubmit, onCancel, initialData, medi
                             style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.08)' }}
                           />
                           <input
-                            type="number"
-                            min="0"
-                            step="0.01"
+                            type="text"
+                            inputMode="text"
+                            autoComplete="off"
+                            spellCheck={false}
                             value={hoursSpent}
-                            onChange={(e) => setHoursSpent(e.target.value)}
-                            placeholder="Horas (ex.: 1.98)"
+                            onChange={(e) => { setHoursSpent(e.target.value); if (hoursError) setHoursError(''); }}
+                            placeholder="Horas (ex.: 20h30 ou 180m)"
                             className="w-full text-sm p-2 rounded-lg outline-none"
                             style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.08)' }}
                           />
+                          {hoursError && (
+                            <p className="text-xs" style={{ color: '#ef4444' }}>{hoursError}</p>
+                          )}
                         </>
                       ) : (
                         <input
-                          type="number"
-                          min="0"
-                          step="0.01"
+                          type="text"
+                          inputMode="text"
+                          autoComplete="off"
+                          spellCheck={false}
                           value={hoursSpent}
-                          onChange={(e) => setHoursSpent(e.target.value)}
-                          placeholder="Horas (ex.: 1.98)"
+                          onChange={(e) => { setHoursSpent(e.target.value); if (hoursError) setHoursError(''); }}
+                          placeholder="Horas (ex.: 20h30 ou 180m)"
                           className="w-full text-sm p-2 rounded-lg outline-none"
                           style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.08)' }}
                         />
+                      )}
+                      {hoursError && mediaType !== 'book' && (
+                        <p className="text-xs" style={{ color: '#ef4444' }}>{hoursError}</p>
                       )}
                     </div>
                   )}

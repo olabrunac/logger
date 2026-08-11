@@ -26,9 +26,9 @@ def _calc_media_hours(media_type: MediaType, runtime, watched_episodes: int = 0)
     if not runtime or runtime <= 0:
         return None
     if media_type == MediaType.MOVIE:
-        return round(runtime / 60, 2)
+        return round(runtime / 60, 4)
     if media_type == MediaType.SERIES and watched_episodes > 0:
-        return round((runtime / 60) * watched_episodes, 2)
+        return round((runtime / 60) * watched_episodes, 4)
     return None
 
 def _log_with_stats(db: Session, log: LogEntry) -> schemas.LogEntryWithStats:
@@ -1111,7 +1111,7 @@ def get_user_stats(*, db: Session = Depends(deps.get_db), user_id: int) -> Any:
     stats_logs = db.query(LogEntry).options(joinedload(LogEntry.media_item)).filter(LogEntry.user_id == user_id, LogEntry.status.notin_(non_log)).all()
     hours_total = sum(v or 0 for v in effective_hours_batch(db, stats_logs).values())
     wishlist_count = db.query(LogEntry).filter(LogEntry.user_id == user_id, LogEntry.status.in_(non_log)).count()
-    return {"total_logs": total_logs, "favorites": favorites, "completed": completed, "hours_total": round(hours_total, 2), "wishlist": wishlist_count}
+    return {"total_logs": total_logs, "favorites": favorites, "completed": completed, "hours_total": round(hours_total, 4), "wishlist": wishlist_count}
 
 @router.get("/wishlist", response_model=List[schemas.LogEntryInDB])
 def get_wishlist(*, db: Session = Depends(deps.get_db), user_id: int, media_type: Optional[str] = None) -> Any:

@@ -79,3 +79,39 @@ export function timeAgo(dateStr: string | number | null | undefined): string {
   const days = Math.floor(hours / 24);
   return `${days}d`;
 }
+
+export function formatHours(hours: number | null | undefined): string | null {
+  if (hours == null || !Number.isFinite(hours) || hours <= 0) return null;
+  const totalMinutes = Math.round(hours * 60);
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  return m > 0 ? `${h}h${m}m` : `${h}h`;
+}
+
+export function hoursToInput(hours: number | null | undefined): string {
+  if (hours == null || !Number.isFinite(hours) || hours <= 0) return '';
+  const totalMinutes = Math.round(hours * 60);
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  return m > 0 ? `${h}h${m}` : `${h}h`;
+}
+
+export function parseHoursInput(value: string): number | null {
+  const v = value.trim().toLowerCase();
+  if (!v) return null;
+  const minMatch = v.match(/^(\d+)\s*m(?:in)?$/);
+  if (minMatch) {
+    const mins = Number(minMatch[1]);
+    if (!Number.isFinite(mins) || mins < 0) return null;
+    return Math.round((mins / 60) * 10000) / 10000;
+  }
+  const hourMatch = v.match(/^(\d+)h(?:\s*(\d{1,2})m?)?$/);
+  if (hourMatch) {
+    const h = Number(hourMatch[1]);
+    const m = hourMatch[2] != null ? Number(hourMatch[2]) : 0;
+    if (!Number.isFinite(h) || h < 0) return null;
+    if (m < 0 || m >= 60) return null;
+    return Math.round((h + m / 60) * 10000) / 10000;
+  }
+  return null;
+}

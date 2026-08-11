@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { LogEntry } from '../../types';
+import { formatHours } from '../../utils';
 import { TYPE_META } from '../../constants/designSystem';
 
 interface HoursPieChartProps {
@@ -120,12 +121,12 @@ const HoursPieChart = ({ logs, mediaType }: HoursPieChartProps) => {
                 {hoveredSlice.label}
               </span>
               <span style={{ fontSize: '0.625rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                {Math.round(hoveredSlice.hours)}h · {Math.round(hoveredSlice.percentage)}%
+                {formatHours(hoveredSlice.hours)} · {Math.round(hoveredSlice.percentage)}%
               </span>
             </>
           ) : (
             <span style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--text-heading)', lineHeight: 1 }}>
-              {Math.round(totalHours)}h
+              {formatHours(totalHours) ?? '0h'}
             </span>
           )}
         </div>
