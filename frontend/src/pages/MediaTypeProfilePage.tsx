@@ -9,7 +9,7 @@ import LayoutEditorModal from '../components/sections/LayoutEditorModal';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { TYPE_META } from '../constants/designSystem';
 import Stars from '../components/Stars';
-import { getLogUrl, findBestLogForMedia, sortLogsByDate } from '../utils';
+import { getLogUrl, findBestLogForMedia, sortLogsByDate, formatHours } from '../utils';
 import HashtagText from '../components/HashtagText';
 import { Heart, Clock, Star, Target, CheckCircle, BookOpen, X, Layers, Menu, ChevronUp, ChevronDown, Trash2 } from 'lucide-react';
 
@@ -633,7 +633,7 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
                   </div>
                   {e.review.review_text && <p className="line-clamp-4 text-[13px] leading-relaxed text-white/50 flex-1"><HashtagText text={e.review.review_text.length > 320 ? e.review.review_text.slice(0, 320) + '…' : e.review.review_text} /></p>}
                   {e.log.hours_spent != null && e.log.hours_spent > 0 && (
-                    <div className="text-[10px] text-white/40 font-mono">{e.log.hours_spent}h</div>
+                    <div className="text-[10px] text-white/40 font-mono">{formatHours(e.log.hours_spent)}</div>
                   )}
                 </div>
               </Link>

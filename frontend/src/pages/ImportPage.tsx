@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import type { User } from '../types';
+import { formatHours } from '../utils';
 import {
   getImportJob,
   letterboxdPreview,
@@ -562,7 +563,7 @@ const ImportPage = ({ user }: ImportPageProps) => {
                       {item.year && <span>{item.year}</span>}
                       {item.rating != null && <span> · ⭐ {item.rating}</span>}
                       {item.hours_spent != null && tab === 'tvtime' && <span> · {item.hours_spent} episodios assistidos</span>}
-                      {item.hours_spent != null && tab !== 'tvtime' && <span> · {item.hours_spent}h</span>}
+                      {item.hours_spent != null && tab !== 'tvtime' && <span> · {formatHours(item.hours_spent)}</span>}
                       {item.log_date && <span> · {item.log_date}</span>}
                       {item.review && <span> · 📝 review</span>}
                     </div>

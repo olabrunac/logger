@@ -85,6 +85,11 @@ def init_db() -> None:
     # Badge de primeiro log removida do sistema de badges (tabela real: userbadge)
     _exec("DELETE FROM userbadge WHERE badge_key = 'first_log'")
 
+    # Badges de horas reajustadas (agora começam em 100h — 100/500/1000/5000/...):
+    # apaga tiers antigos que não existem mais no BADGE_DEFS (10/25/50/250/2500h)
+    # para não ficarem órfãos (sem definição, sem display).
+    _exec("DELETE FROM userbadge WHERE badge_key IN ('hours_10', 'hours_25', 'hours_50', 'hours_250', 'hours_2500')")
+
     # Índices ausentes (performance: queries de logs/posts/notificações são
     # filtradas por user_id/log_id — sem índice, cada leitura é full scan)
     _exec("CREATE INDEX IF NOT EXISTS ix_logentry_user_id ON logentry (user_id)")
