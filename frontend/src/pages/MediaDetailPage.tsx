@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { getLogUrl } from '../utils';
+import { getLogUrl, formatHours } from '../utils';
 import api, { getMediaByApi } from '../services/api';
 import type { LogEntry } from '../types';
 import type { MediaItem } from '../types/media';
@@ -440,7 +440,7 @@ const MediaDetailPage = () => {
   (stats?.distribution || []).forEach(d => { barCounts[Number(d.value)] = d.count; });
   const maxBarCount = Math.max(1, ...barValues.map(v => barCounts[v] || 0));
 
-  const formatHours = (sec?: number | null): string | null => {
+  const formatTimeToBeat = (sec?: number | null): string | null => {
     if (!sec) return null;
     return (sec / 3600).toFixed(0) + 'h';
   };
@@ -520,7 +520,7 @@ const MediaDetailPage = () => {
                   {isBook && md.page_count != null && md.page_count > 0 && <div><span className="text-white/30">Páginas:</span> <span className="text-white/70">{md.page_count}</span></div>}
                   {md.runtime != null && md.runtime > 0 && !isSeries && <div><span className="text-white/30">Duração:</span> <span className="text-white/70">{md.runtime} min</span></div>}
                   {log?.platform && <div><span className="text-white/30">Plataforma:</span> <span className="text-white/70">{log.platform}</span></div>}
-                  {log?.hours_spent != null && log.hours_spent > 0 && <div><span className="text-white/30">Horas:</span> <span className="text-white/70">{log.hours_spent}h</span></div>}
+                  {log?.hours_spent != null && log.hours_spent > 0 && <div><span className="text-white/30">Horas:</span> <span className="text-white/70">{formatHours(log.hours_spent)}</span></div>}
                   {(log?.relog_count ?? 0) > 0 && <div><span className="text-white/30">Visto:</span> <span className="text-white/70 font-bold">{(log.relog_count ?? 0) + 1}x</span></div>}
                 </div>
 
@@ -591,7 +591,7 @@ const MediaDetailPage = () => {
                 )}
                 {log.log_date && <div>Quando: <span className="text-white/70">{log.log_date.split('T')[0]}</span></div>}
                 {log.platform && <div>Plataforma: <span className="text-white/70">{log.platform}</span></div>}
-                {log.hours_spent != null && log.hours_spent > 0 && <div>Horas: <span className="text-white/70">{log.hours_spent}h</span></div>}
+                {log.hours_spent != null && log.hours_spent > 0 && <div>Horas: <span className="text-white/70">{formatHours(log.hours_spent)}</span></div>}
                 {isBook && <div>Páginas: <span className="text-white/70">{log.pages_read ?? '-'}</span></div>}
               </div>
               {log.review && (
@@ -1085,9 +1085,9 @@ const MediaDetailPage = () => {
                 </div>
                 <div className="flex flex-col">
                   {[
-                    { label: 'História Principal', value: formatHours(timeToBeat.hastily) },
-                    { label: 'Principal + Extra', value: formatHours(timeToBeat.normally) },
-                    { label: 'Completista', value: formatHours(timeToBeat.completely) },
+                    { label: 'História Principal', value: formatTimeToBeat(timeToBeat.hastily) },
+                    { label: 'Principal + Extra', value: formatTimeToBeat(timeToBeat.normally) },
+                    { label: 'Completista', value: formatTimeToBeat(timeToBeat.completely) },
                   ].map(row => (
                     <div key={row.label} className="flex flex-col py-1.5">
                       <div className="flex items-baseline justify-between gap-3">

@@ -1,4 +1,5 @@
 import type { LogEntry } from '../../types';
+import { formatHours } from '../../utils';
 
 interface StatsSectionProps {
   logs: LogEntry[];
@@ -28,13 +29,13 @@ const StatsSection = ({ logs, accentColor: _accentColor, mediaType }: StatsSecti
           <div className="text-[10px] text-white/40 mt-0.5">{mediaType ? 'Registros' : 'Total'}</div>
         </div>
         <div className="text-center p-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)' }}>
-          <div className="text-lg font-bold text-white">{totalHours > 0 ? `${Math.round(totalHours)}h` : '—'}</div>
+          <div className="text-lg font-bold text-white">{formatHours(totalHours) ?? '—'}</div>
           <div className="text-[10px] text-white/40 mt-0.5">{mediaType ? 'Horas' : 'Total Horas'}</div>
         </div>
       </div>
 
       <div className="text-center p-2 rounded-lg mt-2" style={{ background: 'rgba(255,255,255,0.03)' }}>
-        <span className="text-sm font-bold text-white">{wishlistHours > 0 ? `${Math.round(wishlistHours)}h` : '—'}</span>
+        <span className="text-sm font-bold text-white">{formatHours(wishlistHours) ?? '—'}</span>
         <span className="text-[10px] text-white/40 ml-1.5">Horas na Wishlist</span>
       </div>
 

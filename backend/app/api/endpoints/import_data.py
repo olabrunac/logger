@@ -445,7 +445,7 @@ def _run_letterboxd_import(job, db, user_id: int, items: list) -> dict:
 
         # Auto-calc hours from runtime for movies
         if log.hours_spent is None and media_item.runtime and media_item.media_type == MediaType.MOVIE:
-            log.hours_spent = round(media_item.runtime / 60, 2)
+            log.hours_spent = round(media_item.runtime / 60, 4)
             db.add(log)
 
         job.progress(current=idx + 1, created=created, skipped=skipped, enriched=enriched)
@@ -539,7 +539,7 @@ async def steam_preview(
             continue
         appid = g.get("appid")
         playtime_minutes = g.get("playtime_forever", 0)
-        hours = round(playtime_minutes / 60, 1) if playtime_minutes > 0 else None
+        hours = round(playtime_minutes / 60, 4) if playtime_minutes > 0 else None
         log_date = None
         rtime = g.get("rtime_last_played")
         ABANDONED_SECONDS = body.abandoned_days * 24 * 3600
@@ -693,9 +693,14 @@ def _run_steam_import(job, db, user_id: int, resolved_steam_id: str, items: list
         if existing_log:
             is_update = True
             log = existing_log
-            # Re-import: horas são SUBSTITUÍDAS apenas se o novo import tiver mais
-            # (nunca somadas) — evita contagem dupla ao reimportar um arquivo novo.
-            if hours is not None and (log.hours_spent is None or hours > log.hours_spent):
+            # Re-import: horas são SUBSTITUÍDAS se o novo import tiver mais horas OU
+            # se a diferença for só do arredondamento antigo (round-1, erro ≤ 0.05h) —
+            # nesse caso o valor novo (minuto a minuto) é o preciso. Nunca somadas.
+            if hours is not None and (
+                log.hours_spent is None
+                or hours > log.hours_spent
+                or abs(hours - log.hours_spent) < 0.06
+            ):
                 log.hours_spent = hours
             if log.family_share != new_family_share:
                 log.family_share = new_family_share
@@ -1032,7 +1037,7 @@ def _run_trakt_import(job, db, user_id: int, items: list) -> dict:
                 pass
 
         if log.hours_spent is None and media_item.runtime and media_item.total_episodes and log.status == LogStatus.COMPLETED:
-            log.hours_spent = round((media_item.runtime / 60) * media_item.total_episodes, 2)
+            log.hours_spent = round((media_item.runtime / 60) * media_item.total_episodes, 4)
             db.add(log)
 
         job.progress(current=idx + 1, created=created, skipped=skipped)
@@ -1622,7 +1627,7 @@ def _run_tvtime_import(job, db, user_id: int, selected_titles: set, data: dict, 
 
         # Auto-calc hours from runtime x watched episodes
         if media_item.runtime and num_watched > 0 and log.hours_spent is None:
-            log.hours_spent = round((media_item.runtime / 60) * num_watched, 2)
+            log.hours_spent = round((media_item.runtime / 60) * num_watched, 4)
             db.add(log)
 
     for movie in data["movies"]:
@@ -1716,7 +1721,7 @@ def _run_tvtime_import(job, db, user_id: int, selected_titles: set, data: dict, 
                 pass
 
         if log.hours_spent is None and media_item.runtime:
-            log.hours_spent = round(media_item.runtime / 60, 2)
+            log.hours_spent = round(media_item.runtime / 60, 4)
             db.add(log)
 
     for wl_name, wl_data in data.get("wishlist_series", {}).items():

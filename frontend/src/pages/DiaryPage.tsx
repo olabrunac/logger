@@ -6,7 +6,7 @@ import { Heart } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { TYPE_META } from '../constants/designSystem';
-import { getLogUrl } from '../utils';
+import { getLogUrl, formatHours } from '../utils';
 import HashtagText from '../components/HashtagText';
 
 interface DiaryPageProps {
@@ -109,7 +109,7 @@ const DiaryPage = ({ currentUser }: DiaryPageProps) => {
                         </div>
                       )}
                       {l.hours_spent != null && l.hours_spent > 0 && (
-                        <div className="text-xs text-white/40 font-mono">{l.hours_spent}h</div>
+                        <div className="text-xs text-white/40 font-mono">{formatHours(l.hours_spent)}</div>
                       )}
                     </div>
                   </Link>
