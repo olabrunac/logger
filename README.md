@@ -54,9 +54,12 @@ Site pessoal para registrar e acompanhar filmes, séries, jogos e livros, inspir
 - **Family Share "do nosso jeito" (import Steam)**: mescla jogos comprados + 50 recentes jogados (dedup por appid), marca `family_share`, com badge "Compartilhado" e filtro no diretório de status
 - **Fix estado stale ao trocar de usuário/mídia**: `ProfilePage`, `MediaTypeProfilePage` e `MediaDetailPage` resetam o estado no início de cada fetch — reviews antigas não aparecem mais "duplicadas" em perfis de outros usuários
 - **Timeline paginada por grupo no SQL**: agrupamento por (usuário + tipo + dia) com `GROUP BY` antes da paginação — usuários com muitos logs no mesmo dia não esmagam os demais da timeline
+- **Horas em formato de minutos**: entrada manual só aceita `HhMM` (`20h30`) ou minutos (`180m`); exibição em `20h30m` (cards, perfil, diário, imports). Backend com precisão de round-4 — import Steam não perde mais minutos (1234 min = `20h34m`, não `20h36m`)
+- **Badges de horas reajustadas**: thresholds `hours_{100..200000}` (bronze→cósmico), tiers antigos (10/25/50/250/2500h) removidos
+- **Badge de platina via achievements**: conta jogos com status `platinated` **ou** com 100% dos achievements desbloqueados (mesma regra do card 100% e do import Steam)
 
 ### 🔄 Em Andamento / Pendente
-- **Confirmar em produção**: timeline exibindo logs do Doze e lucaswb332 após deploy da PR #61 no Railway
+- **Confirmar em produção**: timeline exibindo logs do Doze e lucaswb332 após deploy da PR #61 no Railway; horas/badges do PR #68 (reimport Steam da bruna deve corrigir os minutos das horas)
 
 ### 📦 Arquivadas / Ideias futuras
 - **Lista de jogos por achievement**: viabilidade confirmada (endpoint `IPlayerService/GetTopAchievementsForGames/v1/` em lote), implementação adiada
