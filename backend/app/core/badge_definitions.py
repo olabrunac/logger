@@ -58,8 +58,8 @@ _reg(BadgeDef("fav_5", "Favorito", "5 favoritos", "Heart", "general", 5, rarity=
 _reg(BadgeDef("fav_25", "Favorito", "25 favoritos", "Heart", "general", 25, rarity="ouro"))
 _reg(BadgeDef("fav_100", "Favorito", "100 favoritos", "Heart", "general", 100, rarity="diamante"))
 _reg(BadgeDef("fav_250", "Favorito", "250 favoritos", "Heart", "general", 250, rarity="lendario"))
-for t in [10, 25, 50, 100, 250, 500, 1000, 2500, 5000]:
-    _reg(BadgeDef(f"hours_{t}", "Horas", f"{t} horas acumuladas", "Clock", "general", t, rarity={10: "bronze", 25: "prata", 50: "ouro", 100: "diamante", 250: "lendario", 500: "imortal", 1000: "arcano", 2500: "celestial", 5000: "cosmico"}[t]))
+for t in [100, 500, 1000, 5000, 10000, 20000, 50000, 100000, 200000]:
+    _reg(BadgeDef(f"hours_{t}", "Horas", f"{t} horas acumuladas", "Clock", "general", t, rarity={100: "bronze", 500: "prata", 1000: "ouro", 5000: "diamante", 10000: "lendario", 20000: "imortal", 50000: "arcano", 100000: "celestial", 200000: "cosmico"}[t]))
 
 BADGE_CATEGORIES = {
     "special": "Especial",

@@ -14,7 +14,7 @@ import HashtagText from '../components/HashtagText';
 import { TYPE_META } from '../constants/designSystem';
 import Stars from '../components/Stars';
 import type { Post } from '../types/feed';
-import { imageUrl, getLogUrl, findBestLogForMedia, sortLogsByDate } from '../utils';
+import { imageUrl, getLogUrl, findBestLogForMedia, sortLogsByDate, formatHours } from '../utils';
 import { Heart, Clock, Star, MessageCircle, Trophy, Layers, Menu } from 'lucide-react';
 
 interface ProfilePageProps {
@@ -434,7 +434,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
                   </div>
                   {e.review.review_text && <p className="line-clamp-4 text-[13px] leading-relaxed text-white/50 flex-1"><HashtagText text={e.review.review_text.length > 320 ? e.review.review_text.slice(0, 320) + '…' : e.review.review_text} /></p>}
                   {e.log.hours_spent != null && e.log.hours_spent > 0 && (
-                    <div className="text-[10px] text-white/40 font-mono">{e.log.hours_spent}h</div>
+                    <div className="text-[10px] text-white/40 font-mono">{formatHours(e.log.hours_spent)}</div>
                   )}
                 </div>
               </Link>

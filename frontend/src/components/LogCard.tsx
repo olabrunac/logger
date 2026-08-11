@@ -9,7 +9,7 @@ import StatusIcon from './StatusIcon';
 import HashtagText from './HashtagText';
 import Stars from './Stars';
 import { Send, Heart, MessageCircle, ThumbsUp } from 'lucide-react';
-import { imageUrl, getLogUrl, timeAgo } from '../utils';
+import { imageUrl, getLogUrl, timeAgo, formatHours } from '../utils';
 
 interface LogReplyItem {
   id: number;
@@ -165,7 +165,7 @@ const LogCard = ({ entry, currentUser, onReply, onLike }: LogCardProps) => {
                 </span>
               )}
               {entry.hours_spent != null && entry.hours_spent > 0 && (
-                <span>{entry.hours_spent}h</span>
+                <span>{formatHours(entry.hours_spent)}</span>
               )}
             </div>
           </div>
