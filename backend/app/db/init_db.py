@@ -44,6 +44,14 @@ def init_db() -> None:
             db.rollback()
             print(f"[init_db] skipped: {sql} -> {exc}")
 
+    def _exec_orm(query) -> None:
+        try:
+            query.update({LogEntry.hours_spent: None}, synchronize_session=False)
+            db.commit()
+        except Exception as exc:
+            db.rollback()
+            print(f"[init_db] skipped (orm): {exc}")
+
     _add_column('"user"', 'email', 'ALTER TABLE "user" ADD COLUMN email VARCHAR')
     _add_column('"user"', 'password_hash', 'ALTER TABLE "user" ADD COLUMN password_hash VARCHAR')
     _add_column('"user"', 'password_reset_token', 'ALTER TABLE "user" ADD COLUMN password_reset_token VARCHAR')
@@ -113,7 +121,19 @@ def init_db() -> None:
     # Filmes/séries: horas são sempre derivadas da própria mídia (runtime, e
     # runtime × episódios assistidos para séries). Limpa horas manuais antigas
     # para o effective_hours recomputar o valor automático.
-    _exec("UPDATE logentry SET hours_spent = NULL WHERE media_item_id IN (SELECT id FROM mediaitem WHERE media_type IN ('movie', 'series'))")
+    # Usa ORM (não SQL cru): no Postgres media_type é enum nativo ('mediatype')
+    # e comparação com string literal quebra com InvalidTextRepresentation.
+    from app.models.media import LogEntry, MediaItem, MediaType
+    _exec_orm(
+        db.query(LogEntry)
+        .filter(
+            LogEntry.media_item_id.in_(
+                db.query(MediaItem.id).filter(
+                    MediaItem.media_type.in_([MediaType.MOVIE, MediaType.SERIES])
+                )
+            )
+        )
+    )
 
     # Seed admin user
     admin = crud.user.get_by_username(db, username="admin")
