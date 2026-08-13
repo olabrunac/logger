@@ -94,7 +94,7 @@ def forgot_password(
     user.password_reset_expires = datetime.utcnow() + timedelta(hours=RESET_TOKEN_EXPIRY_HOURS)
     db.add(user)
     db.commit()
-    return {"message": "If an account with that email exists, a reset link has been sent.", "token": token}
+    return {"message": "If an account with that email exists, a reset link has been sent."}
 
 
 @router.post("/reset-password")
