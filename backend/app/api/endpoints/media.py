@@ -1081,6 +1081,8 @@ def delete_log_entry(*, db: Session = Depends(deps.get_db), log_id: int) -> Any:
         TopListItem.user_id == log.user_id,
         TopListItem.media_item_id == log.media_item_id,
     ).delete(synchronize_session=False)
+    from app.models.notification import Notification
+    db.query(Notification).filter(Notification.log_id == log_id).delete(synchronize_session=False)
     crud.log_entry.remove(db, id=log_id)
     return {"detail": "Log deleted successfully"}
 
