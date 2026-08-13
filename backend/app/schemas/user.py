@@ -40,6 +40,15 @@ class UserUpdate(BaseModel):
             raise ValueError('Biografia deve ter no máximo 100 caracteres')
         return v
 
+    @field_validator('avatar_url', 'banner_url')
+    @classmethod
+    def validate_upload_url(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if not v.startswith("/uploads/") or ".." in v or "\\" in v:
+            raise ValueError('URL de upload inválida')
+        return v
+
 # Login request
 class LoginRequest(BaseModel):
     email_or_username: str
