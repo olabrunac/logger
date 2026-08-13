@@ -67,16 +67,17 @@ app.add_middleware(
 
 
 def serve_upload(filename: str):
+    safe_name = os.path.basename(filename.replace("\\", "/"))
     db = SessionLocal()
     try:
         from app.crud.crud_upload import get_file
-        record = get_file(db, filename)
+        record = get_file(db, safe_name)
         if record:
             return Response(content=bytes(record.data), media_type=record.content_type)
     finally:
         db.close()
 
-    filepath = os.path.join("uploads", filename)
+    filepath = os.path.join("uploads", safe_name)
     if os.path.isfile(filepath):
         return FileResponse(filepath)
 
