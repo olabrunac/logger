@@ -46,12 +46,7 @@ def _fuzzy_score(query: str, title: str) -> float:
     return max(ratio, 0.0)
 
 
-def _serialize_media(item: MediaItem, db: Session, user_id: Optional[int]) -> dict:
-    has_log = False
-    if user_id is not None:
-        has_log = db.query(LogEntry).filter(
-            LogEntry.user_id == user_id, LogEntry.media_item_id == item.id
-        ).first() is not None
+def _serialize_media(item: MediaItem, db: Session, user_id: Optional[int], has_log: bool = False) -> dict:
     return {
         "id": item.id,
         "title": item.title,
@@ -68,6 +63,17 @@ def _serialize_media(item: MediaItem, db: Session, user_id: Optional[int]) -> di
         "popularity": 0,
         "authors": None,
     }
+
+
+def _batch_has_logs(db: Session, user_id: Optional[int], items: List[MediaItem]) -> dict:
+    if user_id is None or not items:
+        return {}
+    ids = [i.id for i in items]
+    rows = db.query(LogEntry.media_item_id).filter(
+        LogEntry.user_id == user_id,
+        LogEntry.media_item_id.in_(ids),
+    ).all()
+    return {r[0] for r in rows}
 
 
 def _serialize_user(user: User, db: Session) -> dict:
@@ -167,6 +173,7 @@ def _book_to_media(item: dict) -> dict:
 def _merge_existing(db: Session, results: List[dict], user_id: Optional[int]) -> List[dict]:
     """For external results that already exist in DB, replace with the local record."""
     merged: List[dict] = []
+    found: List[MediaItem] = []
     for r in results:
         mt = r.get("media_type")
         item = None
@@ -183,7 +190,25 @@ def _merge_existing(db: Session, results: List[dict], user_id: Optional[int]) ->
             if gid:
                 item = db.query(MediaItem).filter(MediaItem.media_type == mt, MediaItem.google_books_id == gid).first()
         if item:
-            merged.append(_serialize_media(item, db, user_id))
+            found.append(item)
+    has_logs = _batch_has_logs(db, user_id, found)
+    for r in results:
+        mt = r.get("media_type")
+        item = None
+        if mt == MediaType.MOVIE or mt == MediaType.SERIES:
+            tmdb_id = r.get("tmdb_id")
+            if tmdb_id is not None:
+                item = db.query(MediaItem).filter(MediaItem.media_type == mt, MediaItem.tmdb_id == tmdb_id).first()
+        elif mt == MediaType.GAME:
+            igdb_id = r.get("igdb_id")
+            if igdb_id is not None:
+                item = db.query(MediaItem).filter(MediaItem.media_type == mt, MediaItem.igdb_id == igdb_id).first()
+        elif mt == MediaType.BOOK:
+            gid = r.get("google_books_id")
+            if gid:
+                item = db.query(MediaItem).filter(MediaItem.media_type == mt, MediaItem.google_books_id == gid).first()
+        if item:
+            merged.append(_serialize_media(item, db, user_id, has_log=(item.id in has_logs)))
         else:
             merged.append(r)
     return merged
@@ -226,7 +251,8 @@ def global_search(
                         i for i in items
                         if any(author.lower() in (a or "").lower() for a in (i.authors or []))
                     ]
-                local_results = [_serialize_media(i, db, user_id) for i in items]
+                has_logs = _batch_has_logs(db, user_id, items)
+                local_results = [_serialize_media(i, db, user_id, i.id in has_logs) for i in items]
             elif author and (type_filter is None or type_filter == MediaType.BOOK):
                 books = (
                     db.query(MediaItem)
@@ -240,7 +266,8 @@ def global_search(
                         matched.append(i)
                         if len(matched) >= 20:
                             break
-                local_results = [_serialize_media(i, db, user_id) for i in matched]
+                has_logs = _batch_has_logs(db, user_id, matched)
+                local_results = [_serialize_media(i, db, user_id, i.id in has_logs) for i in matched]
             elif year:
                 local_query = db.query(MediaItem).filter(
                     MediaItem.release_date >= datetime.date(year, 1, 1),
@@ -249,7 +276,9 @@ def global_search(
                 if type_filter is not None:
                     local_query = local_query.filter(MediaItem.media_type == type_filter)
                 local_query = local_query.order_by(MediaItem.popularity.desc()).limit(20)
-                local_results = [_serialize_media(i, db, user_id) for i in local_query.all()]
+                items = local_query.all()
+                has_logs = _batch_has_logs(db, user_id, items)
+                local_results = [_serialize_media(i, db, user_id, i.id in has_logs) for i in items]
 
             if query:
                 if type_filter in (None, MediaType.MOVIE):

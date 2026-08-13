@@ -303,12 +303,13 @@ const MediaDetailPage = () => {
     const key = ep.season_number + '-' + ep.episode_number;
     const current = watchedMap[key];
     const newWatched = current ? !current.watched : true;
+    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
     try {
       const { data } = await api.post('/media/logs/' + log.id + '/episodes', {
         season_number: ep.season_number, episode_number: ep.episode_number,
         episode_name: ep.name, watched: newWatched, log_date: new Date().toISOString().split('T')[0],
         air_date: ep.air_date,
-      });
+      }, { params: { user_id: currentUser.id } });
       setWatchedMap({ ...watchedMap, [key]: data });
       if (log) {
         setLog({
@@ -367,7 +368,7 @@ const MediaDetailPage = () => {
           season_number: ep.season_number, episode_number: ep.episode_number,
           episode_name: ep.name, watched: markWatched, log_date: new Date().toISOString().split('T')[0],
           air_date: ep.air_date,
-        }).then(({ data }) => {
+        }, { params: { user_id: JSON.parse(localStorage.getItem('user') || '{}').id } }).then(({ data }) => {
           newMap[key] = data;
         }).catch((err) => {
           console.error('Failed to toggle episode:', err);
@@ -386,7 +387,7 @@ const MediaDetailPage = () => {
     const { data } = await api.post('/media/logs/' + log.id + '/achievements', {
       external_id: a.external_id, name: a.name, description: a.description || '',
       image_url: a.image_url || '', unlocked: newUnlocked,
-    });
+    }, { params: { user_id: JSON.parse(localStorage.getItem('user') || '{}').id } });
     setAchievements(achievements.map(x => x.external_id === a.external_id ? { ...x, unlocked: newUnlocked, id: data.id } : x));
   };
 
@@ -397,7 +398,7 @@ const MediaDetailPage = () => {
         await api.post('/media/logs/' + log.id + '/achievements', {
           external_id: a.external_id, name: a.name, description: a.description || '',
           image_url: a.image_url || '', unlocked: markUnlocked,
-        });
+        }, { params: { user_id: JSON.parse(localStorage.getItem('user') || '{}').id } });
       }
     }
     setAchievements(achievements.map(x => ({ ...x, unlocked: markUnlocked })));
