@@ -121,10 +121,13 @@ def delete_image(
         raise HTTPException(status_code=404, detail="User not found")
 
     url = user.banner_url if upload_type == "banner" else user.avatar_url
-    if url:
-        path = url.lstrip("/")
-        if os.path.exists(path):
-            os.remove(path)
+    if url and url.startswith("/uploads/"):
+        filename = os.path.basename(url[len("/uploads/"):].replace("\\", "/"))
+        from app.crud.crud_upload import delete_file
+        delete_file(db, filename)
+        disk_path = os.path.join(UPLOAD_DIR, filename)
+        if os.path.isfile(disk_path):
+            os.remove(disk_path)
 
     crud.user.update(db, db_obj=user, obj_in={f"{upload_type}_url": None})
     return {"detail": "deleted"}
@@ -145,10 +148,13 @@ def delete_user(
     db.flush()
 
     for url in (user.banner_url, user.avatar_url):
-        if url:
-            path = url.lstrip("/")
-            if os.path.exists(path):
-                os.remove(path)
+        if url and url.startswith("/uploads/"):
+            filename = os.path.basename(url[len("/uploads/"):].replace("\\", "/"))
+            from app.crud.crud_upload import delete_file
+            delete_file(db, filename)
+            disk_path = os.path.join(UPLOAD_DIR, filename)
+            if os.path.isfile(disk_path):
+                os.remove(disk_path)
 
     db.delete(user)
     db.commit()
