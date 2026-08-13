@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api, { resolveUserByUsername } from '../services/api';
 import type { LogEntry, MediaType, User } from '../types';
@@ -25,6 +25,7 @@ const CalendarPage = ({ currentUser }: CalendarPageProps) => {
   const [current, setCurrent] = useState(new Date());
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [selected, setSelected] = useState<Date | null>(null);
+  const fetchIdRef = useRef(0);
 
   const start = startOfMonth(current);
   const gridStart = startOfWeek(start, { weekStartsOn: 0 });
@@ -36,12 +37,15 @@ const CalendarPage = ({ currentUser }: CalendarPageProps) => {
   }, [gridStart]);
 
   const fetchLogs = useCallback(async () => {
+    const requestId = ++fetchIdRef.current;
     try {
       let targetUser = currentUser;
       if (username && username !== currentUser.username) {
         targetUser = await resolveUserByUsername(username);
       }
+      if (requestId !== fetchIdRef.current) return;
       const response = await api.get('/media/logs', { params: { user_id: targetUser.id, limit: 9999 } });
+      if (requestId !== fetchIdRef.current) return;
       setLogs(response.data || []);
     } catch (err) {
       console.error('Failed to fetch logs', err);
