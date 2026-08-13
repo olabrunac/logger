@@ -171,6 +171,12 @@ export interface AppNotification {
   post_id?: number;
   post_content?: string;
   reply_content?: string;
+  log_id?: number;
+  log_title?: string;
+  log_cover?: string;
+  log_media_type?: string;
+  log_api_id?: string;
+  log_reply_content?: string;
   badge_key?: string;
   badge_title?: string;
   badge_icon?: string;
