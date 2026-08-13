@@ -58,7 +58,7 @@ const LogGroupCard = ({ entry }: { entry: TimelineEntry }) => {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 text-sm mb-3">
             <Link to={`/profile/${entry.user.username}`} className="font-bold text-white hover:underline">{entry.user.username}</Link>
-            <span className="text-white/40">{statusLabel} {entry.group_count} {meta.singular.toLowerCase()}s</span>
+            <span className="text-white/40">{statusLabel} {entry.group_count} {meta.label.toLowerCase()}</span>
             <span className="text-white/40">{meta.emoji}</span>
           </div>
 
