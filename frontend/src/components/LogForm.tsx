@@ -93,7 +93,10 @@ const LogForm: React.FC<LogFormProps> = ({ onSubmit, onCancel, initialData, medi
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCancel();
+      if (e.key !== 'Escape') return;
+      const el = document.activeElement as HTMLElement | null;
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
+      onCancel();
     };
     const stopDrag = () => { draggingRef.current = false; };
     window.addEventListener('keydown', handleEsc);
@@ -108,7 +111,7 @@ const LogForm: React.FC<LogFormProps> = ({ onSubmit, onCancel, initialData, medi
   const showManualTime = mediaType === 'game' || mediaType === 'book';
 
   const handleSubmit = () => {
-    if (isWishlist) {
+    if (isWishlist && !initialData) {
       onSubmit({
         status,
         rating: null,

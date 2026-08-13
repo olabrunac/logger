@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api, { getUserWishlist, getUserCustomLists, createCustomList, updateCustomList, deleteCustomList, addCustomListItem, removeCustomListItem, resolveUserByUsername } from '../services/api';
 import type { LogEntry, MediaType, CustomList, CustomListItem, User } from '../types';
@@ -174,6 +174,7 @@ const ListsPage = ({ currentUser }: ListsPageProps) => {
   const [editingList, setEditingList] = useState<{ id: number; name: string; description: string } | null>(null);
   const [addMediaListId, setAddMediaListId] = useState<number | null>(null);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+  const fetchIdRef = useRef(0);
 
   const displayUsername = username || currentUser.username;
   const isOwnProfile = displayUsername === currentUser.username;
@@ -189,23 +190,26 @@ const ListsPage = ({ currentUser }: ListsPageProps) => {
   }, [username, currentUser]);
 
   const fetchLogs = useCallback(async () => {
+    const requestId = ++fetchIdRef.current;
     try {
       const response = await api.get('/media/logs', { params: { user_id: targetUser.id, limit: 9999 } });
-      setLogs(response.data || []);
+      if (requestId === fetchIdRef.current) setLogs(response.data || []);
     } catch (err) { console.error('Failed to fetch logs', err); }
   }, [targetUser.id]);
 
   const fetchWishlist = useCallback(async () => {
+    const requestId = ++fetchIdRef.current;
     try {
       const response = await getUserWishlist(targetUser.id);
-      setWishlist(response.data || []);
+      if (requestId === fetchIdRef.current) setWishlist(response.data || []);
     } catch (err) { console.error('Failed to fetch wishlist', err); }
   }, [targetUser.id]);
 
   const fetchCustomLists = useCallback(async () => {
+    const requestId = ++fetchIdRef.current;
     try {
       const response = await getUserCustomLists(targetUser.id);
-      setCustomLists(response.data || []);
+      if (requestId === fetchIdRef.current) setCustomLists(response.data || []);
     } catch (err) { console.error('Failed to fetch custom lists', err); }
   }, [targetUser.id]);
 
