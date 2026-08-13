@@ -140,15 +140,49 @@ def delete_user(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    from app.models.post import Post, PostImage, PostReply, PostLike
+    from app.models.media import LogEntry, LogReply, LogLike, EpisodeWatched, Achievement, LogReview
+    from app.models.notification import Notification
+    from app.models.user_badge import UserBadge
+    from app.models.user_follow import UserFollow
+
+    post_ids = [p.id for p in db.query(Post).filter(Post.user_id == user_id).all()]
+    if post_ids:
+        db.query(PostImage).filter(PostImage.post_id.in_(post_ids)).delete(synchronize_session=False)
+        db.query(PostReply).filter(PostReply.post_id.in_(post_ids)).delete(synchronize_session=False)
+        db.query(PostLike).filter(PostLike.post_id.in_(post_ids)).delete(synchronize_session=False)
+        db.query(Post).filter(Post.id.in_(post_ids)).delete(synchronize_session=False)
+    db.query(PostReply).filter(PostReply.user_id == user_id).delete(synchronize_session=False)
+    db.query(PostLike).filter(PostLike.user_id == user_id).delete(synchronize_session=False)
+
+    log_ids = [l.id for l in db.query(LogEntry).filter(LogEntry.user_id == user_id).all()]
+    if log_ids:
+        db.query(LogReply).filter(LogReply.log_id.in_(log_ids)).delete(synchronize_session=False)
+        db.query(LogLike).filter(LogLike.log_id.in_(log_ids)).delete(synchronize_session=False)
+        db.query(EpisodeWatched).filter(EpisodeWatched.log_id.in_(log_ids)).delete(synchronize_session=False)
+        db.query(Achievement).filter(Achievement.log_id.in_(log_ids)).delete(synchronize_session=False)
+        db.query(LogReview).filter(LogReview.log_id.in_(log_ids)).delete(synchronize_session=False)
+
+    db.query(Notification).filter(
+        (Notification.user_id == user_id) | (Notification.from_user_id == user_id)
+    ).delete(synchronize_session=False)
+    db.query(UserBadge).filter(UserBadge.user_id == user_id).delete(synchronize_session=False)
+    db.query(UserFollow).filter(
+        (UserFollow.follower_id == user_id) | (UserFollow.following_id == user_id)
+    ).delete(synchronize_session=False)
+
     for log in user.logs:
         db.delete(log)
     db.flush()
 
     for url in (user.banner_url, user.avatar_url):
-        if url:
-            path = url.lstrip("/")
-            if os.path.exists(path):
-                os.remove(path)
+        if url and url.startswith("/uploads/"):
+            filename = os.path.basename(url[len("/uploads/"):].replace("\\", "/"))
+            from app.crud.crud_upload import delete_file
+            delete_file(db, filename)
+            disk_path = os.path.join(UPLOAD_DIR, filename)
+            if os.path.isfile(disk_path):
+                os.remove(disk_path)
 
     db.delete(user)
     db.commit()
@@ -312,13 +346,15 @@ def wipe_user_data(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    from app.models.media import LogEntry, EpisodeWatched, Achievement, LogReview, TopListItem, CustomList, CustomListItem
+    from app.models.media import LogEntry, LogReply, LogLike, EpisodeWatched, Achievement, LogReview, TopListItem, CustomList, CustomListItem
     from app.models.post import PostLike
     from app.models.notification import Notification
     from app.models.user_badge import UserBadge
 
     log_ids = [l.id for l in db.query(LogEntry).filter(LogEntry.user_id == user_id).all()]
     if log_ids:
+        db.query(LogReply).filter(LogReply.log_id.in_(log_ids)).delete(synchronize_session=False)
+        db.query(LogLike).filter(LogLike.log_id.in_(log_ids)).delete(synchronize_session=False)
         db.query(EpisodeWatched).filter(EpisodeWatched.log_id.in_(log_ids)).delete(synchronize_session=False)
         db.query(Achievement).filter(Achievement.log_id.in_(log_ids)).delete(synchronize_session=False)
         db.query(LogReview).filter(LogReview.log_id.in_(log_ids)).delete(synchronize_session=False)
