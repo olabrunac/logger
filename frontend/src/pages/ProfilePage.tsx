@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import api, { getUserCustomLists, resolveUserByUsername } from '../services/api';
 import type { LogEntry, User, TopListItem, CustomList } from '../types';
@@ -51,6 +51,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
   const [topListItems, setTopListItems] = useState<TopListItem[]>([]);
   const [customLists, setCustomLists] = useState<CustomList[]>([]);
   const [editingLayout, setEditingLayout] = useState(false);
+  const fetchIdRef = useRef(0);
 
   const isMobile = useIsMobile();
   const deviceKey = isMobile ? 'mobile' : 'desktop';
@@ -67,6 +68,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
   }, [currentUser, isOwnProfile]);
 
   const fetchData = async () => {
+    const requestId = ++fetchIdRef.current;
     setLoading(true);
     setError(null);
     setReviewLogs([]);
@@ -80,6 +82,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
       } else {
         targetUser = await resolveUserByUsername(displayUsername);
       }
+      if (requestId !== fetchIdRef.current) return;
       setProfileUser(targetUser);
       const [logsRes, wishlistRes, topListRes, customListsRes] = await Promise.all([
         api.get('/media/logs', { params: { user_id: targetUser.id, limit: 9999 } }),
@@ -87,6 +90,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
         api.get(`/media/users/${targetUser.id}/top-list`),
         getUserCustomLists(targetUser.id).catch(() => ({ data: [] })),
       ]);
+      if (requestId !== fetchIdRef.current) return;
       setTopListItems(topListRes.data || []);
       setCustomLists(customListsRes.data || []);
       const allLogs = [...(logsRes.data || []), ...(wishlistRes.data || [])];
@@ -94,22 +98,29 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
 
       try {
         const postsRes = await api.get(`/posts/posts/user/${targetUser.id}`, { params: { current_user_id: currentUser.id, limit: 20 } });
-        setPosts((postsRes.data || []).map((p: Post) => ({ ...p, _type: 'post' as const })));
+        if (requestId === fetchIdRef.current) {
+          setPosts((postsRes.data || []).map((p: Post) => ({ ...p, _type: 'post' as const })));
+        }
       } catch {}
 
       if (!isOwnProfile) {
         try {
           const followRes = await api.get(`/users/${currentUser.id}/is-following/${targetUser.id}`);
-          setIsFollowing(followRes.data.is_following);
+          if (requestId === fetchIdRef.current) {
+            setIsFollowing(followRes.data.is_following);
+          }
         } catch {}
       }
 
-      setReviewLogs(allLogs.filter((l: LogEntry) => l.review && l.review.trim().length > 0));
+      if (requestId === fetchIdRef.current) {
+        setReviewLogs(allLogs.filter((l: LogEntry) => l.review && l.review.trim().length > 0));
+      }
     } catch (err) {
+      if (requestId !== fetchIdRef.current) return;
       console.error('Failed to fetch profile data', err);
       setError('Perfil não encontrado');
     } finally {
-      setLoading(false);
+      if (requestId === fetchIdRef.current) setLoading(false);
     }
   };
 

@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, useMemo } from 'react';
+﻿import { useEffect, useState, useMemo, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api, { getUserCustomLists, getUserFavorites, resolveUserByUsername } from '../services/api';
 import type { LogEntry, User, CustomList, TopListItem, MediaItem } from '../types';
@@ -55,6 +55,7 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
   const [showExpanded, setShowExpanded] = useState<Record<string, boolean>>({});
   const [customLists, setCustomLists] = useState<CustomList[]>(propCustomLists ?? []);
   const [topListItems, setTopListItems] = useState<TopListItem[]>(propTopListItems ?? []);
+  const fetchIdRef = useRef(0);
 
   const rawMediaType = propMediaType || urlMediaType || '';
   const mediaType = MEDIA_TYPE_MAP[rawMediaType] || 'movie';
@@ -78,6 +79,7 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
     }
     setLoading(true);
     setError(null);
+    const requestId = ++fetchIdRef.current;
     (async () => {
       try {
         let targetUser: User;
@@ -86,6 +88,7 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
         } else {
           targetUser = await resolveUserByUsername(displayUsername);
         }
+        if (requestId !== fetchIdRef.current) return;
         setProfileUser(targetUser);
 
         const [logsRes, wishlistRes, customListsRes, topListRes] = await Promise.all([
@@ -94,15 +97,17 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
           getUserCustomLists(targetUser.id),
           api.get(`/media/users/${targetUser.id}/top-list`),
         ]);
+        if (requestId !== fetchIdRef.current) return;
         const allLogs = [...(logsRes.data || []), ...(wishlistRes.data || [])];
         setLogs(allLogs);
         setCustomLists(customListsRes.data || []);
         setTopListItems(topListRes.data || []);
       } catch (err) {
+        if (requestId !== fetchIdRef.current) return;
         console.error('Failed to fetch profile data', err);
         setError('Perfil nao encontrado');
       } finally {
-        setLoading(false);
+        if (requestId === fetchIdRef.current) setLoading(false);
       }
     })();
   }, [username, rawMediaType]);
