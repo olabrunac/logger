@@ -22,6 +22,12 @@ class Settings(BaseSettings):
     WISHLIST_SALE_CHECK_INTERVAL_HOURS: float = 6.0
     WISHLIST_SALE_CHECK_FIRST_DELAY_SECONDS: int = 300
 
+    # Admin bootstrap password (init_db.py) — only used when the admin doesn't exist yet
+    ADMIN_PASSWORD: Optional[str] = None
+
+    # Dev bypass: username 'bruna' logs in with empty password (local dev only)
+    DEV_BYPASS_LOGIN: bool = False
+
     class Config:
         case_sensitive = True
 

@@ -1,6 +1,9 @@
+import secrets
+
 from sqlalchemy.orm import Session
 from app import crud, schemas
 from app.db.session import SessionLocal
+from app.core.config import settings
 
 def init_db() -> None:
     db = SessionLocal()
@@ -147,12 +150,13 @@ def init_db() -> None:
     # Seed admin user
     admin = crud.user.get_by_username(db, username="admin")
     if not admin:
-        admin_in = schemas.UserCreate(username="admin", email="admin@logger.dev", password="admin123")
+        admin_password = settings.ADMIN_PASSWORD or secrets.token_urlsafe(16)
+        admin_in = schemas.UserCreate(username="admin", email="admin@logger.dev", password=admin_password)
         admin = crud.user.create(db, obj_in=admin_in)
-        print(f"Admin user created: admin@logger.dev / admin123")
+        print(f"Admin user created: admin@logger.dev (password from ADMIN_PASSWORD env or random)")
     elif not admin.password_hash:
         admin.email = "admin@logger.dev"
-        admin.password_hash = crud.user.hash_password("admin123")
+        admin.password_hash = crud.user.hash_password(settings.ADMIN_PASSWORD or secrets.token_urlsafe(16))
         db.add(admin)
         db.commit()
         print(f"Admin user migrated with password")
