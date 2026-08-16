@@ -77,6 +77,7 @@ def init_db() -> None:
     _add_column('"user"', 'show_hours', 'ALTER TABLE "user" ADD COLUMN show_hours BOOLEAN DEFAULT FALSE')
     _add_column('"user"', 'show_stats', 'ALTER TABLE "user" ADD COLUMN show_stats BOOLEAN DEFAULT TRUE')
     _add_column('logentry', 'family_share', 'ALTER TABLE logentry ADD COLUMN family_share BOOLEAN DEFAULT FALSE')
+    _add_column('notification', 'log_id', 'ALTER TABLE notification ADD COLUMN log_id INTEGER')
 
     # Reset das buscas populares: entradas antigas são só strings (termo digitado,
     # sem referência de mídia). Apaga tudo só quando a migração das colunas roda
@@ -113,6 +114,7 @@ def init_db() -> None:
     _exec("CREATE INDEX IF NOT EXISTS ix_custom_list_item_media_item_id ON custom_list_item (media_item_id)")
     _exec("CREATE INDEX IF NOT EXISTS ix_notification_from_user_id ON notification (from_user_id)")
     _exec("CREATE INDEX IF NOT EXISTS ix_notification_post_id ON notification (post_id)")
+    _exec("CREATE INDEX IF NOT EXISTS ix_notification_log_id ON notification (log_id)")
 
     # Capas de livros antigas salvas com http:// — Chrome bloqueia mixed content
     # em produção (https), então normaliza tudo para https de uma vez.

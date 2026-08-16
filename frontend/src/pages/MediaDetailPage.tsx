@@ -293,7 +293,7 @@ const MediaDetailPage = () => {
     if (episodes[n]) { setOpenSeason(openSeason === n ? null : n); return; }
     if (!log?.media_item.tmdb_id) return;
     const { data } = await api.get('/media/series/' + log.media_item.tmdb_id + '/season/' + n + '/episodes');
-    setEpisodes({ ...episodes, [n]: data });
+    setEpisodes(prev => ({ ...prev, [n]: data }));
     setOpenSeason(n);
   };
 
@@ -310,13 +310,11 @@ const MediaDetailPage = () => {
         episode_name: ep.name, watched: newWatched, log_date: new Date().toISOString().split('T')[0],
         air_date: ep.air_date,
       }, { params: { user_id: currentUser.id } });
-      setWatchedMap({ ...watchedMap, [key]: data });
-      if (log) {
-        setLog({
-          ...log,
-          watched_episodes: (log.watched_episodes || 0) + (newWatched ? 1 : -1)
-        });
-      }
+      setWatchedMap(prev => ({ ...prev, [key]: data }));
+      setLog(prev => prev ? {
+        ...prev,
+        watched_episodes: (prev.watched_episodes || 0) + (newWatched ? 1 : -1)
+      } : prev);
     } catch (err) {
       console.error('Failed to toggle episode:', err);
     }
@@ -388,7 +386,7 @@ const MediaDetailPage = () => {
       external_id: a.external_id, name: a.name, description: a.description || '',
       image_url: a.image_url || '', unlocked: newUnlocked,
     }, { params: { user_id: JSON.parse(localStorage.getItem('user') || '{}').id } });
-    setAchievements(achievements.map(x => x.external_id === a.external_id ? { ...x, unlocked: newUnlocked, id: data.id } : x));
+    setAchievements(prev => prev.map(x => x.external_id === a.external_id ? { ...x, unlocked: newUnlocked, id: data.id } : x));
   };
 
   const toggleAllAch = async (markUnlocked: boolean) => {

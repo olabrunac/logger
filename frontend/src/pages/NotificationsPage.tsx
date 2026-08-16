@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, type ComponentType } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Bell, Heart, MessageCircle, UserPlus, Trophy, CheckCheck,
   Wrench, Film, Tv, Gamepad2, BookOpen, Star, Flame, Users,
@@ -9,6 +10,10 @@ import { parseServerDate } from '../utils';
 
 const ICON_MAP: Record<string, ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
   Wrench, Film, Tv, Gamepad2, BookOpen, Trophy, Star, Flame, Users, UserPlus,
+};
+
+const TYPE_MEDIA_ICON: Record<string, ComponentType<{ className?: string; size?: number; style?: React.CSSProperties }>> = {
+  movie: Film, series: Tv, game: Gamepad2, book: BookOpen,
 };
 
 const RARITY_HEX: Record<string, string> = {
@@ -31,16 +36,27 @@ const TYPE_CONFIG: Record<string, {
   like: {
     icon: Heart, bgClass: 'rgba(239,68,68,0.1)', color: '#ef4444',
     getTitle: () => 'Curtida',
-    getDesc: (n) => n.post_content
-      ? `${n.from_username || 'Alguém'} curtiu seu post: "${n.post_content}${n.post_content.length >= 150 ? '...' : ''}"`
-      : `${n.from_username || 'Alguém'} curtiu seu post`,
+    getDesc: (n) => {
+      if (n.log_id) return `${n.from_username || 'Alguém'} curtiu seu log de "${n.log_title || '...'}"`;
+      return n.post_content
+        ? `${n.from_username || 'Alguém'} curtiu seu post: "${n.post_content}${n.post_content.length >= 150 ? '...' : ''}"`
+        : `${n.from_username || 'Alguém'} curtiu seu post`;
+    },
   },
   reply: {
     icon: MessageCircle, bgClass: 'rgba(59,130,246,0.1)', color: '#3b82f6',
     getTitle: () => 'Resposta',
-    getDesc: (n) => n.reply_content
-      ? `${n.from_username || 'Alguém'} respondeu: "${n.reply_content}${n.reply_content.length >= 150 ? '...' : ''}"`
-      : `${n.from_username || 'Alguém'} respondeu seu post`,
+    getDesc: (n) => {
+      if (n.log_id) {
+        const c = n.log_reply_content
+          ? `: "${n.log_reply_content}${n.log_reply_content.length >= 150 ? '...' : ''}"`
+          : '';
+        return `${n.from_username || 'Alguém'} respondeu seu log de "${n.log_title || '...'}"${c}`;
+      }
+      return n.reply_content
+        ? `${n.from_username || 'Alguém'} respondeu: "${n.reply_content}${n.reply_content.length >= 150 ? '...' : ''}"`
+        : `${n.from_username || 'Alguém'} respondeu seu post`;
+    },
   },
   follow: {
     icon: UserPlus, bgClass: 'rgba(168,85,247,0.1)', color: '#a855f7',
@@ -78,6 +94,7 @@ interface NotificationsPageProps {
 }
 
 const NotificationsPage = ({ user, onNotificationsRead }: NotificationsPageProps) => {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -106,6 +123,9 @@ const NotificationsPage = ({ user, onNotificationsRead }: NotificationsPageProps
         setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x));
         onNotificationsRead?.();
       } catch { }
+    }
+    if (n.log_id && n.log_media_type && n.log_api_id) {
+      navigate(`/log/${n.log_media_type}/${n.log_api_id}`);
     }
   };
 
@@ -144,6 +164,8 @@ const NotificationsPage = ({ user, onNotificationsRead }: NotificationsPageProps
               ? (ICON_MAP[n.badge_icon] as any)
               : cfg.icon;
             const bg = n.type === 'badge' ? (RARITY_HEX[n.badge_rarity || ''] || cfg.color) : cfg.color;
+            const LogIcon = n.log_media_type ? TYPE_MEDIA_ICON[n.log_media_type] : undefined;
+            const isLog = Boolean(n.log_id);
 
             return (
               <div
@@ -151,9 +173,15 @@ const NotificationsPage = ({ user, onNotificationsRead }: NotificationsPageProps
                 onClick={() => handleClick(n)}
                 className={`relative flex w-full cursor-pointer items-start gap-3 px-4 py-3 lg:px-10 transition-opacity duration-300 ${n.read ? 'opacity-40' : 'bg-transparent hover:bg-white/[0.03]'}`}
               >
-                <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ background: `${cfg.color}22` }}>
-                  <Icon size={16} style={{ color: cfg.color === bg ? cfg.color : bg }} />
-                </div>
+                {isLog && n.log_cover ? (
+                  <div className="relative mt-0.5 h-9 w-9 shrink-0 overflow-hidden rounded-lg" style={{ background: `${cfg.color}22` }}>
+                    <img src={n.log_cover} alt={n.log_title || ''} className="h-full w-full object-cover" />
+                  </div>
+                ) : (
+                  <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ background: `${cfg.color}22` }}>
+                    {LogIcon ? <LogIcon size={16} style={{ color: cfg.color === bg ? cfg.color : bg }} /> : <Icon size={16} style={{ color: cfg.color === bg ? cfg.color : bg }} />}
+                  </div>
+                )}
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-foreground">{cfg.getTitle(n)}</p>
                   <p className="mt-0.5 line-clamp-4 whitespace-pre-line text-xs text-placeholder">{cfg.getDesc(n)}</p>

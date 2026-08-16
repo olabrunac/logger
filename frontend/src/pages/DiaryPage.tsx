@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api, { resolveUserByUsername } from '../services/api';
 import type { LogEntry, MediaType, User } from '../types';
@@ -36,14 +36,18 @@ const DiaryPage = ({ currentUser }: DiaryPageProps) => {
   const { username } = useParams<{ username: string }>();
   const [filter, setFilter] = useState<MediaType | 'all'>('all');
   const [logs, setLogs] = useState<LogEntry[]>([]);
+  const fetchIdRef = useRef(0);
 
   const fetchLogs = useCallback(async () => {
+    const requestId = ++fetchIdRef.current;
     try {
       let targetUser = currentUser;
       if (username && username !== currentUser.username) {
         targetUser = await resolveUserByUsername(username);
       }
+      if (requestId !== fetchIdRef.current) return;
       const response = await api.get('/media/logs', { params: { user_id: targetUser.id, limit: 9999 } });
+      if (requestId !== fetchIdRef.current) return;
       setLogs(response.data || []);
     } catch (err) {
       console.error('Failed to fetch logs', err);
