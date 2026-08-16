@@ -221,10 +221,12 @@ const TimelinePage = ({ user }: TimelinePageProps) => {
         await api.post(`/media/logs/${logId}/like`, null, { params: { user_id: user.id } });
       }
     } catch {
+      const originalLikedBy = entry.liked_by || [];
       setEntries(prev => prev.map(e => e.id === logId ? {
         ...e,
         is_liked: wasLiked,
         likes_count: (e.likes_count || 0) + (wasLiked ? 1 : -1),
+        liked_by: originalLikedBy,
       } : e));
     }
   };
