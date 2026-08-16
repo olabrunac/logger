@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
 import type { User } from '../types';
@@ -20,6 +20,52 @@ const FILTERS: { value: TypeFilter; label: string }[] = [
   { value: 'game', label: 'Jogos' },
   { value: 'book', label: 'Livros' },
 ];
+
+const CONTINUE_LIMIT = 5;
+
+function ContinueGroup({
+  title,
+  icon,
+  color,
+  entries,
+  mediaType,
+  expanded,
+  onToggle,
+}: {
+  title: string;
+  icon: ReactNode;
+  color: string;
+  entries: IncompleteEntry[];
+  mediaType: string;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  const visible = expanded ? entries : entries.slice(0, CONTINUE_LIMIT);
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          {icon}
+          <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color }}>
+            {title}
+          </h3>
+        </div>
+        {entries.length > CONTINUE_LIMIT && (
+          <button
+            onClick={onToggle}
+            className="text-xs font-medium transition-colors hover:opacity-80"
+            style={{ color: 'var(--accent)' }}
+          >
+            {expanded ? 'Ver menos' : `Ver mais (${entries.length - CONTINUE_LIMIT})`}
+          </button>
+        )}
+      </div>
+      <div className="space-y-2">
+        {visible.map(e => <ProgressRow key={e.log_id} entry={e} mediaType={mediaType} />)}
+      </div>
+    </div>
+  );
+}
 
 const STATUS_LABELS: Record<string, string> = {
   in_progress: 'Em progresso',
@@ -125,7 +171,12 @@ const WhatToDoPage = ({ user }: WhatToDoPageProps) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<TypeFilter>('all');
+  const [expandedTypes, setExpandedTypes] = useState<Record<string, boolean>>({});
   const fetchIdRef = useRef(0);
+
+  const toggleType = useCallback((key: string) => {
+    setExpandedTypes(prev => ({ ...prev, [key]: !prev[key] }));
+  }, []);
 
   const fetchData = useCallback(async () => {
     const requestId = ++fetchIdRef.current;
@@ -241,43 +292,37 @@ const WhatToDoPage = ({ user }: WhatToDoPageProps) => {
           <p className="text-xs text-white/35 mb-3">Do mais perto de completar para o mais longe.</p>
           <div className="space-y-4">
             {incomplete!.series.length > 0 && (
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <PlayCircle size={14} style={{ color: TYPE_META.series.color }} />
-                  <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: TYPE_META.series.color }}>
-                    Séries ({incomplete!.series.length})
-                  </h3>
-                </div>
-                <div className="space-y-2">
-                  {incomplete!.series.map(e => <ProgressRow key={e.log_id} entry={e} mediaType="series" />)}
-                </div>
-              </div>
+              <ContinueGroup
+                title={`Séries (${incomplete!.series.length})`}
+                icon={<PlayCircle size={14} style={{ color: TYPE_META.series.color }} />}
+                color={TYPE_META.series.color}
+                entries={incomplete!.series}
+                mediaType="series"
+                expanded={!!expandedTypes.series}
+                onToggle={() => toggleType('series')}
+              />
             )}
             {incomplete!.games.length > 0 && (
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <Gamepad2 size={14} style={{ color: TYPE_META.game.color }} />
-                  <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: TYPE_META.game.color }}>
-                    Jogos ({incomplete!.games.length})
-                  </h3>
-                </div>
-                <div className="space-y-2">
-                  {incomplete!.games.map(e => <ProgressRow key={e.log_id} entry={e} mediaType="game" />)}
-                </div>
-              </div>
+              <ContinueGroup
+                title={`Jogos (${incomplete!.games.length})`}
+                icon={<Gamepad2 size={14} style={{ color: TYPE_META.game.color }} />}
+                color={TYPE_META.game.color}
+                entries={incomplete!.games}
+                mediaType="game"
+                expanded={!!expandedTypes.games}
+                onToggle={() => toggleType('games')}
+              />
             )}
             {incomplete!.books.length > 0 && (
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <BookOpen size={14} style={{ color: TYPE_META.book.color }} />
-                  <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: TYPE_META.book.color }}>
-                    Livros ({incomplete!.books.length})
-                  </h3>
-                </div>
-                <div className="space-y-2">
-                  {incomplete!.books.map(e => <ProgressRow key={e.log_id} entry={e} mediaType="book" />)}
-                </div>
-              </div>
+              <ContinueGroup
+                title={`Livros (${incomplete!.books.length})`}
+                icon={<BookOpen size={14} style={{ color: TYPE_META.book.color }} />}
+                color={TYPE_META.book.color}
+                entries={incomplete!.books}
+                mediaType="book"
+                expanded={!!expandedTypes.books}
+                onToggle={() => toggleType('books')}
+              />
             )}
           </div>
         </section>
