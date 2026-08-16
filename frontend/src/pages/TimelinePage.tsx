@@ -127,7 +127,7 @@ const TimelinePage = ({ user }: TimelinePageProps) => {
         for (const file of selectedFiles) {
           const formData = new FormData();
           formData.append('file', file);
-          await uploadFile(`/posts/posts/upload-image?post_id=${postId}`, formData);
+          await uploadFile(`/posts/posts/upload-image?post_id=${postId}&user_id=${user.id}`, formData);
         }
       }
       setNewPostText('');
