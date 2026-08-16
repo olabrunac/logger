@@ -77,7 +77,13 @@ def init_db() -> None:
     _add_column('"user"', 'show_hours', 'ALTER TABLE "user" ADD COLUMN show_hours BOOLEAN DEFAULT FALSE')
     _add_column('"user"', 'show_stats', 'ALTER TABLE "user" ADD COLUMN show_stats BOOLEAN DEFAULT TRUE')
     _add_column('logentry', 'family_share', 'ALTER TABLE logentry ADD COLUMN family_share BOOLEAN DEFAULT FALSE')
+    _add_column('logentry', 'exclude_from_stats', 'ALTER TABLE logentry ADD COLUMN exclude_from_stats BOOLEAN DEFAULT FALSE')
+    _add_column('mediaitem', 'steam_discount_percent', 'ALTER TABLE mediaitem ADD COLUMN steam_discount_percent INTEGER')
+    _add_column('mediaitem', 'steam_price_checked_at', 'ALTER TABLE mediaitem ADD COLUMN steam_price_checked_at TIMESTAMP')
     _add_column('notification', 'log_id', 'ALTER TABLE notification ADD COLUMN log_id INTEGER')
+    _add_column('notification', 'media_item_id', 'ALTER TABLE notification ADD COLUMN media_item_id INTEGER')
+    _add_column('notification', 'sale_discount_percent', 'ALTER TABLE notification ADD COLUMN sale_discount_percent INTEGER')
+    _add_column('notification', 'sale_price', 'ALTER TABLE notification ADD COLUMN sale_price VARCHAR')
 
     # Reset das buscas populares: entradas antigas são só strings (termo digitado,
     # sem referência de mídia). Apaga tudo só quando a migração das colunas roda
@@ -115,6 +121,7 @@ def init_db() -> None:
     _exec("CREATE INDEX IF NOT EXISTS ix_notification_from_user_id ON notification (from_user_id)")
     _exec("CREATE INDEX IF NOT EXISTS ix_notification_post_id ON notification (post_id)")
     _exec("CREATE INDEX IF NOT EXISTS ix_notification_log_id ON notification (log_id)")
+    _exec("CREATE INDEX IF NOT EXISTS ix_notification_media_item_id ON notification (media_item_id)")
 
     # Capas de livros antigas salvas com http:// — Chrome bloqueia mixed content
     # em produção (https), então normaliza tudo para https de uma vez.

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Bell, Heart, MessageCircle, UserPlus, Trophy, CheckCheck,
   Wrench, Film, Tv, Gamepad2, BookOpen, Star, Flame, Users,
+  BadgePercent,
 } from 'lucide-react';
 import { getNotifications, markNotificationRead, markAllNotificationsRead } from '../services/api';
 import type { AppNotification } from '../types';
@@ -73,6 +74,11 @@ const TYPE_CONFIG: Record<string, {
       return `Seu badge ${name} evoluiu para ${rarity}${milestone}`;
     },
   },
+  wishlist_sale: {
+    icon: BadgePercent, bgClass: 'rgba(34,211,238,0.1)', color: '#22d3ee',
+    getTitle: () => 'Promoção na wishlist!',
+    getDesc: (n) => `"${n.media_title || 'Um jogo da sua lista'}" está com ${n.sale_discount_percent ?? 0}% OFF${n.sale_price ? ` por ${n.sale_price}` : ''} na Steam`,
+  },
 };
 
 const timeAgo = (dateStr: string) => {
@@ -126,6 +132,8 @@ const NotificationsPage = ({ user, onNotificationsRead }: NotificationsPageProps
     }
     if (n.log_id && n.log_media_type && n.log_api_id) {
       navigate(`/log/${n.log_media_type}/${n.log_api_id}`);
+    } else if (n.media_item_id && n.media_media_type && n.media_api_id) {
+      navigate(`/media/${n.media_media_type}/${n.media_api_id}`);
     }
   };
 
@@ -164,8 +172,10 @@ const NotificationsPage = ({ user, onNotificationsRead }: NotificationsPageProps
               ? (ICON_MAP[n.badge_icon] as any)
               : cfg.icon;
             const bg = n.type === 'badge' ? (RARITY_HEX[n.badge_rarity || ''] || cfg.color) : cfg.color;
-            const LogIcon = n.log_media_type ? TYPE_MEDIA_ICON[n.log_media_type] : undefined;
-            const isLog = Boolean(n.log_id);
+            const cover = n.log_cover || n.media_cover;
+            const coverType = n.log_media_type || n.media_media_type;
+            const LogIcon = coverType ? TYPE_MEDIA_ICON[coverType] : undefined;
+            const showCover = Boolean(cover) && (Boolean(n.log_id) || Boolean(n.media_item_id));
 
             return (
               <div
@@ -173,9 +183,9 @@ const NotificationsPage = ({ user, onNotificationsRead }: NotificationsPageProps
                 onClick={() => handleClick(n)}
                 className={`relative flex w-full cursor-pointer items-start gap-3 px-4 py-3 lg:px-10 transition-opacity duration-300 ${n.read ? 'opacity-40' : 'bg-transparent hover:bg-white/[0.03]'}`}
               >
-                {isLog && n.log_cover ? (
+                {showCover ? (
                   <div className="relative mt-0.5 h-9 w-9 shrink-0 overflow-hidden rounded-lg" style={{ background: `${cfg.color}22` }}>
-                    <img src={n.log_cover} alt={n.log_title || ''} className="h-full w-full object-cover" />
+                    <img src={cover} alt={n.log_title || n.media_title || ''} className="h-full w-full object-cover" />
                   </div>
                 ) : (
                   <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ background: `${cfg.color}22` }}>
@@ -183,7 +193,14 @@ const NotificationsPage = ({ user, onNotificationsRead }: NotificationsPageProps
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-foreground">{cfg.getTitle(n)}</p>
+                  <p className="flex items-center gap-2 text-sm font-medium text-foreground">
+                    <span className="truncate">{cfg.getTitle(n)}</span>
+                    {n.type === 'wishlist_sale' && n.sale_discount_percent != null && (
+                      <span className="inline-flex shrink-0 items-center rounded-full px-1.5 py-0.5 text-[10px] font-bold" style={{ background: 'rgba(34,211,238,0.15)', color: '#22d3ee' }}>
+                        -{n.sale_discount_percent}%
+                      </span>
+                    )}
+                  </p>
                   <p className="mt-0.5 line-clamp-4 whitespace-pre-line text-xs text-placeholder">{cfg.getDesc(n)}</p>
                   <p className="mt-1 text-xs text-placeholder">{timeAgo(n.created_at)}</p>
                 </div>

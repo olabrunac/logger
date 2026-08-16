@@ -7,7 +7,7 @@ from app.models.media import LogEntry, LogReply, MediaItem
 from app.core.badge_definitions import BADGE_DEFS
 
 
-def create_notification(db: Session, *, user_id: int, type: str, from_user_id: int = None, post_id: int = None, log_id: int = None, badge_key: str = None) -> Notification:
+def create_notification(db: Session, *, user_id: int, type: str, from_user_id: int = None, post_id: int = None, log_id: int = None, badge_key: str = None, media_item_id: int = None, sale_discount_percent: int = None, sale_price: str = None) -> Notification:
     if from_user_id and from_user_id == user_id:
         return None
     existing = (
@@ -19,13 +19,14 @@ def create_notification(db: Session, *, user_id: int, type: str, from_user_id: i
             Notification.post_id == post_id,
             Notification.log_id == log_id,
             Notification.badge_key == badge_key,
+            Notification.media_item_id == media_item_id,
             Notification.read == False,
         )
         .first()
     )
     if existing:
         return None
-    n = Notification(user_id=user_id, type=type, from_user_id=from_user_id, post_id=post_id, log_id=log_id, badge_key=badge_key)
+    n = Notification(user_id=user_id, type=type, from_user_id=from_user_id, post_id=post_id, log_id=log_id, badge_key=badge_key, media_item_id=media_item_id, sale_discount_percent=sale_discount_percent, sale_price=sale_price)
     db.add(n)
     db.commit()
     db.refresh(n)
@@ -62,6 +63,7 @@ def get_notifications(db: Session, user_id: int, limit: int = 50, offset: int = 
     log_ids = {n.log_id for n in rows if n.log_id}
     logs = {l.id: l for l in db.query(LogEntry).filter(LogEntry.id.in_(log_ids)).all()} if log_ids else {}
     media_ids = {l.media_item_id for l in logs.values()}
+    media_ids |= {n.media_item_id for n in rows if n.media_item_id}
     media_map = {m.id: m for m in db.query(MediaItem).filter(MediaItem.id.in_(media_ids)).all()} if media_ids else {}
     log_replies = {}
     if log_ids:
@@ -106,6 +108,24 @@ def get_notifications(db: Session, user_id: int, limit: int = 50, offset: int = 
                 log_reply = log_replies.get((n.log_id, n.from_user_id))
                 if log_reply:
                     log_reply_content = log_reply.content[:150] if len(log_reply.content) > 150 else log_reply.content
+        media_title = log_title
+        media_cover = log_cover
+        media_media_type = log_media_type
+        media_api_id = log_api_id
+        if n.media_item_id:
+            sale_media = media_map.get(n.media_item_id)
+            if sale_media:
+                media_title = sale_media.title
+                media_cover = sale_media.cover_image_url
+                media_media_type = sale_media.media_type.value if hasattr(sale_media.media_type, "value") else sale_media.media_type
+                if sale_media.steam_appid:
+                    media_api_id = str(sale_media.steam_appid)
+                elif sale_media.igdb_id:
+                    media_api_id = str(sale_media.igdb_id)
+                elif sale_media.tmdb_id:
+                    media_api_id = str(sale_media.tmdb_id)
+                elif sale_media.google_books_id:
+                    media_api_id = sale_media.google_books_id
         result.append({
             "id": n.id,
             "user_id": n.user_id,
@@ -122,6 +142,13 @@ def get_notifications(db: Session, user_id: int, limit: int = 50, offset: int = 
             "log_media_type": log_media_type,
             "log_api_id": log_api_id,
             "log_reply_content": log_reply_content,
+            "media_item_id": n.media_item_id,
+            "media_title": media_title,
+            "media_cover": media_cover,
+            "media_media_type": media_media_type,
+            "media_api_id": media_api_id,
+            "sale_discount_percent": n.sale_discount_percent,
+            "sale_price": n.sale_price,
             "badge_description": badge_def.description if badge_def else None,
             "badge_title": badge_def.title if badge_def else None,
             "badge_icon": badge_def.icon if badge_def else None,

@@ -9,7 +9,8 @@ import LayoutEditorModal from '../components/sections/LayoutEditorModal';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { TYPE_META } from '../constants/designSystem';
 import Stars from '../components/Stars';
-import { getLogUrl, findBestLogForMedia, sortLogsByDate, formatHours } from '../utils';
+import { getLogUrl, findBestLogForMedia, sortLogsByDate, formatHours, isInGameLibrary } 
+from '../utils';
 import HashtagText from '../components/HashtagText';
 import { Heart, Clock, Star, Target, CheckCircle, BookOpen, X, Layers, Menu, ChevronUp, ChevronDown, Trash2 } from 'lucide-react';
 
@@ -503,7 +504,9 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
     const entry = STATUS_SECTIONS.find(s => s.id === statusId);
     if (!entry) return null;
     const { label, status, emptyMsg } = entry;
-    const sectionLogs = filteredLogs.filter(l => l.status === status);
+    const sectionLogs = statusId === 'library' && mediaType === 'game'
+      ? filteredLogs.filter(l => isInGameLibrary(l))
+      : filteredLogs.filter(l => l.status === status);
     const expanded = showExpanded[statusId];
     return (
       <section key={statusId}>

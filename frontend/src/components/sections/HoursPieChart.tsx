@@ -28,7 +28,7 @@ const HoursPieChart = ({ logs, mediaType }: HoursPieChartProps) => {
   const [hovered, setHovered] = useState<string | null>(null);
 
   const data = useMemo(() => {
-    const filtered = logs.filter((l) => !mediaType || l.media_item.media_type === mediaType);
+    const filtered = logs.filter((l) => !l.exclude_from_stats && (!mediaType || l.media_item.media_type === mediaType));
     const hoursMap: Record<string, number> = {};
     filtered.forEach((l) => {
       const type = l.media_item.media_type;
