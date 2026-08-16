@@ -1,5 +1,5 @@
 import { NavLink, Link, useLocation } from 'react-router-dom';
-import { Home, Calendar, List, BookOpen, Settings, MessageSquare, Clock, LogOut, LogIn, Bell, Search } from 'lucide-react';
+import { Home, Calendar, List, BookOpen, Settings, MessageSquare, Clock, LogOut, LogIn, Bell, Search, Compass } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { getUnreadCount } from '../services/api';
 import type { User as UserType } from '../types';
@@ -61,6 +61,7 @@ const LeftSidebar = ({ user, onLogout, refreshUnreadTrigger }: LeftSidebarProps)
     { path: profileBase, label: 'Inicio', icon: Home, exact: true },
     { path: '/timeline', label: 'Timeline', icon: Clock, exact: true },
     { path: '/notifications', label: 'Notificacoes', icon: Bell, exact: true, badge: unreadCount },
+    { path: '/what-to-do', label: 'O que fazer?', icon: Compass, exact: true },
     { path: `${profileBase}/calendar`, label: 'Calendario', icon: Calendar, exact: true },
     { path: `${profileBase}/lists`, label: 'Listas', icon: List, exact: true },
     { path: `${profileBase}/diary`, label: 'Diario', icon: BookOpen, exact: true },

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
-import { Home, Clock, Bell, Calendar, List, BookOpen, MessageSquare, Search, Settings, LogOut, LogIn, Menu } from 'lucide-react';
+import { Home, Clock, Bell, Calendar, List, BookOpen, MessageSquare, Search, Settings, LogOut, LogIn, Menu, Compass } from 'lucide-react';
 import { getUnreadCount } from '../services/api';
 import type { User as UserType } from '../types';
 import { imageUrl } from '../utils';
@@ -43,6 +43,7 @@ const MobileNav = ({ user, onLogout, refreshUnreadTrigger }: MobileNavProps) => 
     { path: '/timeline', label: 'Timeline', icon: Clock, exact: true },
     { path: '/search', label: 'Buscar', icon: Search, exact: true },
     { path: '/notifications', label: 'Notificacoes', icon: Bell, exact: true },
+    { path: '/what-to-do', label: 'O que fazer?', icon: Compass, exact: true },
     { path: `${profileBase}/calendar`, label: 'Calendario', icon: Calendar, exact: true },
     { path: `${profileBase}/lists`, label: 'Listas', icon: List, exact: true },
     { path: `${profileBase}/diary`, label: 'Diario', icon: BookOpen, exact: true },

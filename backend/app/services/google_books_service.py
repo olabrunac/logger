@@ -83,6 +83,25 @@ def search_books(query: str, author: str = None, year: int = None, isbn: str = N
         print(f"Error fetching from Google Books: {e}")
         return []
 
+def discover_books(subject: str, max_results: int = 10):
+    """Descobre livros por categoria/assunto (fallback das sugestões)."""
+    if not settings.GOOGLE_BOOKS_API_KEY or not subject:
+        return []
+    params = {
+        "q": f"subject:{subject}",
+        "maxResults": max_results,
+        "printType": "books",
+        "key": settings.GOOGLE_BOOKS_API_KEY,
+    }
+    try:
+        response = requests.get(BASE_URL, params=params, timeout=10)
+        response.raise_for_status()
+        return response.json().get("items", [])[:max_results]
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching Google Books discover: {e}")
+        return []
+
+
 def get_book_details(volume_id: str):
     if not settings.GOOGLE_BOOKS_API_KEY or not volume_id:
         return None
