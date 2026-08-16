@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import secrets
 from app import crud, schemas
 from app.api import deps
+from app.core.config import settings
 from app.models.user import User
 
 router = APIRouter()
@@ -47,9 +48,13 @@ def login(
     db: Session = Depends(deps.get_db),
     login_data: schemas.LoginRequest,
 ):
-    """Login with email/username and password. Allows username-only login for 'bruna' during dev."""
-    # Dev shortcut: allow username-only login for bruna
-    if login_data.email_or_username == "bruna" and login_data.password == "":
+    """Login with email/username and password. Dev-only shortcut for 'bruna' (see DEV_BYPASS_LOGIN)."""
+    # Dev shortcut: allow username-only login for bruna (only when enabled)
+    if (
+        settings.DEV_BYPASS_LOGIN
+        and login_data.email_or_username == "bruna"
+        and login_data.password == ""
+    ):
         user = crud.user.get_by_username(db, username="bruna")
         if user:
             return _enrich_user(user, db)

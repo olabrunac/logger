@@ -11,7 +11,7 @@
 
 ## 🏗️ Arquitetura
 - **Monorepo**: `backend/` (FastAPI + SQLAlchemy + SQLite) e `frontend/` (React/Vite + TypeScript).
-- **Autenticação**: Email + senha (bcrypt via `bcrypt` lib). Dev bypass: username `bruna` → login com senha vazia. Admin: `admin@logger.dev` / `admin`.
+- **Autenticação**: Email + senha (bcrypt via `bcrypt` lib). Dev bypass (local só): username `bruna` → login com senha vazia **apenas com `DEV_BYPASS_LOGIN=true` no `.env` (default off — desligado em produção)**. Admin: seed cria `admin@logger.dev` com senha de `ADMIN_PASSWORD` (default: aleatória gerada no seed, sem log do valor).
 - **Status**: 7 valores — `completed`, `in_progress`, `dropped`, `wishlist`, `soon`, `platinated`, `library` (def. em `models/media.py`).
 - **Favorito**: Booleano independente do status.
 - **Layout**:
