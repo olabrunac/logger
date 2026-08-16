@@ -171,6 +171,55 @@ def get_tv_details(tmdb_id: int):
         print(f"Error fetching TMDb TV details: {e}")
         return None
 
+_genre_maps_cache = {"movie": None, "tv": None}
+
+
+def _tmdb_genre_map(media_type: str):
+    """Nome do gênero (minúsculo) -> id no TMDB, em pt-BR (casa com os gêneros
+    gravados no banco via get_movie_details/get_tv_details)."""
+    if media_type not in _genre_maps_cache:
+        return {}
+    if _genre_maps_cache[media_type] is None:
+        _genre_maps_cache[media_type] = {}
+        if settings.TMDB_API_KEY:
+            try:
+                r = requests.get(
+                    f"{BASE_URL}/genre/{media_type}/list",
+                    params={"api_key": settings.TMDB_API_KEY, "language": "pt-BR"},
+                    timeout=10,
+                )
+                r.raise_for_status()
+                _genre_maps_cache[media_type] = {
+                    g["name"].lower(): g["id"] for g in r.json().get("genres", [])
+                }
+            except requests.exceptions.RequestException as e:
+                print(f"Error fetching TMDb genre list: {e}")
+    return _genre_maps_cache[media_type]
+
+
+def discover_media(media_type: str, genre_name: str, limit: int = 4):
+    """Descobre filmes/séries por nome de gênero (fallback das sugestões)."""
+    gid = _tmdb_genre_map(media_type).get((genre_name or "").strip().lower())
+    if not gid:
+        return []
+    url = f"{BASE_URL}/discover/{media_type}"
+    params = {
+        "api_key": settings.TMDB_API_KEY,
+        "language": "pt-BR",
+        "with_genres": gid,
+        "sort_by": "popularity.desc",
+        "include_adult": "false",
+        "page": 1,
+    }
+    try:
+        r = requests.get(url, params=params, timeout=10)
+        r.raise_for_status()
+        return r.json().get("results", [])[:limit]
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching TMDb discover: {e}")
+        return []
+
+
 def find_by_external_id(external_id: str, source: str = "tvdb_id"):
     """Resolve an external ID (tvdb_id / imdb_id) to a TMDB TV show.
 
