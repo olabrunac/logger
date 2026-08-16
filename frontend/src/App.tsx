@@ -15,6 +15,7 @@ import StatusDirectoryPage from './pages/StatusDirectoryPage';
 import TimelinePage from './pages/TimelinePage';
 import NotificationsPage from './pages/NotificationsPage';
 import ImportPage from './pages/ImportPage';
+import WhatToDoPage from './pages/WhatToDoPage';
 import ErrorBoundary from './components/ErrorBoundary';
 import LeftSidebar from './components/LeftSidebar';
 import RightSidebar from './components/RightSidebar';
@@ -230,6 +231,12 @@ function AppInner() {
               path="/notifications"
               element={
                 user ? <NotificationsPage user={user} onNotificationsRead={() => setUnreadTrigger(t => t + 1)} /> : <Navigate to="/login" />
+              }
+            />
+            <Route
+              path="/what-to-do"
+              element={
+                user ? <WhatToDoPage user={user} /> : <Navigate to="/login" />
               }
             />
             <Route
