@@ -1,4 +1,5 @@
 import os
+import asyncio
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -106,9 +107,29 @@ if os.path.isdir(frontend_dist):
 
     app.add_middleware(SpaFallbackMiddleware)
 
+def _run_wishlist_sale_check():
+    from app.services.wishlist_sales import check_wishlist_prices
+    db = SessionLocal()
+    try:
+        result = check_wishlist_prices(db)
+        print(f"[wishlist-sales] checked {result['checked']} games, {result['sales']} sale notification(s)")
+    except Exception as e:
+        print(f"[wishlist-sales] error: {e}")
+    finally:
+        db.close()
+
+
+async def _wishlist_sale_loop():
+    await asyncio.sleep(settings.WISHLIST_SALE_CHECK_FIRST_DELAY_SECONDS)
+    while True:
+        await asyncio.to_thread(_run_wishlist_sale_check)
+        await asyncio.sleep(settings.WISHLIST_SALE_CHECK_INTERVAL_HOURS * 3600)
+
+
 @app.on_event("startup")
 def on_startup():
     create_tables()
     init_db()
     dedup_log_entries()
+    asyncio.get_event_loop().create_task(_wishlist_sale_loop())
 

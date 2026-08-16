@@ -423,6 +423,7 @@ def create_log_entry(*, db: Session = Depends(deps.get_db), payload: schemas.Log
             existing_log.platform = payload.log_in.platform
         if payload.log_in.review:
             existing_log.review = payload.log_in.review
+        existing_log.exclude_from_stats = payload.log_in.exclude_from_stats
         existing_log.log_date = datetime.datetime.utcnow()
 
         # Clean up any other duplicate non-wishlist entries for this user+media
@@ -685,6 +686,7 @@ def read_media_by_api(*, db: Session = Depends(deps.get_db), media_type: str, ap
                 "platform": log.platform,
                 "hours_spent": effective_hours(db, log),
                 "family_share": log.family_share,
+                "exclude_from_stats": log.exclude_from_stats,
                 "pages_read": log.pages_read,
                 "is_favorite": log.is_favorite,
                 "relog_count": log.relog_count,
@@ -926,6 +928,8 @@ def update_log_entry(*, db: Session = Depends(deps.get_db), log_id: int, updates
                 existing_log.platform = update_data['platform']
             if update_data.get('review'):
                 existing_log.review = update_data['review']
+            if 'exclude_from_stats' in update_data:
+                existing_log.exclude_from_stats = update_data['exclude_from_stats']
             existing_log.log_date = datetime.datetime.utcnow()
 
             db.add(existing_log)

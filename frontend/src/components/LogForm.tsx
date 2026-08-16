@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { LogStatus } from '../types';
 import type { MediaItem } from '../types/media';
-import { ChevronLeft, ChevronDown, ChevronUp, X, Check, Gamepad2, Film, Tv, Book, Flag, MessageCircle, Skull, Eye, Heart, Clock, Calendar, Star } from 'lucide-react';
+import { ChevronLeft, ChevronDown, ChevronUp, X, Check, Gamepad2, Film, Tv, Book, Flag, MessageCircle, Skull, Eye, Heart, Clock, Calendar, Star, EyeOff } from 'lucide-react';
 import { TYPE_META } from '../constants/designSystem';
 import { hoursToInput, parseHoursInput } from '../utils';
 
@@ -69,6 +69,7 @@ const LogForm: React.FC<LogFormProps> = ({ onSubmit, onCancel, initialData, medi
   const [pagesRead, setPagesRead] = useState<string>(initialData?.pages_read?.toString() || '');
   const [logDate, setLogDate] = useState(initialData?.log_date ? initialData.log_date.split('T')[0] : new Date().toISOString().split('T')[0]);
   const [isFavorite, setIsFavorite] = useState(initialData?.is_favorite || false);
+  const [excludeFromStats, setExcludeFromStats] = useState(initialData?.exclude_from_stats || false);
   const [review, setReview] = useState<string>(initialData?.review || '');
   const [showDates, setShowDates] = useState(false);
   const [showTime, setShowTime] = useState(false);
@@ -87,6 +88,7 @@ const LogForm: React.FC<LogFormProps> = ({ onSubmit, onCancel, initialData, medi
       setPagesRead(initialData.pages_read?.toString() || '');
       setLogDate(initialData.log_date ? initialData.log_date.split('T')[0] : new Date().toISOString().split('T')[0]);
       setIsFavorite(initialData.is_favorite || false);
+      setExcludeFromStats(initialData.exclude_from_stats || false);
       setReview(initialData.review || '');
     }
   }, [initialData]);
@@ -120,6 +122,7 @@ const LogForm: React.FC<LogFormProps> = ({ onSubmit, onCancel, initialData, medi
         pages_read: undefined,
         log_date: new Date().toISOString(),
         is_favorite: false,
+        exclude_from_stats: false,
         relog_count: undefined,
         review: null,
       });
@@ -137,6 +140,7 @@ const LogForm: React.FC<LogFormProps> = ({ onSubmit, onCancel, initialData, medi
         pages_read: mediaType === 'book' ? (pagesRead ? Number(pagesRead) : null) : undefined,
         log_date: logDate ? new Date(logDate).toISOString() : new Date().toISOString(),
         is_favorite: isFavorite,
+        exclude_from_stats: excludeFromStats,
         relog_count: undefined,
         review: review || null,
       });
@@ -463,6 +467,25 @@ const LogForm: React.FC<LogFormProps> = ({ onSubmit, onCancel, initialData, medi
                   <div className="text-right text-[11px] text-white/30 mt-1">{review.length}/280</div>
                 </div>
               )}
+
+              <div className="flex items-center justify-between p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                <div className="flex items-center gap-3">
+                  <EyeOff size={18} style={{ color: excludeFromStats ? '#f59e0b' : 'rgba(255,255,255,0.4)' }} />
+                  <div>
+                    <div className="text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>Ocultar das estatísticas</div>
+                    <div className="text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>Não contabiliza as horas nos totais</div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setExcludeFromStats(!excludeFromStats)}
+                  className="w-10 h-6 rounded-full relative transition-colors"
+                  style={{ background: excludeFromStats ? '#f59e0b' : 'rgba(255,255,255,0.15)' }}
+                  aria-pressed={excludeFromStats}
+                >
+                  <span className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all" style={{ left: excludeFromStats ? '18px' : '2px' }} />
+                </button>
+              </div>
             </div>
           )}
 

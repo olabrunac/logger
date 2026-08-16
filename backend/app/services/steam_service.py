@@ -24,6 +24,39 @@ def get_app_details(steam_appid: int) -> dict | None:
         return None
 
 
+def get_app_prices(appids: list) -> dict:
+    """Fetch price overviews for multiple Steam appids in one request (no key required).
+    Returns {appid: {"discount_percent": int, "final_formatted": str}} only for apps
+    that expose price data (any value, including 0% discount = full price)."""
+    result = {}
+    if not appids:
+        return result
+    try:
+        r = requests.get(f"{STORE_API_URL}/appdetails", params={
+            "appids": ",".join(str(a) for a in appids),
+            "cc": "br",
+            "l": "br",
+            "filters": "price_overview",
+        }, timeout=20)
+        r.raise_for_status()
+        data = r.json()
+        for appid in appids:
+            entry = data.get(str(appid), {})
+            if not entry.get("success"):
+                continue
+            info = entry.get("data") or {}
+            price = info.get("price_overview")
+            if not price:
+                continue
+            result[int(appid)] = {
+                "discount_percent": int(price.get("discount_percent") or 0),
+                "final_formatted": price.get("final_formatted") or "",
+            }
+    except Exception as e:
+        print(f"Error fetching Steam app prices: {e}")
+    return result
+
+
 def parse_steam_game_data(steam_data: dict) -> dict:
     """Parse raw Steam Store API response into a clean dict for storage."""
     genres = [g.get("description", "") for g in steam_data.get("genres", [])]

@@ -39,6 +39,10 @@ export function sortLogsByDate(logs: LogEntry[]): LogEntry[] {
   });
 }
 
+export function isInGameLibrary(log: LogEntry): boolean {
+  return log.media_item?.media_type === 'game' && log.status !== 'wishlist' && log.status !== 'soon';
+}
+
 export function findBestLogForMedia(mediaId: number | undefined, logs: LogEntry[]): LogEntry | undefined {
   if (!mediaId) return undefined;
   const mediaLogs = logs.filter(l => l.media_item.id === mediaId);
