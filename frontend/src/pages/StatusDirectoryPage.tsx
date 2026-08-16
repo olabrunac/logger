@@ -129,11 +129,21 @@ const StatusDirectoryPage = ({ currentUser }: StatusDirectoryPageProps) => {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const filtered = useMemo(() => logs.filter(l =>
-    (statusKey === 'all' || l.status === statusKey) &&
-    (mediaTypeVal === 'all' || l.media_item?.media_type === mediaTypeVal) &&
-    (!onlyShared || l.family_share),
-  ), [logs, statusKey, mediaTypeVal, onlyShared]);
+  const filtered = useMemo(() => logs.filter(l => {
+    const mediaOk = mediaTypeVal === 'all' || l.media_item?.media_type === mediaTypeVal;
+    if (!mediaOk) return false;
+    let statusOk: boolean;
+    if (statusKey === 'all') {
+      statusOk = true;
+    } else if (statusKey === 'library') {
+      statusOk = l.media_item?.media_type === 'game'
+        ? (l.status !== 'wishlist' && l.status !== 'soon')
+        : l.status === 'library';
+    } else {
+      statusOk = l.status === statusKey;
+    }
+    return statusOk && (!onlyShared || l.family_share);
+  }), [logs, statusKey, mediaTypeVal, onlyShared]);
 
   const items = useMemo(() => {
     if (sortMode === 'media' || sortMode === 'status') return filtered;

@@ -84,6 +84,7 @@ class LogEntryBase(BaseModel):
     platform: Optional[str] = None
     hours_spent: Optional[float] = None
     family_share: Optional[bool] = False
+    exclude_from_stats: Optional[bool] = False
     pages_read: Optional[int] = None
     review: Optional[str] = None
     status: LogStatus
@@ -99,6 +100,7 @@ class LogEntryUpdate(BaseModel):
     relog_count: Optional[int] = None
     platform: Optional[str] = None
     hours_spent: Optional[float] = None
+    exclude_from_stats: Optional[bool] = None
     pages_read: Optional[int] = None
     review: Optional[str] = None
     status: Optional[LogStatus] = None

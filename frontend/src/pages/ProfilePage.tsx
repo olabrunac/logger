@@ -14,7 +14,8 @@ import HashtagText from '../components/HashtagText';
 import { TYPE_META } from '../constants/designSystem';
 import Stars from '../components/Stars';
 import type { Post } from '../types/feed';
-import { imageUrl, getLogUrl, findBestLogForMedia, sortLogsByDate, formatHours } from '../utils';
+import { imageUrl, getLogUrl, findBestLogForMedia, sortLogsByDate, formatHours, isInGameLibrary } 
+from '../utils';
 import { Heart, Clock, Star, MessageCircle, Trophy, Layers, Menu } from 'lucide-react';
 
 interface ProfilePageProps {
@@ -624,7 +625,9 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
 
   const renderStatusType = (status: string, type: string, label: string) => {
     const singular = TYPE_META[type]?.singular || type;
-    const sectionLogs = viewLogs.filter(l => l.media_item.media_type === type && l.status === status);
+    const sectionLogs = status === 'library' && type === 'game'
+      ? viewLogs.filter(l => isInGameLibrary(l))
+      : viewLogs.filter(l => l.media_item.media_type === type && l.status === status);
     if (sectionLogs.length === 0) return null;
     return renderGrid(`${label} ${singular}`, sectionLogs, status === 'library', 12, `/profile/${profileUser?.username}/${status}/${TYPE_META[type]?.slug}`);
   };
