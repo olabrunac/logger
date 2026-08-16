@@ -6,7 +6,7 @@ from app.models.post import Post, PostReply
 from app.core.badge_definitions import BADGE_DEFS
 
 
-def create_notification(db: Session, *, user_id: int, type: str, from_user_id: int = None, post_id: int = None, badge_key: str = None) -> Notification:
+def create_notification(db: Session, *, user_id: int, type: str, from_user_id: int = None, post_id: int = None, log_id: int = None, badge_key: str = None) -> Notification:
     if from_user_id and from_user_id == user_id:
         return None
     existing = (
@@ -16,6 +16,7 @@ def create_notification(db: Session, *, user_id: int, type: str, from_user_id: i
             Notification.type == type,
             Notification.from_user_id == from_user_id,
             Notification.post_id == post_id,
+            Notification.log_id == log_id,
             Notification.badge_key == badge_key,
             Notification.read == False,
         )
@@ -23,7 +24,7 @@ def create_notification(db: Session, *, user_id: int, type: str, from_user_id: i
     )
     if existing:
         return None
-    n = Notification(user_id=user_id, type=type, from_user_id=from_user_id, post_id=post_id, badge_key=badge_key)
+    n = Notification(user_id=user_id, type=type, from_user_id=from_user_id, post_id=post_id, log_id=log_id, badge_key=badge_key)
     db.add(n)
     db.commit()
     db.refresh(n)
@@ -58,6 +59,38 @@ def get_notifications(db: Session, user_id: int, limit: int = 50, offset: int = 
             )
             if reply:
                 reply_content = reply.content[:150] if len(reply.content) > 150 else reply.content
+        log_title = None
+        log_cover = None
+        log_media_type = None
+        log_api_id = None
+        log_reply_content = None
+        if n.log_id:
+            from app.models.media import LogEntry, MediaItem
+            log = db.query(LogEntry).filter(LogEntry.id == n.log_id).first()
+            if log:
+                media = db.query(MediaItem).filter(MediaItem.id == log.media_item_id).first()
+                if media:
+                    log_title = media.title
+                    log_cover = media.cover_image_url
+                    log_media_type = media.media_type.value if hasattr(media.media_type, "value") else media.media_type
+                    if media.steam_appid:
+                        log_api_id = str(media.steam_appid)
+                    elif media.igdb_id:
+                        log_api_id = str(media.igdb_id)
+                    elif media.tmdb_id:
+                        log_api_id = str(media.tmdb_id)
+                    elif media.google_books_id:
+                        log_api_id = media.google_books_id
+            if n.type == "reply":
+                from app.models.media import LogReply
+                reply = (
+                    db.query(LogReply)
+                    .filter(LogReply.log_id == n.log_id, LogReply.user_id == n.from_user_id)
+                    .order_by(LogReply.created_at.desc())
+                    .first()
+                )
+                if reply:
+                    log_reply_content = reply.content[:150] if len(reply.content) > 150 else reply.content
         result.append({
             "id": n.id,
             "user_id": n.user_id,
@@ -68,6 +101,12 @@ def get_notifications(db: Session, user_id: int, limit: int = 50, offset: int = 
             "post_id": n.post_id,
             "post_content": post_content,
             "reply_content": reply_content,
+            "log_id": n.log_id,
+            "log_title": log_title,
+            "log_cover": log_cover,
+            "log_media_type": log_media_type,
+            "log_api_id": log_api_id,
+            "log_reply_content": log_reply_content,
             "badge_description": badge_def.description if badge_def else None,
             "badge_title": badge_def.title if badge_def else None,
             "badge_icon": badge_def.icon if badge_def else None,

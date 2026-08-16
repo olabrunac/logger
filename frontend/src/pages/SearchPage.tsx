@@ -56,6 +56,7 @@ const SearchPage = () => {
   const [recent, setRecent] = useState<SearchMediaItem[]>(loadRecent);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const searchIdRef = useRef(0);
 
   const currentUserId = (() => {
     try {
@@ -119,6 +120,7 @@ const SearchPage = () => {
       return;
     }
     debounceRef.current = setTimeout(async () => {
+      const requestId = ++searchIdRef.current;
       setIsLoading(true);
       try {
         const filters: GlobalSearchFilters = {};
@@ -128,14 +130,16 @@ const SearchPage = () => {
         if (year.trim() && !isNaN(yearNum)) filters.year = yearNum;
         if (isbnVal) filters.isbn = isbnVal;
         const { data } = await globalSearch(q, currentUserId, filters);
+        if (requestId !== searchIdRef.current) return;
         setResults({ media: data?.media || [], users: data?.users || [] });
         setSearched(true);
       } catch (err) {
+        if (requestId !== searchIdRef.current) return;
         console.error('Global search failed', err);
         setResults({ media: [], users: [] });
         setSearched(true);
       } finally {
-        setIsLoading(false);
+        if (requestId === searchIdRef.current) setIsLoading(false);
       }
     }, 300);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };

@@ -75,8 +75,10 @@ const StatusDirectoryPage = ({ currentUser }: StatusDirectoryPageProps) => {
   const [error, setError] = useState<string | null>(null);
   const [targetUser, setTargetUser] = useState<User | null>(null);
   const [onlyShared, setOnlyShared] = useState(false);
+  const fetchIdRef = useRef(0);
 
   const fetchData = useCallback(async () => {
+    const requestId = ++fetchIdRef.current;
     setLoading(true);
     setError(null);
     try {
@@ -84,17 +86,20 @@ const StatusDirectoryPage = ({ currentUser }: StatusDirectoryPageProps) => {
       if (username && username !== currentUser.username) {
         target = await resolveUserByUsername(username);
       }
+      if (requestId !== fetchIdRef.current) return;
       setTargetUser(target);
       const [logsRes, wishlistRes] = await Promise.all([
         api.get('/media/logs', { params: { user_id: target.id, limit: 9999 } }),
         api.get('/media/wishlist', { params: { user_id: target.id } }),
       ]);
+      if (requestId !== fetchIdRef.current) return;
       setLogs([...(logsRes.data || []), ...(wishlistRes.data || [])]);
     } catch (err) {
+      if (requestId !== fetchIdRef.current) return;
       console.error('Failed to fetch directory data', err);
       setError('Perfil não encontrado');
     } finally {
-      setLoading(false);
+      if (requestId === fetchIdRef.current) setLoading(false);
     }
   }, [username, currentUser]);
 
@@ -110,6 +115,11 @@ const StatusDirectoryPage = ({ currentUser }: StatusDirectoryPageProps) => {
   );
   const [sortOpen, setSortOpen] = useState(false);
   const sortRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setSortMode(statusKey === 'library' || statusKey === 'all' ? 'alpha' : 'recent');
+    setSortDir(statusKey === 'library' || statusKey === 'all' ? 'asc' : 'desc');
+  }, [statusKey]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {

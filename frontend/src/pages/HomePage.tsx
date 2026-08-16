@@ -16,13 +16,13 @@ const HomePage = ({ user }: HomePageProps) => {
 
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchData = async () => {
     try {
-      const logsRes = await api.get('/media/logs', { params: { user_id: user.id, limit: 12 } });
-      const sorted = sortLogsByDate(logsRes.data || []);
-      setLogs(sorted);
+      const logsRes = await api.get('/media/logs', { params: { user_id: user.id, limit: 9999 } });
+      setLogs(sortLogsByDate(logsRes.data || []));
     } catch (err) {
       console.error('Failed to fetch home data', err);
     } finally {
@@ -34,6 +34,7 @@ const HomePage = ({ user }: HomePageProps) => {
   const seriesCount = logs.filter(l => l.media_item.media_type === 'series').length;
   const gameCount = logs.filter(l => l.media_item.media_type === 'game').length;
   const bookCount = logs.filter(l => l.media_item.media_type === 'book').length;
+  const recentLogs = logs.slice(0, 12);
 
   const statItems = [
     { label: 'Filmes', value: movieCount, emoji: '🎬', color: '#fbbf24', slug: 'movies' },
@@ -112,7 +113,7 @@ const HomePage = ({ user }: HomePageProps) => {
           </div>
         ) : (
           <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
-            {logs.map(log => (
+            {recentLogs.map(log => (
               <YgpCard key={log.id} log={log} accentColor={user.accent_color} />
             ))}
           </div>

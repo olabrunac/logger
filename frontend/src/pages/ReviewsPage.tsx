@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api, { resolveUserByUsername } from '../services/api';
 import type { LogEntry, User, MediaType } from '../types';
@@ -25,21 +25,25 @@ const ReviewsPage = ({ currentUser }: ReviewsPageProps) => {
   const [filter, setFilter] = useState<MediaType | 'all'>('all');
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const fetchIdRef = useRef(0);
 
   const { username } = useParams<{ username: string }>();
   const displayUsername = username || currentUser.username;
 
   const fetchLogs = useCallback(async () => {
+    const requestId = ++fetchIdRef.current;
     try {
       let targetUser = currentUser;
       targetUser = await resolveUserByUsername(displayUsername);
+      if (requestId !== fetchIdRef.current) return;
       const response = await api.get('/media/logs', { params: { user_id: targetUser.id, limit: 9999 } });
+      if (requestId !== fetchIdRef.current) return;
       const allLogs = response.data || [];
       setLogs(allLogs);
     } catch (err) {
       console.error('Failed to fetch reviews', err);
     } finally {
-      setLoading(false);
+      if (requestId === fetchIdRef.current) setLoading(false);
     }
   }, [currentUser, displayUsername]);
 

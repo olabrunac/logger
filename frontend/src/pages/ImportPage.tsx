@@ -58,12 +58,21 @@ const SKIP_REASON_LABELS: Record<string, string> = {
 
 const skipReasonLabel = (reason: string) => SKIP_REASON_LABELS[reason] || reason || 'ignorado';
 
+const PROMPT_STATE = { __loggerPrompt: true };
+
 const usePrompt = (message: string | null) => {
   const messageRef = useRef(message);
   messageRef.current = message;
 
   useEffect(() => {
-    if (!message) return;
+    if (!message) {
+      // Pop the extra history entry pushed while the prompt was active so that
+      // pressing back after the import returns to the previous page directly.
+      if (window.history.state && (window.history.state as { __loggerPrompt?: boolean }).__loggerPrompt) {
+        window.history.back();
+      }
+      return;
+    }
 
     // Block browser back/forward navigation (popstate) while active
     const onPopState = () => {
@@ -71,9 +80,9 @@ const usePrompt = (message: string | null) => {
       if (window.confirm(messageRef.current)) {
         return;
       }
-      window.history.pushState(null, '');
+      window.history.pushState(PROMPT_STATE, '');
     };
-    window.history.pushState(null, '');
+    window.history.pushState(PROMPT_STATE, '');
     window.addEventListener('popstate', onPopState);
 
     // Block in-app link clicks while active
@@ -135,6 +144,7 @@ const ImportPage = ({ user }: ImportPageProps) => {
   const [importProgress, setImportProgress] = useState<{ current: number; total: number; etaSeconds: number | null }>({ current: 0, total: 0, etaSeconds: null });
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const pollCancelledRef = useRef(false);
 
   const importing = phase === 'importing';
   usePrompt(importing ? 'Uma importação está em andamento. Sair da página interrompe o acompanhamento do progresso. Deseja continuar?' : null);
@@ -148,6 +158,12 @@ const ImportPage = ({ user }: ImportPageProps) => {
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
   }, [importing]);
+
+  useEffect(() => {
+    return () => {
+      pollCancelledRef.current = true;
+    };
+  }, []);
 
   // Reload saved Steam ID when switching to Steam tab
   useEffect(() => {
@@ -173,9 +189,9 @@ const ImportPage = ({ user }: ImportPageProps) => {
     setTab(t);
   };
 
-  const toggleItem = (idx: number) => {
-    setItems(prev => prev.map((item, i) =>
-      i === idx ? { ...item, selected: !item.selected } : item
+  const toggleItem = (target: ImportItem) => {
+    setItems(prev => prev.map(item =>
+      item === target ? { ...item, selected: !item.selected } : item
     ));
   };
 
@@ -340,6 +356,7 @@ const ImportPage = ({ user }: ImportPageProps) => {
 
   const pollJob = async (jobId: string, total: number) => {
     for (;;) {
+      if (pollCancelledRef.current) return;
       const jobRes = await getImportJob(jobId);
       const job = jobRes.data;
       setImportProgress({
@@ -552,7 +569,7 @@ const ImportPage = ({ user }: ImportPageProps) => {
                   <input
                     type="checkbox"
                     checked={item.selected ?? true}
-                    onChange={() => toggleItem(idx)}
+                    onChange={() => toggleItem(item)}
                     className="w-4 h-4 rounded flex-shrink-0 accent-[var(--accent)]"
                   />
                   <div className="flex-1 min-w-0">
