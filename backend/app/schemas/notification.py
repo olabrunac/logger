@@ -18,6 +18,13 @@ class NotificationOut(BaseModel):
     log_media_type: Optional[str] = None
     log_api_id: Optional[str] = None
     log_reply_content: Optional[str] = None
+    media_item_id: Optional[int] = None
+    media_title: Optional[str] = None
+    media_cover: Optional[str] = None
+    media_media_type: Optional[str] = None
+    media_api_id: Optional[str] = None
+    sale_discount_percent: Optional[int] = None
+    sale_price: Optional[str] = None
     badge_key: Optional[str] = None
     badge_title: Optional[str] = None
     badge_icon: Optional[str] = None

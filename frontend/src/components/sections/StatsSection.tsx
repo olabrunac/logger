@@ -8,7 +8,7 @@ interface StatsSectionProps {
 }
 
 const StatsSection = ({ logs, accentColor: _accentColor, mediaType }: StatsSectionProps) => {
-  const filteredLogs = logs.filter((l) => !mediaType || l.media_item.media_type === mediaType);
+  const filteredLogs = logs.filter((l) => !l.exclude_from_stats && (!mediaType || l.media_item.media_type === mediaType));
 
   const totalHours = filteredLogs.reduce((sum, l) => sum + (l.hours_spent || 0), 0);
   const wishlistHours = filteredLogs

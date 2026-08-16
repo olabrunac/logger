@@ -63,7 +63,7 @@ const ProfileHero = ({
   const finishedCount = logs.filter(l => l.status === 'completed').length;
   const ratedCount = logs.filter(l => l.rating != null && l.rating > 0).length;
   const favoriteCount = logs.filter(l => l.is_favorite).length;
-  const totalHours = logs.reduce((sum, l) => sum + (l.hours_spent || 0), 0);
+  const totalHours = logs.filter(l => !l.exclude_from_stats).reduce((sum, l) => sum + (l.hours_spent || 0), 0);
 
   const [listModal, setListModal] = useState<'followers' | 'following' | null>(null);
 

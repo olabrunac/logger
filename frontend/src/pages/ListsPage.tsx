@@ -7,6 +7,7 @@ import { Gamepad2, Film, Tv, Book, Pencil, Trash2, Plus, ChevronDown, ChevronRig
 import { createPortal } from 'react-dom';
 import { TYPE_META } from '../constants/designSystem';
 import YgpCard from '../components/sections/YgpCard';
+import { isInGameLibrary } from '../utils';
 
 interface ListsPageProps {
   currentUser: User;
@@ -275,7 +276,9 @@ const ListsPage = ({ currentUser }: ListsPageProps) => {
   const grouped = STATUS_GROUPS.map(g => ({
     ...g,
     items: filteredLogs
-      .filter(l => l.status === g.key)
+      .filter(l => g.key === 'library'
+        ? (l.media_item?.media_type === 'game' ? isInGameLibrary(l) : l.status === 'library')
+        : l.status === g.key)
       .sort((a, b) => (a.media_item?.title || '').localeCompare(b.media_item?.title || '', 'pt-BR', { sensitivity: 'base', numeric: true })),
   }));
 

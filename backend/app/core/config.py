@@ -18,6 +18,10 @@ class Settings(BaseSettings):
     GOOGLE_BOOKS_API_KEY: Optional[str] = None
     STEAM_API_KEY: str = ""
 
+    # Wishlist sale checker (background loop)
+    WISHLIST_SALE_CHECK_INTERVAL_HOURS: float = 6.0
+    WISHLIST_SALE_CHECK_FIRST_DELAY_SECONDS: int = 300
+
     class Config:
         case_sensitive = True
 

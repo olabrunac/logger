@@ -66,6 +66,7 @@ export interface LogEntry {
   platform?: string;
   hours_spent?: number;
   family_share?: boolean;
+  exclude_from_stats?: boolean;
   pages_read?: number;
   review?: string;
   status: LogStatus;
@@ -177,6 +178,13 @@ export interface AppNotification {
   log_media_type?: string;
   log_api_id?: string;
   log_reply_content?: string;
+  media_item_id?: number;
+  media_title?: string;
+  media_cover?: string;
+  media_media_type?: string;
+  media_api_id?: string;
+  sale_discount_percent?: number;
+  sale_price?: string;
   badge_key?: string;
   badge_title?: string;
   badge_icon?: string;

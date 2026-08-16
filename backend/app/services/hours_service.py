@@ -36,10 +36,12 @@ def total_effective_hours(db: Session, logs) -> float:
 
 def effective_hours_batch(db: Session, logs: List[LogEntry]) -> Dict[int, Optional[float]]:
     """Calcula horas efetivas de vários logs com uma única query para séries
-    (evita 1 COUNT de EpisodeWatched por log no loop)."""
+    (evita 1 COUNT de EpisodeWatched por log no loop).
+    Logs com `exclude_from_stats` retornam 0 — não contam nas estatísticas."""
     series_ids = [
         log.id for log in logs
-        if log.media_item
+        if not log.exclude_from_stats
+        and log.media_item
         and log.media_item.media_type == MediaType.SERIES
         and log.hours_spent is None
         and log.media_item.runtime
@@ -58,4 +60,7 @@ def effective_hours_batch(db: Session, logs: List[LogEntry]) -> Dict[int, Option
             .all()
         )
         watched = {log_id: count for log_id, count in rows}
-    return {log.id: effective_hours(db, log, watched.get(log.id)) for log in logs}
+    return {
+        log.id: (0 if log.exclude_from_stats else effective_hours(db, log, watched.get(log.id)))
+        for log in logs
+    }
