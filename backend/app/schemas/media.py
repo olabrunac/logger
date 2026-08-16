@@ -60,6 +60,7 @@ class TopListItemCreate(TopListItemBase):
     pass
 
 class TopListItemUpdate(BaseModel):
+    id: Optional[int] = None
     position: Optional[int] = None
 
 class TopListItemInDB(TopListItemBase):
@@ -75,7 +76,7 @@ TopListItemInDB.model_rebuild()
 
 # --- Log Schemas ---
 class LogEntryBase(BaseModel):
-    log_date: Optional[datetime] = datetime.now()
+    log_date: Optional[datetime] = None
     rating: Optional[float] = None
     is_favorite: Optional[bool] = False
     is_relog: Optional[bool] = False
