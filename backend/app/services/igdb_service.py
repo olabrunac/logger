@@ -107,6 +107,31 @@ def get_game_by_id(igdb_id: int) -> dict | None:
     return result
 
 
+_igdb_genre_map = None
+
+
+def _get_igdb_genre_map():
+    global _igdb_genre_map
+    if _igdb_genre_map is None:
+        _igdb_genre_map = {}
+        rows = _igdb_post("genres", "fields name; limit 500;")
+        for g in rows:
+            _igdb_genre_map[g.get("name", "").lower()] = g.get("id")
+    return _igdb_genre_map
+
+
+def discover_games(genre_name: str, limit: int = 4):
+    """Descobre jogos por nome de gênero (fallback das sugestões)."""
+    gid = _get_igdb_genre_map().get((genre_name or "").strip().lower())
+    if gid is None:
+        return []
+    return _igdb_post(
+        "games",
+        f"fields name, cover.url, first_release_date, rating_count, summary; "
+        f"where genres = {gid} & cover.url != null; sort rating_count desc; limit {limit};",
+    )
+
+
 def get_steam_appid(igdb_id: int) -> int | None:
     """Find the Steam AppID for a game via IGDB's external_games endpoint (source 1 = Steam)."""
     results = _igdb_post("external_games", f"fields uid; where game = {igdb_id} & external_game_source = 1; limit 1;")
