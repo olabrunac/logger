@@ -129,8 +129,14 @@ async def upload_post_image(
     *,
     db: Session = Depends(deps.get_db),
     post_id: int,
+    user_id: int,
     file: UploadFile = File(...),
 ):
+    post = db.query(Post).filter(Post.id == post_id).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    if post.user_id != user_id:
+        raise HTTPException(status_code=403, detail="Not your post")
     ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
     if file.content_type not in ALLOWED_TYPES:
         raise HTTPException(status_code=400, detail=f"Invalid file type: {file.content_type}")

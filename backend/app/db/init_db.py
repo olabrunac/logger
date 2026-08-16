@@ -25,16 +25,18 @@ def init_db() -> None:
         except Exception:
             return set()
 
-    def _add_column(table: str, column: str, sql: str) -> None:
+    def _add_column(table: str, column: str, sql: str) -> bool:
         if column in _columns(table):
-            return
+            return False
         try:
             db.execute(text(sql))
             db.commit()
             print(f"[init_db] added: {sql}")
+            return True
         except Exception as exc:
             db.rollback()
             print(f"[init_db] failed: {sql} -> {exc}")
+            return False
 
     def _exec(sql: str) -> None:
         try:
@@ -77,19 +79,17 @@ def init_db() -> None:
     _add_column('logentry', 'family_share', 'ALTER TABLE logentry ADD COLUMN family_share BOOLEAN DEFAULT FALSE')
     _add_column('notification', 'log_id', 'ALTER TABLE notification ADD COLUMN log_id INTEGER')
 
-    # Buscas recentes/populares guardam a referência da mídia clicada para
-    # renderizar poster-tiles (tipo + IDs + capa) em vez de só o texto.
-    _add_column('searchterm', 'media_type', 'ALTER TABLE searchterm ADD COLUMN media_type VARCHAR')
+    # Reset das buscas populares: entradas antigas são só strings (termo digitado,
+    # sem referência de mídia). Apaga tudo só quando a migração das colunas roda
+    # (primeira vez), para não zerar os dados a cada deploy/restart.
+    _migrated_searchterm = _add_column('searchterm', 'media_type', 'ALTER TABLE searchterm ADD COLUMN media_type VARCHAR')
     _add_column('searchterm', 'tmdb_id', 'ALTER TABLE searchterm ADD COLUMN tmdb_id INTEGER')
     _add_column('searchterm', 'igdb_id', 'ALTER TABLE searchterm ADD COLUMN igdb_id INTEGER')
     _add_column('searchterm', 'google_books_id', 'ALTER TABLE searchterm ADD COLUMN google_books_id VARCHAR')
     _add_column('searchterm', 'steam_appid', 'ALTER TABLE searchterm ADD COLUMN steam_appid INTEGER')
     _add_column('searchterm', 'cover_image_url', 'ALTER TABLE searchterm ADD COLUMN cover_image_url VARCHAR')
-
-    # Reset das buscas populares: entradas antigas são só strings (termo digitado,
-    # sem referência de mídia). Apaga tudo para a nova implementação começar limpa,
-    # gravando o título + IDs + capa da mídia clicada.
-    _exec("DELETE FROM searchterm")
+    if _migrated_searchterm:
+        _exec("DELETE FROM searchterm")
 
     # Badge de primeiro log removida do sistema de badges (tabela real: userbadge)
     _exec("DELETE FROM userbadge WHERE badge_key = 'first_log'")

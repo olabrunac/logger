@@ -3,6 +3,7 @@ from sqlalchemy import asc, desc
 from app.models.notification import Notification
 from app.models.user import User
 from app.models.post import Post, PostReply
+from app.models.media import LogEntry, LogReply, MediaItem
 from app.core.badge_definitions import BADGE_DEFS
 
 
@@ -40,35 +41,55 @@ def get_notifications(db: Session, user_id: int, limit: int = 50, offset: int = 
         .limit(limit)
         .all()
     )
+    from_ids = {n.from_user_id for n in rows if n.from_user_id}
+    post_ids = {n.post_id for n in rows if n.post_id}
+    users = {
+        u.id: u for u in db.query(User).filter(User.id.in_(from_ids)).all()
+    } if from_ids else {}
+    posts = {
+        p.id: p for p in db.query(Post).filter(Post.id.in_(post_ids)).all()
+    } if post_ids else {}
+    reply_map = {}
+    if post_ids:
+        replies = (
+            db.query(PostReply)
+            .filter(PostReply.post_id.in_(post_ids), PostReply.user_id.in_(from_ids))
+            .order_by(PostReply.created_at.desc())
+            .all()
+        )
+        for r in replies:
+            reply_map.setdefault((r.post_id, r.user_id), r)
+    log_ids = {n.log_id for n in rows if n.log_id}
+    logs = {l.id: l for l in db.query(LogEntry).filter(LogEntry.id.in_(log_ids)).all()} if log_ids else {}
+    media_ids = {l.media_item_id for l in logs.values()}
+    media_map = {m.id: m for m in db.query(MediaItem).filter(MediaItem.id.in_(media_ids)).all()} if media_ids else {}
+    log_replies = {}
+    if log_ids:
+        log_reply_rows = (
+            db.query(LogReply)
+            .filter(LogReply.log_id.in_(log_ids), LogReply.user_id.in_(from_ids))
+            .order_by(LogReply.created_at.desc())
+            .all()
+        )
+        for r in log_reply_rows:
+            log_replies.setdefault((r.log_id, r.user_id), r)
     result = []
     for n in rows:
-        from_user = db.query(User).filter(User.id == n.from_user_id).first() if n.from_user_id else None
+        from_user = users.get(n.from_user_id)
         badge_def = BADGE_DEFS.get(n.badge_key) if n.badge_key else None
-        post_content = None
-        reply_content = None
-        if n.post_id:
-            post = db.query(Post).filter(Post.id == n.post_id).first()
-            if post:
-                post_content = post.content[:150] if len(post.content) > 150 else post.content
-        if n.type == "reply" and n.post_id:
-            reply = (
-                db.query(PostReply)
-                .filter(PostReply.post_id == n.post_id, PostReply.user_id == n.from_user_id)
-                .order_by(PostReply.created_at.desc())
-                .first()
-            )
-            if reply:
-                reply_content = reply.content[:150] if len(reply.content) > 150 else reply.content
+        post = posts.get(n.post_id) if n.post_id else None
+        post_content = post.content[:150] if post and len(post.content) > 150 else (post.content if post else None)
+        reply = reply_map.get((n.post_id, n.from_user_id)) if n.type == "reply" and n.post_id else None
+        reply_content = reply.content[:150] if reply and len(reply.content) > 150 else (reply.content if reply else None)
         log_title = None
         log_cover = None
         log_media_type = None
         log_api_id = None
         log_reply_content = None
         if n.log_id:
-            from app.models.media import LogEntry, MediaItem
-            log = db.query(LogEntry).filter(LogEntry.id == n.log_id).first()
+            log = logs.get(n.log_id)
             if log:
-                media = db.query(MediaItem).filter(MediaItem.id == log.media_item_id).first()
+                media = media_map.get(log.media_item_id)
                 if media:
                     log_title = media.title
                     log_cover = media.cover_image_url
@@ -82,15 +103,9 @@ def get_notifications(db: Session, user_id: int, limit: int = 50, offset: int = 
                     elif media.google_books_id:
                         log_api_id = media.google_books_id
             if n.type == "reply":
-                from app.models.media import LogReply
-                reply = (
-                    db.query(LogReply)
-                    .filter(LogReply.log_id == n.log_id, LogReply.user_id == n.from_user_id)
-                    .order_by(LogReply.created_at.desc())
-                    .first()
-                )
-                if reply:
-                    log_reply_content = reply.content[:150] if len(reply.content) > 150 else reply.content
+                log_reply = log_replies.get((n.log_id, n.from_user_id))
+                if log_reply:
+                    log_reply_content = log_reply.content[:150] if len(log_reply.content) > 150 else log_reply.content
         result.append({
             "id": n.id,
             "user_id": n.user_id,
