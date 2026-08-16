@@ -259,7 +259,10 @@ def transform_tmdb_result(item: dict, media_type: MediaType) -> dict:
 def transform_igdb_result(item: dict) -> dict:
     release_date = None
     if item.get("first_release_date"):
-        release_date = datetime.datetime.fromtimestamp(item.get("first_release_date")).date()
+        try:
+            release_date = datetime.datetime.fromtimestamp(item.get("first_release_date")).date()
+        except (TypeError, OSError, OverflowError, ValueError):
+            release_date = None
     cover_url = None
     if item.get("cover") and item["cover"].get("url"):
         cover_url = item["cover"]["url"].replace("t_thumb", "t_cover_big").lstrip("/")
@@ -937,6 +940,9 @@ def update_log_entry(*, db: Session = Depends(deps.get_db), log_id: int, updates
             return _log_with_stats(db, existing_log)
 
     # Save a review snapshot only if review content actually changed
+    old_review = log.review
+    old_rating = log.rating
+    old_platform = log.platform
     for field, value in update_data.items():
         if field == 'hours_spent' and not _manual_hours_allowed(log.media_item.media_type):
             continue
@@ -944,6 +950,24 @@ def update_log_entry(*, db: Session = Depends(deps.get_db), log_id: int, updates
     db.add(log)
     db.commit()
     db.refresh(log)
+
+    from app.models.media import LogReview
+    review_changed = (
+        'review' in update_data and update_data['review'] != old_review
+    ) or (
+        'rating' in update_data and update_data['rating'] != old_rating
+    ) or (
+        'platform' in update_data and update_data['platform'] != old_platform
+    )
+    if review_changed:
+        snapshot = LogReview(
+            log_id=log.id,
+            review_text=log.review,
+            rating=log.rating,
+            platform=log.platform,
+        )
+        db.add(snapshot)
+        db.commit()
 
     # If status changed to non-wishlist, remove any wishlist entries for this media
     if new_status and new_status not in ['wishlist', 'soon']:
@@ -1044,7 +1068,7 @@ def patch_log_entry(*, db: Session = Depends(deps.get_db), log_id: int, updates:
         check_and_unlock(db, log.user_id)
     except Exception:
         pass
-    return log
+    return _log_with_stats(db, log)
 
 @router.post("/users/{user_id}/backfill-hours")
 def backfill_hours(*, db: Session = Depends(deps.get_db), user_id: int) -> Any:
@@ -1086,7 +1110,7 @@ def delete_log_entry(*, db: Session = Depends(deps.get_db), log_id: int) -> Any:
     crud.log_entry.remove(db, id=log_id)
     return {"detail": "Log deleted successfully"}
 
-@router.delete("/logs/{log_id}/review", response_model=schemas.LogEntryInDB)
+@router.delete("/logs/{log_id}/review", response_model=schemas.LogEntryWithStats)
 def delete_log_review(*, db: Session = Depends(deps.get_db), log_id: int) -> Any:
     log = crud.log_entry.get(db, id=log_id)
     if not log:
@@ -1101,7 +1125,7 @@ def delete_log_review(*, db: Session = Depends(deps.get_db), log_id: int) -> Any
         check_and_unlock(db, log.user_id)
     except Exception:
         pass
-    return log
+    return _log_with_stats(db, log)
 
 @router.get("/stats")
 def get_user_stats(*, db: Session = Depends(deps.get_db), user_id: int) -> Any:
@@ -1140,10 +1164,12 @@ def get_log_episodes(*, db: Session = Depends(deps.get_db), log_id: int):
     return episodes
 
 @router.post("/logs/{log_id}/episodes", response_model=schemas.EpisodeWatchedInDB)
-def toggle_episode(*, db: Session = Depends(deps.get_db), log_id: int, ep_in: schemas.EpisodeWatchedCreate):
+def toggle_episode(*, db: Session = Depends(deps.get_db), log_id: int, ep_in: schemas.EpisodeWatchedCreate, user_id: int = Query(...)):
     log = db.query(LogEntry).filter(LogEntry.id == log_id).first()
     if not log:
         raise HTTPException(status_code=404, detail="Log not found")
+    if log.user_id != user_id:
+        raise HTTPException(status_code=403, detail="Not your log")
 
     if ep_in.watched and ep_in.air_date:
         try:
@@ -1223,7 +1249,12 @@ def get_log_achievements(*, db: Session = Depends(deps.get_db), log_id: int):
     return achievements
 
 @router.post("/logs/{log_id}/achievements", response_model=schemas.AchievementInDB)
-def toggle_achievement(*, db: Session = Depends(deps.get_db), log_id: int, ach_in: schemas.AchievementCreate):
+def toggle_achievement(*, db: Session = Depends(deps.get_db), log_id: int, ach_in: schemas.AchievementCreate, user_id: int = Query(...)):
+    log = db.query(LogEntry).filter(LogEntry.id == log_id).first()
+    if not log:
+        raise HTTPException(status_code=404, detail="Log not found")
+    if log.user_id != user_id:
+        raise HTTPException(status_code=403, detail="Not your log")
     existing = db.query(Achievement).filter(
         Achievement.log_id == log_id,
         Achievement.external_id == ach_in.external_id,
@@ -1307,8 +1338,9 @@ def update_top_list_item(*, db: Session = Depends(deps.get_db), user_id: int, it
             MediaItem.media_type == media_item.media_type
         ).first()
         if existing:
-            from fastapi import HTTPException
-            raise HTTPException(status_code=400, detail=f"Position {item_in.position} is already taken")
+            # Swap positions so the UI can reorder one item at a time (PUTs in sequence)
+            existing.position = item.position
+            db.add(existing)
     
     for field, value in item_in.dict(exclude_unset=True).items():
         setattr(item, field, value)
