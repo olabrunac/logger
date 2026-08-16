@@ -58,6 +58,11 @@ const SKIP_REASON_LABELS: Record<string, string> = {
 
 const skipReasonLabel = (reason: string) => SKIP_REASON_LABELS[reason] || reason || 'ignorado';
 
+const sortPreviewItems = (list: ImportItem[]): ImportItem[] =>
+  [...list].sort((a, b) =>
+    (a.title || '').localeCompare(b.title || '', 'pt-BR', { sensitivity: 'base', numeric: true }),
+  );
+
 const PROMPT_STATE = { __loggerPrompt: true };
 
 const usePrompt = (message: string | null) => {
@@ -232,10 +237,10 @@ const ImportPage = ({ user }: ImportPageProps) => {
       } else {
         res = await traktPreview(formData);
       }
-      const previewItems: ImportItem[] = res.data.items.map((item: Record<string, unknown>) => ({
+      const previewItems: ImportItem[] = sortPreviewItems(res.data.items.map((item: Record<string, unknown>) => ({
         ...item,
         selected: true,
-      }));
+      })));
       setItems(previewItems);
       setPhase('preview');
     } catch (err: unknown) {
@@ -286,10 +291,10 @@ const ImportPage = ({ user }: ImportPageProps) => {
     setError(null);
     try {
       const res = await steamPreview(steamId.trim(), abandonedDays);
-      const previewItems: ImportItem[] = res.data.items.map((item: Record<string, unknown>) => ({
+      const previewItems: ImportItem[] = sortPreviewItems(res.data.items.map((item: Record<string, unknown>) => ({
         ...item,
         selected: true,
-      }));
+      })));
       setItems(previewItems);
       setPhase('preview');
     } catch (err: unknown) {
@@ -307,10 +312,10 @@ const ImportPage = ({ user }: ImportPageProps) => {
     setError(null);
     try {
       const res = await steamPreview(savedId, abandonedDays);
-      const previewItems: ImportItem[] = res.data.items.map((item: Record<string, unknown>) => ({
+      const previewItems: ImportItem[] = sortPreviewItems(res.data.items.map((item: Record<string, unknown>) => ({
         ...item,
         selected: true,
-      }));
+      })));
       setItems(previewItems);
       setPhase('preview');
     } catch (err: unknown) {
