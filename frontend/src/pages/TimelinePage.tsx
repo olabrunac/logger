@@ -288,6 +288,14 @@ const TimelinePage = ({ user }: TimelinePageProps) => {
     }
   };
 
+  const handleEpEventDelete = async (eventId: string | number) => {
+    const numericId = typeof eventId === 'string' ? parseInt(String(eventId).replace('ep_evt_', '')) : eventId;
+    try {
+      await api.delete(`/media/episode-events/${numericId}`, { params: { user_id: user.id } });
+      setEntries(prev => prev.filter(e => e.id !== eventId));
+    } catch {}
+  };
+
   const merged: FeedItem[] = [
     ...posts.map(p => ({ ...p, _sortDate: parseServerDate(p.created_at).getTime() } as FeedItem & { _sortDate: number })),
     ...entries.filter(e => e.log_date).map(e => ({ ...e, _sortDate: parseServerDate(e.log_date!).getTime() } as FeedItem & { _sortDate: number })),
@@ -380,7 +388,7 @@ const TimelinePage = ({ user }: TimelinePageProps) => {
             item._type === 'post' ? (
               <PostCard key={`post-${item.id}`} post={item as Post} currentUser={user} onReply={handleReply} onDelete={handleDelete} onLike={handleLike} onEdit={handleEdit} />
             ) : item._type === 'episode_event' ? (
-              <EpisodeEventCard key={`ep-${item.id}`} event={item as EpisodeTimelineEvent} currentUser={user} onReply={handleEpEventReply} onLike={handleEpEventLike} />
+              <EpisodeEventCard key={`ep-${item.id}`} event={item as EpisodeTimelineEvent} currentUser={user} onReply={handleEpEventReply} onLike={handleEpEventLike} onDelete={handleEpEventDelete} />
             ) : (item as TimelineEntry).group_count ? (
               <LogGroupCard key={`group-${(item as TimelineEntry).id}`} entry={item as TimelineEntry} currentUser={user} onReply={handleLogReply} onLike={handleLogLike} />
             ) : (

@@ -1278,23 +1278,19 @@ def _create_episode_timeline_event(
 def _delete_episode_timeline_event(
     db: Session, *, user_id: int, log_id: int,
     season: int, ep_start: int, ep_end: int,
-    event_type: str = "watched",
+    event_type: str | None = None,
 ):
-    evt = (
-        db.query(EpisodeTimelineEvent)
-        .filter(
-            EpisodeTimelineEvent.user_id == user_id,
-            EpisodeTimelineEvent.log_id == log_id,
-            EpisodeTimelineEvent.season_number == season,
-            EpisodeTimelineEvent.episode_start == ep_start,
-            EpisodeTimelineEvent.episode_end == ep_end,
-            EpisodeTimelineEvent.event_type == event_type,
-        )
-        .order_by(EpisodeTimelineEvent.created_at.desc())
-        .first()
+    q = db.query(EpisodeTimelineEvent).filter(
+        EpisodeTimelineEvent.user_id == user_id,
+        EpisodeTimelineEvent.log_id == log_id,
+        EpisodeTimelineEvent.season_number == season,
+        EpisodeTimelineEvent.episode_start == ep_start,
+        EpisodeTimelineEvent.episode_end == ep_end,
     )
-    if evt:
-        db.delete(evt)
+    if event_type:
+        q = q.filter(EpisodeTimelineEvent.event_type == event_type)
+    count = q.delete(synchronize_session=False)
+    if count:
         db.commit()
 
 
@@ -1390,7 +1386,6 @@ def update_episode_review(
         _delete_episode_timeline_event(
             db, user_id=user_id, log_id=log.id,
             season=ep.season_number, ep_start=ep.episode_number, ep_end=ep.episode_number,
-            event_type="reviewed",
         )
     return ep
 

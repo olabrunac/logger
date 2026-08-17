@@ -7,7 +7,7 @@ import { TYPE_META } from '../constants/designSystem';
 import HashtagText from './HashtagText';
 import Stars from './Stars';
 import { imageUrl, getLogUrl, timeAgo } from '../utils';
-import { MessageSquareText, Send, ThumbsUp, MessageCircle } from 'lucide-react';
+import { MessageSquareText, Send, ThumbsUp, MessageCircle, Trash2 } from 'lucide-react';
 
 interface EpisodeEventReply {
   id: number;
@@ -24,9 +24,10 @@ interface EpisodeEventCardProps {
   currentUser: User;
   onReply: (eventId: number, content: string) => Promise<void>;
   onLike: (eventId: number) => void;
+  onDelete: (eventId: string | number) => void;
 }
 
-const EpisodeEventCard = ({ event, currentUser, onReply, onLike }: EpisodeEventCardProps) => {
+const EpisodeEventCard = ({ event, currentUser, onReply, onLike, onDelete }: EpisodeEventCardProps) => {
   const [showReplies, setShowReplies] = useState(false);
   const [replies, setReplies] = useState<EpisodeEventReply[]>([]);
   const [replyText, setReplyText] = useState('');
@@ -165,6 +166,15 @@ const EpisodeEventCard = ({ event, currentUser, onReply, onLike }: EpisodeEventC
           <ThumbsUp size={14} fill={event.is_liked ? 'currentColor' : 'none'} />
           {likesCount > 0 ? likesCount : 'Curtir'}
         </button>
+        {event.user?.id === currentUser.id && (
+          <button
+            onClick={() => onDelete(event.id)}
+            className="ml-auto p-1 text-white/20 hover:text-red-400 transition-colors"
+            title="Excluir post"
+          >
+            <Trash2 size={12} />
+          </button>
+        )}
       </div>
 
       {/* Liked by */}

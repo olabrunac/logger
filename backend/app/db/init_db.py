@@ -138,6 +138,14 @@ def init_db() -> None:
     _exec("CREATE INDEX IF NOT EXISTS ix_logreply_episode_event_id ON logreply (episode_event_id)")
     _exec("CREATE INDEX IF NOT EXISTS ix_loglike_episode_event_id ON loglike (episode_event_id)")
 
+    # Deduplicate orphaned episode timeline events (same user+log+season+ep)
+    _exec("""
+        DELETE FROM episodetimelineevent WHERE id NOT IN (
+            SELECT MIN(id) FROM episodetimelineevent
+            GROUP BY user_id, log_id, season_number, episode_start, episode_end
+        )
+    """)
+
     # Capas de livros antigas salvas com http:// — Chrome bloqueia mixed content
     # em produção (https), então normaliza tudo para https de uma vez.
     _exec("UPDATE mediaitem SET cover_image_url = 'https://' || substr(cover_image_url, 8) WHERE cover_image_url LIKE 'http://%'")
