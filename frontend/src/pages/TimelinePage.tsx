@@ -1,10 +1,11 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import api, { uploadFile } from '../services/api';
 import type { User } from '../types';
-import type { Post, TimelineEntry, FeedItem } from '../types/feed';
+import type { Post, TimelineEntry, FeedItem, EpisodeTimelineEvent } from '../types/feed';
 import PostCard from '../components/PostCard';
 import LogCard from '../components/LogCard';
 import LogGroupCard from '../components/LogGroupCard';
+import EpisodeEventCard from '../components/EpisodeEventCard';
 import { Clock, Image as ImageIcon, X } from 'lucide-react';
 import { imageUrl, parseServerDate } from '../utils';
 
@@ -17,7 +18,7 @@ const PAGE_SIZE = 25;
 
 const TimelinePage = ({ user }: TimelinePageProps) => {
   const [posts, setPosts] = useState<Post[]>([]);
-  const [entries, setEntries] = useState<TimelineEntry[]>([]);
+  const [entries, setEntries] = useState<(TimelineEntry | EpisodeTimelineEvent)[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [postOffset, setPostOffset] = useState(0);
@@ -38,7 +39,10 @@ const TimelinePage = ({ user }: TimelinePageProps) => {
       api.get(`/users/${user.id}/timeline`, { params: { limit: PAGE_SIZE } }).then(r => r.data).catch(() => []),
     ]);
     setPosts(p.map((x: Post) => ({ ...x, _type: 'post' as const })));
-    setEntries(e.map((x: TimelineEntry) => ({ ...x, _type: 'log' as const })));
+    setEntries(e.map((x: TimelineEntry | EpisodeTimelineEvent) => {
+      if (x._type === 'episode_event') return x;
+      return { ...x, _type: 'log' as const };
+    }));
     setPostOffset(p.length);
     setHasMorePosts(p.length >= PAGE_SIZE);
     setHasMoreLogs(e.length >= PAGE_SIZE);
@@ -68,9 +72,12 @@ const TimelinePage = ({ user }: TimelinePageProps) => {
       if (e.length > 0) {
         setEntries(prev => {
           const seen = new Set(prev.map(x => x.id));
-          return [...prev, ...e.filter((x: TimelineEntry) => !seen.has(x.id)).map((x: TimelineEntry) => ({ ...x, _type: 'log' as const }))];
+          return [...prev, ...e.filter((x: TimelineEntry | EpisodeTimelineEvent) => !seen.has(x.id)).map((x: TimelineEntry | EpisodeTimelineEvent) => {
+            if (x._type === 'episode_event') return x;
+            return { ...x, _type: 'log' as const };
+          })];
         });
-        setBefore((e[e.length - 1] as TimelineEntry).log_date);
+        setBefore((e[e.length - 1] as TimelineEntry).log_date ?? (e[e.length - 1] as EpisodeTimelineEvent).log_date);
       }
       setPostOffset(o => o + p.length);
       setHasMorePosts(p.length >= PAGE_SIZE);
@@ -322,6 +329,8 @@ const TimelinePage = ({ user }: TimelinePageProps) => {
           {merged.map((item) =>
             item._type === 'post' ? (
               <PostCard key={`post-${item.id}`} post={item as Post} currentUser={user} onReply={handleReply} onDelete={handleDelete} onLike={handleLike} onEdit={handleEdit} />
+            ) : item._type === 'episode_event' ? (
+              <EpisodeEventCard key={`ep-${item.id}`} event={item as EpisodeTimelineEvent} />
             ) : (item as TimelineEntry).group_count ? (
               <LogGroupCard key={`group-${(item as TimelineEntry).id}`} entry={item as TimelineEntry} />
             ) : (

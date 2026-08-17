@@ -435,7 +435,7 @@ def get_timeline(
     before: Optional[str] = None,
 ):
     from app.crud import crud_follow
-    from app.models.media import LogEntry, LogReply, LogLike, EpisodeWatched, MediaItem, MediaType
+    from app.models.media import LogEntry, LogReply, LogLike, EpisodeWatched, EpisodeTimelineEvent, MediaItem, MediaType
     from app.models.user import User
     from sqlalchemy import func as sa_func, or_, and_
     from sqlalchemy.orm import joinedload
@@ -678,4 +678,54 @@ def get_timeline(
             })
 
     result.sort(key=lambda x: x["log_date"], reverse=True)
+
+    # --- Episode timeline events (watched / reviewed) ---
+    ep_events = (
+        db.query(EpisodeTimelineEvent)
+        .options(
+            joinedload(EpisodeTimelineEvent.media_item),
+            joinedload(EpisodeTimelineEvent.user),
+        )
+        .filter(EpisodeTimelineEvent.user_id.in_(user_ids))
+        .order_by(EpisodeTimelineEvent.created_at.desc())
+        .limit(limit * 2)
+        .all()
+    )
+    for evt in ep_events:
+        mi = evt.media_item
+        user_obj = evt.user
+        date_key = evt.created_at.date().isoformat()
+        result.append({
+            "id": f"ep_evt_{evt.id}",
+            "_type": "episode_event",
+            "event_type": evt.event_type,
+            "season_number": evt.season_number,
+            "episode_start": evt.episode_start,
+            "episode_end": evt.episode_end,
+            "review_text": evt.review_text,
+            "rating": evt.rating,
+            "created_at": evt.created_at.isoformat(),
+            "user": {
+                "id": user_obj.id,
+                "username": user_obj.username,
+                "avatar_url": user_obj.avatar_url,
+            } if user_obj else None,
+            "media_item": {
+                "id": mi.id,
+                "title": mi.title,
+                "media_type": mi.media_type.value if mi.media_type else None,
+                "cover_image_url": mi.cover_image_url,
+                "tmdb_id": mi.tmdb_id,
+                "igdb_id": mi.igdb_id,
+                "steam_appid": mi.steam_appid,
+                "google_books_id": mi.google_books_id,
+            } if mi else None,
+            "log_date": date_key,
+            "replies_count": 0,
+            "likes_count": 0,
+            "is_liked": False,
+            "liked_by": [],
+        })
+
+    result.sort(key=lambda x: x.get("created_at") or x.get("log_date"), reverse=True)
     return result

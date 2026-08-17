@@ -140,6 +140,34 @@ class EpisodeReviewUpdate(BaseModel):
     review_text: Optional[str] = None
     rating: Optional[float] = None
 
+# --- Episode Timeline Event Schemas ---
+class EpisodeTimelineEventCreate(BaseModel):
+    log_id: int
+    season_number: int
+    episode_start: int
+    episode_end: int
+    event_type: str = "watched"
+    review_text: Optional[str] = None
+    rating: Optional[float] = None
+
+class EpisodeTimelineEventInDB(EpisodeTimelineEventCreate):
+    id: int
+    user_id: int
+    media_item_id: int
+    created_at: datetime
+    class Config:
+        from_attributes = True
+
+class EpisodeBatchItem(BaseModel):
+    season_number: int
+    episode_number: int
+    episode_name: Optional[str] = None
+    air_date: Optional[str] = None
+
+class EpisodeBatchRequest(BaseModel):
+    episodes: List[EpisodeBatchItem]
+    user_id: int
+
 # --- Achievement Schemas ---
 class AchievementBase(BaseModel):
     external_id: str

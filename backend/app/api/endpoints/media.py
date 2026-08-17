@@ -7,7 +7,7 @@ from app.crud import crud_top_list, crud_custom_list, crud_log_interaction
 from app.api import deps
 from app.services import tmdb_service, igdb_service, google_books_service, steam_service
 from app.services.hours_service import effective_hours
-from app.models.media import MediaType, MediaItem, LogStatus, LogEntry, LogReview, EpisodeWatched, Achievement, TopListItem
+from app.models.media import MediaType, MediaItem, LogStatus, LogEntry, LogReview, EpisodeWatched, EpisodeTimelineEvent, Achievement, TopListItem
 import datetime
 import json
 import math
@@ -1197,12 +1197,16 @@ def toggle_episode(*, db: Session = Depends(deps.get_db), log_id: int, ep_in: sc
         db.commit()
         db.refresh(existing)
         _update_series_status(db, log)
+        if ep_in.watched:
+            _create_episode_timeline_event(db, user_id=user_id, log=log, season=ep_in.season_number, ep_start=ep_in.episode_number, ep_end=ep_in.episode_number)
         return existing
     ep = EpisodeWatched(log_id=log_id, **ep_in.dict())
     db.add(ep)
     db.commit()
     db.refresh(ep)
     _update_series_status(db, log)
+    if ep_in.watched:
+        _create_episode_timeline_event(db, user_id=user_id, log=log, season=ep_in.season_number, ep_start=ep_in.episode_number, ep_end=ep_in.episode_number)
     return ep
 
 
@@ -1225,6 +1229,80 @@ def _update_series_status(db: Session, log: LogEntry):
     db.commit()
 
 
+def _create_episode_timeline_event(
+    db: Session, *, user_id: int, log: LogEntry,
+    season: int, ep_start: int, ep_end: int,
+    event_type: str = "watched", review_text: str | None = None, rating: float | None = None,
+) -> EpisodeTimelineEvent:
+    evt = EpisodeTimelineEvent(
+        user_id=user_id,
+        media_item_id=log.media_item_id,
+        log_id=log.id,
+        season_number=season,
+        episode_start=ep_start,
+        episode_end=ep_end,
+        event_type=event_type,
+        review_text=review_text,
+        rating=rating,
+    )
+    db.add(evt)
+    db.commit()
+    db.refresh(evt)
+    return evt
+
+
+@router.post("/logs/{log_id}/episodes/batch", response_model=schemas.EpisodeTimelineEventInDB)
+def toggle_episodes_batch(
+    *, db: Session = Depends(deps.get_db), log_id: int, body: schemas.EpisodeBatchRequest,
+):
+    log = db.query(LogEntry).filter(LogEntry.id == log_id).first()
+    if not log:
+        raise HTTPException(status_code=404, detail="Log not found")
+    if log.user_id != body.user_id:
+        raise HTTPException(status_code=403, detail="Not your log")
+
+    min_ep = None
+    max_ep = None
+    for ep_data in body.episodes:
+        existing = db.query(EpisodeWatched).filter(
+            EpisodeWatched.log_id == log_id,
+            EpisodeWatched.season_number == ep_data.season_number,
+            EpisodeWatched.episode_number == ep_data.episode_number,
+        ).first()
+        if existing:
+            existing.watched = True
+            existing.episode_name = ep_data.episode_name or existing.episode_name
+            if ep_data.air_date:
+                existing.air_date = ep_data.air_date
+            ep = existing
+        else:
+            ep = EpisodeWatched(
+                log_id=log_id,
+                season_number=ep_data.season_number,
+                episode_number=ep_data.episode_number,
+                episode_name=ep_data.episode_name,
+                watched=True,
+                air_date=ep_data.air_date,
+            )
+            db.add(ep)
+        seq = ep_data.season_number * 10000 + ep_data.episode_number
+        if min_ep is None or seq < min_ep:
+            min_ep = seq
+        if max_ep is None or seq > max_ep:
+            max_ep = seq
+
+    db.commit()
+    _update_series_status(db, log)
+
+    min_s, min_e = divmod(min_ep, 10000)
+    max_s, max_e = divmod(max_ep, 10000)
+    evt = _create_episode_timeline_event(
+        db, user_id=body.user_id, log=log,
+        season=min_s, ep_start=min_e, ep_end=max_e if min_s == max_s else max_e,
+    )
+    return evt
+
+
 @router.put("/episodes/{episode_id}/review", response_model=schemas.EpisodeWatchedInDB)
 def update_episode_review(
     *, db: Session = Depends(deps.get_db), episode_id: int, review_in: schemas.EpisodeReviewUpdate,
@@ -1242,6 +1320,12 @@ def update_episode_review(
         ep.rating = review_in.rating
     db.commit()
     db.refresh(ep)
+    if review_in.review_text is not None or review_in.rating is not None:
+        _create_episode_timeline_event(
+            db, user_id=user_id, log=log,
+            season=ep.season_number, ep_start=ep.episode_number, ep_end=ep.episode_number,
+            event_type="reviewed", review_text=review_in.review_text, rating=review_in.rating,
+        )
     return ep
 
 

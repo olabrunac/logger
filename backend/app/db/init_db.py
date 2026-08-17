@@ -126,6 +126,12 @@ def init_db() -> None:
     _exec("CREATE INDEX IF NOT EXISTS ix_notification_log_id ON notification (log_id)")
     _exec("CREATE INDEX IF NOT EXISTS ix_notification_media_item_id ON notification (media_item_id)")
 
+    # Episode timeline events (new table — created by create_all, indexes for queries)
+    _exec("CREATE INDEX IF NOT EXISTS ix_episodetimelineevent_user_id ON episodetimelineevent (user_id)")
+    _exec("CREATE INDEX IF NOT EXISTS ix_episodetimelineevent_media_item_id ON episodetimelineevent (media_item_id)")
+    _exec("CREATE INDEX IF NOT EXISTS ix_episodetimelineevent_created_at ON episodetimelineevent (created_at)")
+    _exec("CREATE INDEX IF NOT EXISTS ix_episodetimelineevent_log_id ON episodetimelineevent (log_id)")
+
     # Capas de livros antigas salvas com http:// — Chrome bloqueia mixed content
     # em produção (https), então normaliza tudo para https de uma vez.
     _exec("UPDATE mediaitem SET cover_image_url = 'https://' || substr(cover_image_url, 8) WHERE cover_image_url LIKE 'http://%'")

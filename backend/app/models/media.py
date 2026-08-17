@@ -120,6 +120,24 @@ class EpisodeWatched(Base):
     rating = Column(Float, nullable=True)
     log = relationship("LogEntry", back_populates="episodes")
 
+class EpisodeTimelineEvent(Base):
+    __tablename__ = "episodetimelineevent"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("user.id"), nullable=False, index=True)
+    media_item_id = Column(Integer, ForeignKey("mediaitem.id"), nullable=False, index=True)
+    log_id = Column(Integer, ForeignKey("logentry.id"), nullable=False, index=True)
+    season_number = Column(Integer, nullable=False)
+    episode_start = Column(Integer, nullable=False)
+    episode_end = Column(Integer, nullable=False)
+    event_type = Column(String, nullable=False, default="watched")  # watched | reviewed
+    review_text = Column(Text, nullable=True)
+    rating = Column(Float, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, index=True)
+    user = relationship("User")
+    media_item = relationship("MediaItem")
+    log = relationship("LogEntry")
+
+
 class Achievement(Base):
     id = Column(Integer, primary_key=True, index=True)
     log_id = Column(Integer, ForeignKey("logentry.id"), nullable=False, index=True)
