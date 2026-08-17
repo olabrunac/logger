@@ -235,7 +235,7 @@ const LogGroupCard = ({ entry, currentUser, onReply, onLike }: LogGroupCardProps
                       <Link to={`/profile/${reply.username}`} className="text-xs font-bold text-white hover:underline">{reply.username}</Link>
                       <span className="text-[10px] text-white/25">{timeAgo(reply.created_at)}</span>
                     </div>
-                    <p className="text-sm text-white/70 mt-0.5 whitespace-pre-wrap break-words"><HashtagText text={reply.content} /></p>
+                    <p className="text-[10px] text-white/70 mt-0.5 whitespace-pre-wrap break-words"><HashtagText text={reply.content} /></p>
                   </div>
                 </div>
               ))}

@@ -90,7 +90,7 @@ const PostCard = ({ post, currentUser, onReply, onDelete, onLike, onEdit }: Post
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <Link to={`/profile/${post.username}`} className="text-sm font-bold text-white hover:underline">{post.username}</Link>
-            <span className="text-xs text-white/30">{timeAgo(post.created_at)}</span>
+            <span className="text-[10px] text-white/30">{timeAgo(post.created_at)}</span>
             {post.user_id === currentUser.id && (
               <div className="ml-auto flex items-center gap-0.5">
                 <button onClick={startEdit} className="p-1 text-white/20 hover:text-white/70 transition-colors" title="Editar post">
@@ -198,7 +198,7 @@ const PostCard = ({ post, currentUser, onReply, onDelete, onLike, onEdit }: Post
                       <Link to={`/profile/${reply.username}`} className="text-xs font-bold text-white hover:underline">{reply.username}</Link>
                       <span className="text-[10px] text-white/25">{timeAgo(reply.created_at)}</span>
                     </div>
-                    <p className="text-sm text-white/70 mt-0.5 whitespace-pre-wrap break-words"><HashtagText text={reply.content} /></p>
+                    <p className="text-[10px] text-white/70 mt-0.5 whitespace-pre-wrap break-words"><HashtagText text={reply.content} /></p>
                   </div>
                 </div>
               ))}

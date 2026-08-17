@@ -137,7 +137,7 @@ const EpisodeEventCard = ({ event, currentUser, onReply, onLike, onDelete }: Epi
                   </div>
                 )}
                 {event.review_text && (
-                  <div className="text-sm text-white/60 leading-relaxed">
+                  <div className={`${expandedReview ? 'text-[13px]' : 'text-[10px]'} text-white/60 leading-relaxed ${expandedReview ? '' : 'line-clamp-3'}`}>
                     <HashtagText text={displayReview || ''} />
                     {reviewTruncated && (
                       <button onClick={() => setExpandedReview(!expandedReview)} className="text-[10px] ml-1 hover:underline" style={{ color: 'var(--accent)' }}>
@@ -224,9 +224,9 @@ const EpisodeEventCard = ({ event, currentUser, onReply, onLike, onDelete }: Epi
                 </Link>
                 <div className="flex-1 min-w-0">
                   <span className="text-[10px] font-semibold mr-1" style={{ color: 'var(--accent)' }}>{r.username}</span>
-                  <span className="text-sm text-white/60">{r.content}</span>
+                  <span className="text-[10px] text-white/60">{r.content}</span>
                 </div>
-                <span className="text-[9px] text-white/20 flex-shrink-0">{timeAgo(r.created_at)}</span>
+                <span className="text-[10px] text-white/20 flex-shrink-0">{timeAgo(r.created_at)}</span>
               </div>
             ))
           )}
