@@ -148,7 +148,7 @@ const LogGroupCard = ({ entry, currentUser, onReply, onLike }: LogGroupCardProps
             {clamped && (
               <button
                 onClick={() => setExpanded(!expanded)}
-                className="mt-2 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide transition-colors"
+                className="mt-2 flex items-center gap-1 text-[10px] transition-colors hover:text-white/50"
                 style={{ color: 'var(--accent)' }}
               >
                 {expanded ? 'Ver menos' : `Ver mais ${entry.group_count} ${meta.singular.toLowerCase()}s`}
