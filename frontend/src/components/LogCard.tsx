@@ -137,7 +137,7 @@ const LogCard = ({ entry, currentUser, onReply, onLike }: LogCardProps) => {
                 )}
                 {entry.review && (
                   <div className="mt-1.5">
-                    <p className={`${expandedReview ? 'text-[13px]' : 'text-[10px]'} text-white/40 leading-relaxed ${expandedReview ? '' : 'line-clamp-3'}`}>
+                    <p className={`text-sm text-white/40 leading-relaxed ${expandedReview ? '' : 'line-clamp-3'}`}>
                       <HashtagText text={expandedReview || !reviewTruncated ? entry.review : entry.review.slice(0, 150)} />
                     </p>
                     {reviewTruncated && (
