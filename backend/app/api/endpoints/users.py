@@ -691,6 +691,46 @@ def get_timeline(
         .limit(limit * 2)
         .all()
     )
+
+    # Batch replies/likes for episode events
+    ep_event_ids = [evt.id for evt in ep_events]
+    ep_replies_count: dict[int, int] = {}
+    ep_likes_count: dict[int, int] = {}
+    ep_liked_set: set = set()
+    ep_likers: dict[int, list] = {}
+    if ep_event_ids:
+        ep_replies_count = {
+            eid: cnt for eid, cnt in
+            db.query(LogReply.episode_event_id, sa_func.count())
+            .filter(LogReply.episode_event_id.in_(ep_event_ids))
+            .group_by(LogReply.episode_event_id).all()
+        }
+        ep_likes_count = {
+            eid: cnt for eid, cnt in
+            db.query(LogLike.episode_event_id, sa_func.count())
+            .filter(LogLike.episode_event_id.in_(ep_event_ids))
+            .group_by(LogLike.episode_event_id).all()
+        }
+        ep_liked_set = {
+            eid for (eid,) in
+            db.query(LogLike.episode_event_id)
+            .filter(LogLike.episode_event_id.in_(ep_event_ids), LogLike.user_id == user_id)
+            .all()
+        }
+        ep_like_rows = (
+            db.query(LogLike)
+            .filter(LogLike.episode_event_id.in_(ep_event_ids))
+            .order_by(LogLike.created_at.desc()).all()
+        )
+        for lk in ep_like_rows:
+            lst = ep_likers.setdefault(lk.episode_event_id, [])
+            if len(lst) < 5:
+                lst.append(lk.user_id)
+        ep_liker_user_ids = {uid for lst in ep_likers.values() for uid in lst}
+        ep_liker_map = {}
+        if ep_liker_user_ids:
+            ep_liker_map = {u.id: u for u in db.query(User).filter(User.id.in_(ep_liker_user_ids)).all()}
+
     for evt in ep_events:
         mi = evt.media_item
         user_obj = evt.user
@@ -721,10 +761,13 @@ def get_timeline(
                 "google_books_id": mi.google_books_id,
             } if mi else None,
             "log_date": date_key,
-            "replies_count": 0,
-            "likes_count": 0,
-            "is_liked": False,
-            "liked_by": [],
+            "replies_count": ep_replies_count.get(evt.id, 0),
+            "likes_count": ep_likes_count.get(evt.id, 0),
+            "is_liked": evt.id in ep_liked_set,
+            "liked_by": [
+                {"username": ep_liker_map[uid].username, "avatar_url": ep_liker_map[uid].avatar_url}
+                for uid in ep_likers.get(evt.id, []) if uid in ep_liker_map
+            ],
         })
 
     result.sort(key=lambda x: x.get("created_at") or x.get("log_date"), reverse=True)

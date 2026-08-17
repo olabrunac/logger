@@ -1234,6 +1234,28 @@ def _create_episode_timeline_event(
     season: int, ep_start: int, ep_end: int,
     event_type: str = "watched", review_text: str | None = None, rating: float | None = None,
 ) -> EpisodeTimelineEvent:
+    existing = None
+    if event_type == "reviewed":
+        existing = (
+            db.query(EpisodeTimelineEvent)
+            .filter(
+                EpisodeTimelineEvent.user_id == user_id,
+                EpisodeTimelineEvent.log_id == log.id,
+                EpisodeTimelineEvent.season_number == season,
+                EpisodeTimelineEvent.episode_start == ep_start,
+                EpisodeTimelineEvent.episode_end == ep_end,
+                EpisodeTimelineEvent.event_type == "watched",
+            )
+            .order_by(EpisodeTimelineEvent.created_at.desc())
+            .first()
+        )
+    if existing:
+        existing.event_type = "reviewed"
+        existing.review_text = review_text or existing.review_text
+        existing.rating = rating if rating is not None else existing.rating
+        db.commit()
+        db.refresh(existing)
+        return existing
     evt = EpisodeTimelineEvent(
         user_id=user_id,
         media_item_id=log.media_item_id,
@@ -1327,6 +1349,68 @@ def update_episode_review(
             event_type="reviewed", review_text=review_in.review_text, rating=review_in.rating,
         )
     return ep
+
+
+# --- Episode event replies ---
+
+def _ep_event_reply_response(reply) -> dict:
+    return {
+        "id": reply.id,
+        "episode_event_id": reply.episode_event_id,
+        "user_id": reply.user_id,
+        "username": reply.user.username if reply.user else "unknown",
+        "avatar_url": reply.user.avatar_url if reply.user else None,
+        "content": reply.content,
+        "created_at": reply.created_at.isoformat() if reply.created_at else "",
+    }
+
+
+@router.post("/episode-events/{event_id}/reply")
+def reply_to_episode_event(
+    *, db: Session = Depends(deps.get_db), event_id: int, user_id: int = Query(...), content: str = Query(...),
+):
+    from app.models.media import EpisodeTimelineEvent
+    evt = db.query(EpisodeTimelineEvent).filter(EpisodeTimelineEvent.id == event_id).first()
+    if not evt:
+        raise HTTPException(status_code=404, detail="Episode event not found")
+    reply = crud_log_interaction.add_reply_to_episode_event(db, episode_event_id=event_id, user_id=user_id, content=content)
+    if evt.user_id != user_id:
+        try:
+            from app.crud.crud_notification import create_notification
+            create_notification(db, user_id=evt.user_id, type="like", from_user_id=user_id)
+        except Exception:
+            pass
+    return _ep_event_reply_response(reply)
+
+
+@router.get("/episode-events/{event_id}/replies")
+def get_episode_event_replies(*, db: Session = Depends(deps.get_db), event_id: int):
+    from app.models.media import EpisodeTimelineEvent
+    evt = db.query(EpisodeTimelineEvent).filter(EpisodeTimelineEvent.id == event_id).first()
+    if not evt:
+        raise HTTPException(status_code=404, detail="Episode event not found")
+    replies = crud_log_interaction.get_replies_for_episode_event(db, episode_event_id=event_id)
+    return [_ep_event_reply_response(r) for r in replies]
+
+
+@router.post("/episode-events/{event_id}/like")
+def like_episode_event(*, db: Session = Depends(deps.get_db), event_id: int, user_id: int = Query(...)):
+    from app.models.media import EpisodeTimelineEvent
+    evt = db.query(EpisodeTimelineEvent).filter(EpisodeTimelineEvent.id == event_id).first()
+    if not evt:
+        raise HTTPException(status_code=404, detail="Episode event not found")
+    crud_log_interaction.like_episode_event(db, episode_event_id=event_id, user_id=user_id)
+    return {"liked": True, "likes_count": crud_log_interaction.get_likes_count_for_episode_event(db, event_id)}
+
+
+@router.delete("/episode-events/{event_id}/like")
+def unlike_episode_event(*, db: Session = Depends(deps.get_db), event_id: int, user_id: int = Query(...)):
+    from app.models.media import EpisodeTimelineEvent
+    evt = db.query(EpisodeTimelineEvent).filter(EpisodeTimelineEvent.id == event_id).first()
+    if not evt:
+        raise HTTPException(status_code=404, detail="Episode event not found")
+    crud_log_interaction.unlike_episode_event(db, episode_event_id=event_id, user_id=user_id)
+    return {"liked": False, "likes_count": crud_log_interaction.get_likes_count_for_episode_event(db, event_id)}
 
 
 # --- Achievements ---

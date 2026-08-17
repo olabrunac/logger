@@ -90,20 +90,24 @@ class LogEntry(Base):
 class LogReply(Base):
     __tablename__ = "logreply"
     id = Column(Integer, primary_key=True, index=True)
-    log_id = Column(Integer, ForeignKey("logentry.id"), nullable=False, index=True)
+    log_id = Column(Integer, ForeignKey("logentry.id"), nullable=True, index=True)
+    episode_event_id = Column(Integer, ForeignKey("episodetimelineevent.id"), nullable=True, index=True)
     user_id = Column(Integer, ForeignKey("user.id"), nullable=False, index=True)
     content = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     log = relationship("LogEntry", back_populates="replies")
+    episode_event = relationship("EpisodeTimelineEvent", back_populates="replies")
     user = relationship("User")
 
 class LogLike(Base):
     __tablename__ = "loglike"
     id = Column(Integer, primary_key=True, index=True)
-    log_id = Column(Integer, ForeignKey("logentry.id"), nullable=False, index=True)
+    log_id = Column(Integer, ForeignKey("logentry.id"), nullable=True, index=True)
+    episode_event_id = Column(Integer, ForeignKey("episodetimelineevent.id"), nullable=True, index=True)
     user_id = Column(Integer, ForeignKey("user.id"), nullable=False, index=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     log = relationship("LogEntry", back_populates="likes")
+    episode_event = relationship("EpisodeTimelineEvent", back_populates="likes")
     user = relationship("User")
     __table_args__ = (UniqueConstraint("log_id", "user_id", name="uq_loglike_log_user"),)
 
@@ -136,6 +140,8 @@ class EpisodeTimelineEvent(Base):
     user = relationship("User")
     media_item = relationship("MediaItem")
     log = relationship("LogEntry")
+    replies = relationship("LogReply", back_populates="episode_event", cascade="all, delete-orphan")
+    likes = relationship("LogLike", back_populates="episode_event", cascade="all, delete-orphan")
 
 
 class Achievement(Base):

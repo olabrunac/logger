@@ -238,6 +238,56 @@ const TimelinePage = ({ user }: TimelinePageProps) => {
     }
   };
 
+  const handleEpEventReply = async (eventId: number, content: string) => {
+    try {
+      await api.post(`/media/episode-events/${eventId}/reply`, null, {
+        params: { user_id: user.id, content },
+      });
+      setEntries(prev => prev.map(e => {
+        const eid = typeof e.id === 'string' ? parseInt(e.id.replace('ep_evt_', '')) : e.id;
+        return eid === eventId ? { ...e, replies_count: (e.replies_count || 0) + 1 } : e;
+      }));
+    } catch {}
+  };
+
+  const handleEpEventLike = async (eventId: number) => {
+    const entry = entries.find(e => {
+      const eid = typeof e.id === 'string' ? parseInt(e.id.replace('ep_evt_', '')) : e.id;
+      return eid === eventId;
+    });
+    if (!entry) return;
+    const wasLiked = entry.is_liked;
+    const me = { username: user.username, avatar_url: user.avatar_url };
+    setEntries(prev => prev.map(e => {
+      const eid = typeof e.id === 'string' ? parseInt(e.id.replace('ep_evt_', '')) : e.id;
+      return eid === eventId ? {
+        ...e,
+        is_liked: !wasLiked,
+        likes_count: (e.likes_count || 0) + (wasLiked ? -1 : 1),
+        liked_by: wasLiked
+          ? (e.liked_by || []).filter(l => l.username !== user.username)
+          : [me, ...(e.liked_by || [])].slice(0, 5),
+      } : e;
+    }));
+    try {
+      if (wasLiked) {
+        await api.delete(`/media/episode-events/${eventId}/like`, { params: { user_id: user.id } });
+      } else {
+        await api.post(`/media/episode-events/${eventId}/like`, null, { params: { user_id: user.id } });
+      }
+    } catch {
+      setEntries(prev => prev.map(e => {
+        const eid = typeof e.id === 'string' ? parseInt(e.id.replace('ep_evt_', '')) : e.id;
+        return eid === eventId ? {
+          ...e,
+          is_liked: wasLiked,
+          likes_count: (e.likes_count || 0) + (wasLiked ? 1 : -1),
+          liked_by: entry.liked_by || [],
+        } : e;
+      }));
+    }
+  };
+
   const merged: FeedItem[] = [
     ...posts.map(p => ({ ...p, _sortDate: parseServerDate(p.created_at).getTime() } as FeedItem & { _sortDate: number })),
     ...entries.filter(e => e.log_date).map(e => ({ ...e, _sortDate: parseServerDate(e.log_date!).getTime() } as FeedItem & { _sortDate: number })),
@@ -330,7 +380,7 @@ const TimelinePage = ({ user }: TimelinePageProps) => {
             item._type === 'post' ? (
               <PostCard key={`post-${item.id}`} post={item as Post} currentUser={user} onReply={handleReply} onDelete={handleDelete} onLike={handleLike} onEdit={handleEdit} />
             ) : item._type === 'episode_event' ? (
-              <EpisodeEventCard key={`ep-${item.id}`} event={item as EpisodeTimelineEvent} />
+              <EpisodeEventCard key={`ep-${item.id}`} event={item as EpisodeTimelineEvent} currentUser={user} onReply={handleEpEventReply} onLike={handleEpEventLike} />
             ) : (item as TimelineEntry).group_count ? (
               <LogGroupCard key={`group-${(item as TimelineEntry).id}`} entry={item as TimelineEntry} />
             ) : (
