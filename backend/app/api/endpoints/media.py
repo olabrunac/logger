@@ -1199,6 +1199,8 @@ def toggle_episode(*, db: Session = Depends(deps.get_db), log_id: int, ep_in: sc
         _update_series_status(db, log)
         if ep_in.watched:
             _create_episode_timeline_event(db, user_id=user_id, log=log, season=ep_in.season_number, ep_start=ep_in.episode_number, ep_end=ep_in.episode_number)
+        else:
+            _delete_episode_timeline_event(db, user_id=user_id, log_id=log.id, season=ep_in.season_number, ep_start=ep_in.episode_number, ep_end=ep_in.episode_number, event_type="watched")
         return existing
     ep = EpisodeWatched(log_id=log_id, **ep_in.dict())
     db.add(ep)
@@ -1273,6 +1275,41 @@ def _create_episode_timeline_event(
     return evt
 
 
+def _delete_episode_timeline_event(
+    db: Session, *, user_id: int, log_id: int,
+    season: int, ep_start: int, ep_end: int,
+    event_type: str = "watched",
+):
+    evt = (
+        db.query(EpisodeTimelineEvent)
+        .filter(
+            EpisodeTimelineEvent.user_id == user_id,
+            EpisodeTimelineEvent.log_id == log_id,
+            EpisodeTimelineEvent.season_number == season,
+            EpisodeTimelineEvent.episode_start == ep_start,
+            EpisodeTimelineEvent.episode_end == ep_end,
+            EpisodeTimelineEvent.event_type == event_type,
+        )
+        .order_by(EpisodeTimelineEvent.created_at.desc())
+        .first()
+    )
+    if evt:
+        db.delete(evt)
+        db.commit()
+
+
+@router.delete("/episode-events/{event_id}")
+def delete_episode_event(*, db: Session = Depends(deps.get_db), event_id: int, user_id: int = Query(...)):
+    evt = db.query(EpisodeTimelineEvent).filter(EpisodeTimelineEvent.id == event_id).first()
+    if not evt:
+        raise HTTPException(status_code=404, detail="Episode event not found")
+    if evt.user_id != user_id:
+        raise HTTPException(status_code=403, detail="Not your event")
+    db.delete(evt)
+    db.commit()
+    return {"deleted": True}
+
+
 @router.post("/logs/{log_id}/episodes/batch", response_model=schemas.EpisodeTimelineEventInDB)
 def toggle_episodes_batch(
     *, db: Session = Depends(deps.get_db), log_id: int, body: schemas.EpisodeBatchRequest,
@@ -1342,11 +1379,18 @@ def update_episode_review(
         ep.rating = review_in.rating
     db.commit()
     db.refresh(ep)
-    if review_in.review_text is not None or review_in.rating is not None:
+    has_content = (ep.review_text and ep.review_text.strip()) or (ep.rating is not None and ep.rating > 0)
+    if has_content:
         _create_episode_timeline_event(
             db, user_id=user_id, log=log,
             season=ep.season_number, ep_start=ep.episode_number, ep_end=ep.episode_number,
-            event_type="reviewed", review_text=review_in.review_text, rating=review_in.rating,
+            event_type="reviewed", review_text=ep.review_text, rating=ep.rating,
+        )
+    else:
+        _delete_episode_timeline_event(
+            db, user_id=user_id, log_id=log.id,
+            season=ep.season_number, ep_start=ep.episode_number, ep_end=ep.episode_number,
+            event_type="reviewed",
         )
     return ep
 

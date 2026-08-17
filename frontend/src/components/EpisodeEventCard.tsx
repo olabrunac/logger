@@ -148,14 +148,6 @@ const EpisodeEventCard = ({ event, currentUser, onReply, onLike }: EpisodeEventC
               </div>
             )}
           </div>
-
-          {coverUrl && (
-            <Link to={getLogUrl(event.media_item)} className="flex-shrink-0 hidden sm:block">
-              <div className="w-10 h-14 rounded overflow-hidden">
-                <img src={coverUrl} alt="" className="w-full h-full object-cover" />
-              </div>
-            </Link>
-          )}
         </div>
       </div>
 
