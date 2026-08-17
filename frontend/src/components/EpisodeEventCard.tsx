@@ -137,7 +137,7 @@ const EpisodeEventCard = ({ event, currentUser, onReply, onLike, onDelete }: Epi
                   </div>
                 )}
                 {event.review_text && (
-                  <div className="text-xs text-white/60 leading-relaxed">
+                  <div className="text-sm text-white/60 leading-relaxed">
                     <HashtagText text={displayReview || ''} />
                     {reviewTruncated && (
                       <button onClick={() => setExpandedReview(!expandedReview)} className="text-[10px] ml-1 hover:underline" style={{ color: 'var(--accent)' }}>
