@@ -348,7 +348,7 @@ const MediaDetailPage = () => {
     const newMap = { ...watchedMap };
     let watchedChange = 0;
     const today = new Date();
-    const requests: Promise<void>[] = [];
+    const toToggle: { season_number: number; episode_number: number; episode_name: string; air_date?: string }[] = [];
     for (const ep of seasonEps) {
       if (markWatched && ep.air_date && new Date(ep.air_date) > today) continue;
       const key = ep.season_number + '-' + ep.episode_number;
@@ -361,21 +361,28 @@ const MediaDetailPage = () => {
         episode_name: ep.name,
         watched: markWatched,
       };
-      requests.push(
-        api.post('/media/logs/' + log.id + '/episodes', {
-          season_number: ep.season_number, episode_number: ep.episode_number,
-          episode_name: ep.name, watched: markWatched, log_date: new Date().toISOString().split('T')[0],
-          air_date: ep.air_date,
-        }, { params: { user_id: JSON.parse(localStorage.getItem('user') || '{}').id } }).then(({ data }) => {
-          newMap[key] = data;
-        }).catch((err) => {
-          console.error('Failed to toggle episode:', err);
-        })
-      );
+      toToggle.push({ season_number: ep.season_number, episode_number: ep.episode_number, episode_name: ep.name, air_date: ep.air_date });
     }
     setWatchedMap(newMap);
     setLog(prev => prev ? { ...prev, watched_episodes: (prev.watched_episodes || 0) + watchedChange } : prev);
-    await Promise.all(requests);
+    if (toToggle.length > 0) {
+      try {
+        if (markWatched) {
+          await api.post(`/media/logs/${log.id}/episodes/batch`, {
+            episodes: toToggle,
+            user_id: JSON.parse(localStorage.getItem('user') || '{}').id,
+          });
+        } else {
+          await Promise.all(toToggle.map(ep =>
+            api.post(`/media/logs/${log.id}/episodes`, {
+              ...ep, watched: false, log_date: new Date().toISOString().split('T')[0],
+            }, { params: { user_id: JSON.parse(localStorage.getItem('user') || '{}').id } })
+          ));
+        }
+      } catch (err) {
+        console.error('Failed to batch toggle episodes:', err);
+      }
+    }
     setWatchedMap({ ...newMap });
   };
 

@@ -65,4 +65,23 @@ export interface TimelineEntry {
   _type: 'log';
 }
 
-export type FeedItem = Post | TimelineEntry;
+export interface EpisodeTimelineEvent {
+  id: string | number;
+  user: { id: number; username: string; avatar_url?: string } | null;
+  media_item: MediaItem | null;
+  event_type: 'watched' | 'reviewed';
+  season_number: number;
+  episode_start: number;
+  episode_end: number;
+  review_text?: string | null;
+  rating?: number | null;
+  created_at: string;
+  log_date: string | null;
+  replies_count?: number;
+  likes_count?: number;
+  is_liked?: boolean;
+  liked_by?: { username: string; avatar_url?: string }[];
+  _type: 'episode_event';
+}
+
+export type FeedItem = Post | TimelineEntry | EpisodeTimelineEvent;
