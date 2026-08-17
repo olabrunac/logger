@@ -7,7 +7,7 @@ import { TYPE_META } from '../constants/designSystem';
 import HashtagText from './HashtagText';
 import Stars from './Stars';
 import { imageUrl, getLogUrl, timeAgo } from '../utils';
-import { Eye, MessageSquareText, Send, Heart, MessageCircle } from 'lucide-react';
+import { MessageSquareText, Send, ThumbsUp, MessageCircle } from 'lucide-react';
 
 interface EpisodeEventReply {
   id: number;
@@ -152,31 +152,42 @@ const EpisodeEventCard = ({ event, currentUser, onReply, onLike }: EpisodeEventC
       </div>
 
       {/* Actions bar */}
-      <div className="px-4 pb-3 flex items-center gap-4 text-[10px] text-white/30">
-        <span className="flex items-center gap-1">
-          {event.event_type === 'reviewed' ? <MessageSquareText size={10} /> : <Eye size={10} />}
-          {timeAgo(event.created_at)}
-        </span>
-
+      <div className="px-4 py-2 flex items-center gap-4 border-t" style={{ borderColor: 'var(--border)' }}>
+        <button onClick={toggleReplies} className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition-colors">
+          <MessageCircle size={14} />
+          {(event.replies_count || 0) > 0 ? `${event.replies_count} resposta${(event.replies_count || 0) > 1 ? 's' : ''}` : 'Responder'}
+        </button>
         <button
           onClick={() => onLike(numericId)}
-          className="flex items-center gap-1 hover:text-white/60 transition-colors"
+          className="flex items-center gap-1.5 text-xs transition-colors"
+          style={{ color: event.is_liked ? 'var(--accent)' : 'rgba(255,255,255,0.4)' }}
         >
-          <Heart size={10} fill={event.is_liked ? 'var(--accent)' : 'none'} color={event.is_liked ? 'var(--accent)' : 'currentColor'} />
-          {likesCount > 0 && <span>{likesCount}</span>}
-        </button>
-
-        <button onClick={toggleReplies} className="flex items-center gap-1 hover:text-white/60 transition-colors">
-          <MessageCircle size={10} />
-          {(event.replies_count || 0) > 0 && <span>{event.replies_count}</span>}
+          <ThumbsUp size={14} fill={event.is_liked ? 'currentColor' : 'none'} />
+          {likesCount > 0 ? likesCount : 'Curtir'}
         </button>
       </div>
 
       {/* Liked by */}
-      {likedBy.length > 0 && (
-        <div className="px-4 pb-2 text-[10px] text-white/30">
-          Curtido por {likedBy.map(l => l.username).join(', ')}
-          {likedBy.length >= 5 && '...'}
+      {likesCount > 0 && likedBy.length > 0 && (
+        <div className="px-4 py-2 flex items-center gap-1.5 border-t" style={{ borderColor: 'var(--border)' }}>
+          <div className="flex -space-x-1.5">
+            {likedBy.slice(0, 5).map((liker) => (
+              <Link key={liker.username} to={`/profile/${liker.username}`} className="relative block">
+                <div className="w-5 h-5 rounded-full overflow-hidden border" style={{ borderColor: 'var(--mdf-bg)' }}>
+                  {liker.avatar_url ? (
+                    <img src={imageUrl(liker.avatar_url) || ''} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-[7px] font-bold" style={{ background: 'var(--accent)', color: '#000' }}>
+                      {liker.username.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </div>
+              </Link>
+            ))}
+          </div>
+          <span className="text-[10px] text-white/30">
+            {likedBy.length === 1 ? `${likedBy[0].username} curtiu` : `${likedBy[0].username} e mais ${likedBy.length - 1} curtiram`}
+          </span>
         </div>
       )}
 
