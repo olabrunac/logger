@@ -87,7 +87,7 @@ const LogCard = ({ entry, currentUser, onReply, onLike }: LogCardProps) => {
               {avatarUrl ? (
                 <img src={avatarUrl} alt={entry.user.username} className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-base font-bold" style={{ background: 'var(--accent)', color: '#000' }}>
+                <div className="w-full h-full flex items-center justify-center text-sm font-bold" style={{ background: 'var(--accent)', color: '#000' }}>
                   {entry.user.username.charAt(0).toUpperCase()}
                 </div>
               )}
@@ -95,7 +95,7 @@ const LogCard = ({ entry, currentUser, onReply, onLike }: LogCardProps) => {
           </Link>
 
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 text-base mb-2">
+            <div className="flex items-center gap-1.5 text-sm mb-2">
               <Link to={`/profile/${entry.user.username}`} className="font-bold text-white hover:underline">{entry.user.username}</Link>
               <span className="text-white/40">{statusLabel || 'registrou'}</span>
               <span className="text-white/40">{meta.emoji}</span>
@@ -113,19 +113,19 @@ const LogCard = ({ entry, currentUser, onReply, onLike }: LogCardProps) => {
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <div className="text-base font-semibold text-white/80 truncate">{entry.media_item.title}</div>
+                <div className="text-sm font-semibold text-white/80 truncate">{entry.media_item.title}</div>
                 <div className="flex items-center gap-2 mt-1">
                   {entry.status && (
-                    <span className="text-base font-bold px-1.5 py-0.5 rounded-full text-white flex items-center gap-1" style={{ background: STATUS_COLORS[entry.status] || 'rgba(100,100,100,0.85)' }}>
+                    <span className="text-sm font-bold px-1.5 py-0.5 rounded-full text-white flex items-center gap-1" style={{ background: STATUS_COLORS[entry.status] || 'rgba(100,100,100,0.85)' }}>
                       <StatusIcon status={entry.status} size={11} />
                       {entry.status === 'completed' ? 'Finalizado' : entry.status === 'in_progress' ? 'Em progresso' : entry.status === 'dropped' ? 'Abandonado' : entry.status === 'library' ? 'Biblioteca' : entry.status}
                     </span>
                   )}
                   {entry.platform && (
-                    <span className="text-base text-white/40">{entry.platform}</span>
+                    <span className="text-sm text-white/40">{entry.platform}</span>
                   )}
                   {entry.family_share && (
-                    <span className="text-base font-bold px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.55)' }}>
+                    <span className="text-sm font-bold px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.55)' }}>
                       Compartilhado
                     </span>
                   )}
@@ -137,13 +137,13 @@ const LogCard = ({ entry, currentUser, onReply, onLike }: LogCardProps) => {
                 )}
                 {entry.review && (
                   <div className="mt-1.5">
-                    <p className={`text-base text-white/40 leading-relaxed ${expandedReview ? '' : 'line-clamp-3'}`}>
+                    <p className={`text-sm text-white/40 leading-relaxed ${expandedReview ? '' : 'line-clamp-3'}`}>
                       <HashtagText text={expandedReview || !reviewTruncated ? entry.review : entry.review.slice(0, 150)} />
                     </p>
                     {reviewTruncated && (
                       <span
                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); setExpandedReview(!expandedReview); }}
-                        className="text-base cursor-pointer hover:underline"
+                        className="text-sm cursor-pointer hover:underline"
                         style={{ color: 'var(--accent)' }}
                       >
                         {expandedReview ? 'Ver menos' : 'Ver mais'}
@@ -155,7 +155,7 @@ const LogCard = ({ entry, currentUser, onReply, onLike }: LogCardProps) => {
             </div>
             </Link>
 
-            <div className="flex items-center gap-3 mt-2 text-base text-white/30">
+            <div className="flex items-center gap-3 mt-2 text-sm text-white/30">
               {entry.log_date && (
                 <span>{new Date(entry.log_date).toLocaleDateString('pt-BR')}</span>
               )}
@@ -173,11 +173,11 @@ const LogCard = ({ entry, currentUser, onReply, onLike }: LogCardProps) => {
       </div>
 
       <div className="px-4 py-2 flex items-center gap-4 border-t" style={{ borderColor: 'var(--border)' }}>
-        <button onClick={toggleReplies} className="flex items-center gap-1.5 text-base text-white/40 hover:text-white/70 transition-colors">
+        <button onClick={toggleReplies} className="flex items-center gap-1.5 text-sm text-white/40 hover:text-white/70 transition-colors">
           <MessageCircle size={14} />
           {(entry.replies_count || 0) > 0 ? `${entry.replies_count} resposta${entry.replies_count! > 1 ? 's' : ''}` : 'Responder'}
         </button>
-        <button onClick={() => onLike(entry.id)} className="flex items-center gap-1.5 text-base transition-colors" style={{ color: entry.is_liked ? 'var(--accent)' : 'rgba(255,255,255,0.4)' }}>
+        <button onClick={() => onLike(entry.id)} className="flex items-center gap-1.5 text-sm transition-colors" style={{ color: entry.is_liked ? 'var(--accent)' : 'rgba(255,255,255,0.4)' }}>
           <ThumbsUp size={14} fill={entry.is_liked ? 'currentColor' : 'none'} />
           {likesCount > 0 ? likesCount : 'Curtir'}
         </button>
@@ -192,7 +192,7 @@ const LogCard = ({ entry, currentUser, onReply, onLike }: LogCardProps) => {
                   {getAvatar(liker.avatar_url) ? (
                     <img src={getAvatar(liker.avatar_url)!} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-base font-bold" style={{ background: 'var(--accent)', color: '#000' }}>
+                    <div className="w-full h-full flex items-center justify-center text-sm font-bold" style={{ background: 'var(--accent)', color: '#000' }}>
                       {liker.username.charAt(0).toUpperCase()}
                     </div>
                   )}
@@ -200,7 +200,7 @@ const LogCard = ({ entry, currentUser, onReply, onLike }: LogCardProps) => {
               </Link>
             ))}
           </div>
-          <span className="text-base text-white/30">
+          <span className="text-sm text-white/30">
             {likesCount === 1
               ? `${likedBy[0].username} curtiu`
               : likedBy.length <= likesCount && likedBy.length <= 5
@@ -214,7 +214,7 @@ const LogCard = ({ entry, currentUser, onReply, onLike }: LogCardProps) => {
       {showReplies && (
         <div className="border-t" style={{ borderColor: 'var(--border)' }}>
           {loadingReplies ? (
-            <div className="p-4 text-base text-white/30 text-center">Carregando...</div>
+            <div className="p-4 text-sm text-white/30 text-center">Carregando...</div>
           ) : (
             <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
               {replies.map(reply => (
@@ -224,7 +224,7 @@ const LogCard = ({ entry, currentUser, onReply, onLike }: LogCardProps) => {
                       {getAvatar(reply.avatar_url) ? (
                         <img src={getAvatar(reply.avatar_url)!} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-base font-bold" style={{ background: 'var(--accent)', color: '#000' }}>
+                        <div className="w-full h-full flex items-center justify-center text-sm font-bold" style={{ background: 'var(--accent)', color: '#000' }}>
                           {reply.username.charAt(0).toUpperCase()}
                         </div>
                       )}
@@ -232,15 +232,15 @@ const LogCard = ({ entry, currentUser, onReply, onLike }: LogCardProps) => {
                   </Link>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <Link to={`/profile/${reply.username}`} className="text-base font-bold text-white hover:underline">{reply.username}</Link>
-                      <span className="text-base text-white/25">{timeAgo(reply.created_at)}</span>
+                      <Link to={`/profile/${reply.username}`} className="text-sm font-bold text-white hover:underline">{reply.username}</Link>
+                      <span className="text-sm text-white/25">{timeAgo(reply.created_at)}</span>
                     </div>
-                    <p className="text-base text-white/70 mt-0.5 whitespace-pre-wrap break-words"><HashtagText text={reply.content} /></p>
+                    <p className="text-sm text-white/70 mt-0.5 whitespace-pre-wrap break-words"><HashtagText text={reply.content} /></p>
                   </div>
                 </div>
               ))}
               {replies.length === 0 && (
-                <div className="p-4 text-base text-white/30 text-center">Nenhuma resposta ainda</div>
+                <div className="p-4 text-sm text-white/30 text-center">Nenhuma resposta ainda</div>
               )}
             </div>
           )}
@@ -250,7 +250,7 @@ const LogCard = ({ entry, currentUser, onReply, onLike }: LogCardProps) => {
               {getAvatar(currentUser.avatar_url) ? (
                 <img src={getAvatar(currentUser.avatar_url)!} alt="" className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-base font-bold" style={{ background: 'var(--accent)', color: '#000' }}>
+                <div className="w-full h-full flex items-center justify-center text-sm font-bold" style={{ background: 'var(--accent)', color: '#000' }}>
                   {currentUser.username.charAt(0).toUpperCase()}
                 </div>
               )}
@@ -260,7 +260,7 @@ const LogCard = ({ entry, currentUser, onReply, onLike }: LogCardProps) => {
               onChange={(e) => setReplyText(e.target.value.slice(0, 280))}
               placeholder="Responda..."
               rows={1}
-              className="flex-1 bg-[var(--mdf-surface)] border border-white/10 focus:border-[var(--accent)] outline-none rounded-lg px-3 py-1.5 text-base text-white placeholder:text-white/25 resize-none transition-colors"
+              className="flex-1 bg-[var(--mdf-surface)] border border-white/10 focus:border-[var(--accent)] outline-none rounded-lg px-3 py-1.5 text-sm text-white placeholder:text-white/25 resize-none transition-colors"
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleReply(); } }}
             />
             <button

@@ -102,7 +102,7 @@ const LogGroupCard = ({ entry, currentUser, onReply, onLike }: LogGroupCardProps
               {avatarUrl ? (
                 <img src={avatarUrl} alt={entry.user.username} className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-base font-bold" style={{ background: 'var(--accent)', color: '#000' }}>
+                <div className="w-full h-full flex items-center justify-center text-sm font-bold" style={{ background: 'var(--accent)', color: '#000' }}>
                   {entry.user.username.charAt(0).toUpperCase()}
                 </div>
               )}
@@ -110,7 +110,7 @@ const LogGroupCard = ({ entry, currentUser, onReply, onLike }: LogGroupCardProps
           </Link>
 
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 text-base mb-3">
+            <div className="flex items-center gap-1.5 text-sm mb-3">
               <Link to={`/profile/${entry.user.username}`} className="font-bold text-white hover:underline">{entry.user.username}</Link>
               <span className="text-white/40">{statusLabel} {entry.group_count} {meta.label.toLowerCase()}</span>
               <span className="text-white/40">{meta.emoji}</span>
@@ -130,14 +130,14 @@ const LogGroupCard = ({ entry, currentUser, onReply, onLike }: LogGroupCardProps
                         <img src={imageUrl(item.cover_image_url) || ''} alt="" className="w-full h-full object-cover" />
                       </div>
                     ) : (
-                      <div className="w-8 h-11 rounded flex items-center justify-center flex-shrink-0 text-base" style={{ background: meta.color + '22' }}>
+                      <div className="w-8 h-11 rounded flex items-center justify-center flex-shrink-0 text-sm" style={{ background: meta.color + '22' }}>
                         {meta.emoji}
                       </div>
                     )}
                     <div className="min-w-0">
-                      <div className="text-base font-semibold text-white/70 truncate max-w-[160px]">{item.title}</div>
+                      <div className="text-sm font-semibold text-white/70 truncate max-w-[160px]">{item.title}</div>
                       {itemStatusLabel && (
-                        <div className="text-base text-white/40">{itemStatusLabel}</div>
+                        <div className="text-sm text-white/40">{itemStatusLabel}</div>
                       )}
                     </div>
                   </Link>
@@ -148,7 +148,7 @@ const LogGroupCard = ({ entry, currentUser, onReply, onLike }: LogGroupCardProps
             {clamped && (
               <button
                 onClick={() => setExpanded(!expanded)}
-                className="mt-2 flex items-center gap-1 text-base transition-colors hover:text-white/50"
+                className="mt-2 flex items-center gap-1 text-sm transition-colors hover:text-white/50"
                 style={{ color: 'var(--accent)' }}
               >
                 {expanded ? 'Ver menos' : `Ver mais ${entry.group_count} ${meta.singular.toLowerCase()}s`}
@@ -156,7 +156,7 @@ const LogGroupCard = ({ entry, currentUser, onReply, onLike }: LogGroupCardProps
               </button>
             )}
 
-            <div className="flex items-center gap-3 mt-3 text-base text-white/30">
+            <div className="flex items-center gap-3 mt-3 text-sm text-white/30">
               {entry.log_date && (
                 <span>{new Date(entry.log_date).toLocaleDateString('pt-BR')}</span>
               )}
@@ -167,13 +167,13 @@ const LogGroupCard = ({ entry, currentUser, onReply, onLike }: LogGroupCardProps
 
       {/* Actions bar */}
       <div className="px-4 py-2 flex items-center gap-4 border-t" style={{ borderColor: 'var(--border)' }}>
-        <button onClick={toggleReplies} className="flex items-center gap-1.5 text-base text-white/40 hover:text-white/70 transition-colors">
+        <button onClick={toggleReplies} className="flex items-center gap-1.5 text-sm text-white/40 hover:text-white/70 transition-colors">
           <MessageCircle size={14} />
           {(entry.replies_count || 0) > 0 ? `${entry.replies_count} resposta${(entry.replies_count || 0) > 1 ? 's' : ''}` : 'Responder'}
         </button>
         <button
           onClick={() => onLike(logId)}
-          className="flex items-center gap-1.5 text-base transition-colors"
+          className="flex items-center gap-1.5 text-sm transition-colors"
           style={{ color: entry.is_liked ? 'var(--accent)' : 'rgba(255,255,255,0.4)' }}
         >
           <ThumbsUp size={14} fill={entry.is_liked ? 'currentColor' : 'none'} />
@@ -191,7 +191,7 @@ const LogGroupCard = ({ entry, currentUser, onReply, onLike }: LogGroupCardProps
                   {getAvatar(liker.avatar_url) ? (
                     <img src={getAvatar(liker.avatar_url)!} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-base font-bold" style={{ background: 'var(--accent)', color: '#000' }}>
+                    <div className="w-full h-full flex items-center justify-center text-sm font-bold" style={{ background: 'var(--accent)', color: '#000' }}>
                       {liker.username.charAt(0).toUpperCase()}
                     </div>
                   )}
@@ -199,7 +199,7 @@ const LogGroupCard = ({ entry, currentUser, onReply, onLike }: LogGroupCardProps
               </Link>
             ))}
           </div>
-          <span className="text-base text-white/30">
+          <span className="text-sm text-white/30">
             {likesCount === 1
               ? `${likedBy[0].username} curtiu`
               : likedBy.length <= likesCount && likedBy.length <= 5
@@ -214,7 +214,7 @@ const LogGroupCard = ({ entry, currentUser, onReply, onLike }: LogGroupCardProps
       {showReplies && (
         <div className="border-t" style={{ borderColor: 'var(--border)' }}>
           {loadingReplies ? (
-            <div className="p-4 text-base text-white/30 text-center">Carregando...</div>
+            <div className="p-4 text-sm text-white/30 text-center">Carregando...</div>
           ) : (
             <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
               {replies.map(reply => (
@@ -224,7 +224,7 @@ const LogGroupCard = ({ entry, currentUser, onReply, onLike }: LogGroupCardProps
                       {getAvatar(reply.avatar_url) ? (
                         <img src={getAvatar(reply.avatar_url)!} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-base font-bold" style={{ background: 'var(--accent)', color: '#000' }}>
+                        <div className="w-full h-full flex items-center justify-center text-sm font-bold" style={{ background: 'var(--accent)', color: '#000' }}>
                           {reply.username.charAt(0).toUpperCase()}
                         </div>
                       )}
@@ -232,15 +232,15 @@ const LogGroupCard = ({ entry, currentUser, onReply, onLike }: LogGroupCardProps
                   </Link>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <Link to={`/profile/${reply.username}`} className="text-base font-bold text-white hover:underline">{reply.username}</Link>
-                      <span className="text-base text-white/25">{timeAgo(reply.created_at)}</span>
+                      <Link to={`/profile/${reply.username}`} className="text-sm font-bold text-white hover:underline">{reply.username}</Link>
+                      <span className="text-sm text-white/25">{timeAgo(reply.created_at)}</span>
                     </div>
-                    <p className="text-base text-white/70 mt-0.5 whitespace-pre-wrap break-words"><HashtagText text={reply.content} /></p>
+                    <p className="text-sm text-white/70 mt-0.5 whitespace-pre-wrap break-words"><HashtagText text={reply.content} /></p>
                   </div>
                 </div>
               ))}
               {replies.length === 0 && (
-                <div className="p-4 text-base text-white/30 text-center">Nenhuma resposta ainda</div>
+                <div className="p-4 text-sm text-white/30 text-center">Nenhuma resposta ainda</div>
               )}
             </div>
           )}
@@ -250,7 +250,7 @@ const LogGroupCard = ({ entry, currentUser, onReply, onLike }: LogGroupCardProps
               {getAvatar(currentUser.avatar_url) ? (
                 <img src={getAvatar(currentUser.avatar_url)!} alt="" className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-base font-bold" style={{ background: 'var(--accent)', color: '#000' }}>
+                <div className="w-full h-full flex items-center justify-center text-sm font-bold" style={{ background: 'var(--accent)', color: '#000' }}>
                   {currentUser.username.charAt(0).toUpperCase()}
                 </div>
               )}
@@ -260,7 +260,7 @@ const LogGroupCard = ({ entry, currentUser, onReply, onLike }: LogGroupCardProps
               onChange={(e) => setReplyText(e.target.value.slice(0, 280))}
               placeholder="Responda..."
               rows={1}
-              className="flex-1 bg-[var(--mdf-surface)] border border-white/10 focus:border-[var(--accent)] outline-none rounded-lg px-3 py-1.5 text-base text-white placeholder:text-white/25 resize-none transition-colors"
+              className="flex-1 bg-[var(--mdf-surface)] border border-white/10 focus:border-[var(--accent)] outline-none rounded-lg px-3 py-1.5 text-sm text-white placeholder:text-white/25 resize-none transition-colors"
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleReply(); } }}
             />
             <button
