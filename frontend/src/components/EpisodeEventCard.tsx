@@ -97,7 +97,7 @@ const EpisodeEventCard = ({ event, currentUser, onReply, onLike, onDelete }: Epi
               {avatarUrl ? (
                 <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-xs font-bold" style={{ background: 'var(--accent)', color: '#000' }}>
+                <div className="w-full h-full flex items-center justify-center text-base font-bold" style={{ background: 'var(--accent)', color: '#000' }}>
                   {event.user.username.charAt(0).toUpperCase()}
                 </div>
               )}
@@ -105,7 +105,7 @@ const EpisodeEventCard = ({ event, currentUser, onReply, onLike, onDelete }: Epi
           </Link>
 
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 text-sm mb-2">
+            <div className="flex items-center gap-1.5 text-base mb-2">
               <Link to={`/profile/${event.user.username}`} className="font-bold text-white hover:underline">{event.user.username}</Link>
               <span className="text-white/40">{description}</span>
               <span className="text-white/40">{meta.emoji}</span>
@@ -123,8 +123,8 @@ const EpisodeEventCard = ({ event, currentUser, onReply, onLike, onDelete }: Epi
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-white/80 truncate">{event.media_item.title}</div>
-                  <div className="text-[10px] text-white/30 mt-0.5">{epLabel}</div>
+                  <div className="text-base font-semibold text-white/80 truncate">{event.media_item.title}</div>
+                  <div className="text-base text-white/30 mt-0.5">{epLabel}</div>
                 </div>
               </div>
             </Link>
@@ -137,10 +137,10 @@ const EpisodeEventCard = ({ event, currentUser, onReply, onLike, onDelete }: Epi
                   </div>
                 )}
                 {event.review_text && (
-                  <div className="text-sm text-white/60 leading-relaxed">
+                  <div className="text-base text-white/60 leading-relaxed">
                     <HashtagText text={displayReview || ''} />
                     {reviewTruncated && (
-                      <button onClick={() => setExpandedReview(!expandedReview)} className="text-[10px] ml-1 hover:underline" style={{ color: 'var(--accent)' }}>
+                      <button onClick={() => setExpandedReview(!expandedReview)} className="text-base ml-1 hover:underline" style={{ color: 'var(--accent)' }}>
                         {expandedReview ? 'Ver menos' : 'Ver mais'}
                       </button>
                     )}
@@ -154,13 +154,13 @@ const EpisodeEventCard = ({ event, currentUser, onReply, onLike, onDelete }: Epi
 
       {/* Actions bar */}
       <div className="px-4 py-2 flex items-center gap-4 border-t" style={{ borderColor: 'var(--border)' }}>
-        <button onClick={toggleReplies} className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition-colors">
+        <button onClick={toggleReplies} className="flex items-center gap-1.5 text-base text-white/40 hover:text-white/70 transition-colors">
           <MessageCircle size={14} />
           {(event.replies_count || 0) > 0 ? `${event.replies_count} resposta${(event.replies_count || 0) > 1 ? 's' : ''}` : 'Responder'}
         </button>
         <button
           onClick={() => onLike(numericId)}
-          className="flex items-center gap-1.5 text-xs transition-colors"
+          className="flex items-center gap-1.5 text-base transition-colors"
           style={{ color: event.is_liked ? 'var(--accent)' : 'rgba(255,255,255,0.4)' }}
         >
           <ThumbsUp size={14} fill={event.is_liked ? 'currentColor' : 'none'} />
@@ -187,7 +187,7 @@ const EpisodeEventCard = ({ event, currentUser, onReply, onLike, onDelete }: Epi
                   {liker.avatar_url ? (
                     <img src={imageUrl(liker.avatar_url) || ''} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-[7px] font-bold" style={{ background: 'var(--accent)', color: '#000' }}>
+                    <div className="w-full h-full flex items-center justify-center text-base font-bold" style={{ background: 'var(--accent)', color: '#000' }}>
                       {liker.username.charAt(0).toUpperCase()}
                     </div>
                   )}
@@ -195,7 +195,7 @@ const EpisodeEventCard = ({ event, currentUser, onReply, onLike, onDelete }: Epi
               </Link>
             ))}
           </div>
-          <span className="text-[10px] text-white/30">
+          <span className="text-base text-white/30">
             {likedBy.length === 1 ? `${likedBy[0].username} curtiu` : `${likedBy[0].username} e mais ${likedBy.length - 1} curtiram`}
           </span>
         </div>
@@ -205,9 +205,9 @@ const EpisodeEventCard = ({ event, currentUser, onReply, onLike, onDelete }: Epi
       {showReplies && (
         <div className="border-t px-4 py-3 space-y-2" style={{ borderColor: 'var(--border)' }}>
           {loadingReplies ? (
-            <div className="text-[10px] text-white/30">Carregando...</div>
+            <div className="text-base text-white/30">Carregando...</div>
           ) : replies.length === 0 ? (
-            <div className="text-[10px] text-white/20">Nenhuma resposta</div>
+            <div className="text-base text-white/20">Nenhuma resposta</div>
           ) : (
             replies.map(r => (
               <div key={r.id} className="flex gap-2">
@@ -216,17 +216,17 @@ const EpisodeEventCard = ({ event, currentUser, onReply, onLike, onDelete }: Epi
                     {r.avatar_url ? (
                       <img src={imageUrl(r.avatar_url) || ''} alt="" className="w-full h-full object-cover" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-[8px] font-bold" style={{ background: 'var(--accent)', color: '#000' }}>
+                      <div className="w-full h-full flex items-center justify-center text-base font-bold" style={{ background: 'var(--accent)', color: '#000' }}>
                         {r.username.charAt(0).toUpperCase()}
                       </div>
                     )}
                   </div>
                 </Link>
                 <div className="flex-1 min-w-0">
-                  <span className="text-[10px] font-semibold mr-1" style={{ color: 'var(--accent)' }}>{r.username}</span>
-                  <span className="text-[10px] text-white/60">{r.content}</span>
+                  <span className="text-base font-semibold mr-1" style={{ color: 'var(--accent)' }}>{r.username}</span>
+                  <span className="text-base text-white/60">{r.content}</span>
                 </div>
-                <span className="text-[10px] text-white/20 flex-shrink-0">{timeAgo(r.created_at)}</span>
+                <span className="text-base text-white/20 flex-shrink-0">{timeAgo(r.created_at)}</span>
               </div>
             ))
           )}
@@ -236,7 +236,7 @@ const EpisodeEventCard = ({ event, currentUser, onReply, onLike, onDelete }: Epi
               onChange={e => setReplyText(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleReply()}
               placeholder="Responder..."
-              className="flex-1 bg-white/5 rounded-full px-3 py-1.5 text-[10px] text-white placeholder:text-white/20 outline-none border-none"
+              className="flex-1 bg-white/5 rounded-full px-3 py-1.5 text-base text-white placeholder:text-white/20 outline-none border-none"
             />
             <button onClick={handleReply} disabled={!replyText.trim() || sendingReply} className="p-1.5 rounded-full transition-colors" style={{ color: 'var(--accent)' }}>
               <Send size={10} />
