@@ -224,7 +224,7 @@ const EpisodeEventCard = ({ event, currentUser, onReply, onLike, onDelete }: Epi
                 </Link>
                 <div className="flex-1 min-w-0">
                   <span className="text-[10px] font-semibold mr-1" style={{ color: 'var(--accent)' }}>{r.username}</span>
-                  <span className="text-[10px] text-white/60">{r.content}</span>
+                  <span className="text-sm text-white/60">{r.content}</span>
                 </div>
                 <span className="text-[9px] text-white/20 flex-shrink-0">{timeAgo(r.created_at)}</span>
               </div>

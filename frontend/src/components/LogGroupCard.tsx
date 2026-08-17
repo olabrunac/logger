@@ -148,7 +148,7 @@ const LogGroupCard = ({ entry, currentUser, onReply, onLike }: LogGroupCardProps
             {clamped && (
               <button
                 onClick={() => setExpanded(!expanded)}
-                className="mt-2 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide transition-colors"
+                className="mt-2 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide transition-colors"
                 style={{ color: 'var(--accent)' }}
               >
                 {expanded ? 'Ver menos' : `Ver mais ${entry.group_count} ${meta.singular.toLowerCase()}s`}
@@ -235,7 +235,7 @@ const LogGroupCard = ({ entry, currentUser, onReply, onLike }: LogGroupCardProps
                       <Link to={`/profile/${reply.username}`} className="text-xs font-bold text-white hover:underline">{reply.username}</Link>
                       <span className="text-[10px] text-white/25">{timeAgo(reply.created_at)}</span>
                     </div>
-                    <p className="text-xs text-white/70 mt-0.5 whitespace-pre-wrap break-words"><HashtagText text={reply.content} /></p>
+                    <p className="text-sm text-white/70 mt-0.5 whitespace-pre-wrap break-words"><HashtagText text={reply.content} /></p>
                   </div>
                 </div>
               ))}

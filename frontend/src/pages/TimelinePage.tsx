@@ -298,7 +298,10 @@ const TimelinePage = ({ user }: TimelinePageProps) => {
 
   const merged: FeedItem[] = [
     ...posts.map(p => ({ ...p, _sortDate: parseServerDate(p.created_at).getTime() } as FeedItem & { _sortDate: number })),
-    ...entries.filter(e => e.log_date).map(e => ({ ...e, _sortDate: parseServerDate(e.log_date!).getTime() } as FeedItem & { _sortDate: number })),
+    ...entries.filter(e => e.log_date).map(e => {
+      const sortDate = (e as EpisodeTimelineEvent).created_at || e.log_date!;
+      return { ...e, _sortDate: parseServerDate(sortDate).getTime() } as FeedItem & { _sortDate: number };
+    }),
   ].sort((a, b) => (b as FeedItem & { _sortDate: number })._sortDate - (a as FeedItem & { _sortDate: number })._sortDate);
 
   return (
