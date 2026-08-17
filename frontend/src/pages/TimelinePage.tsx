@@ -382,7 +382,7 @@ const TimelinePage = ({ user }: TimelinePageProps) => {
             ) : item._type === 'episode_event' ? (
               <EpisodeEventCard key={`ep-${item.id}`} event={item as EpisodeTimelineEvent} currentUser={user} onReply={handleEpEventReply} onLike={handleEpEventLike} />
             ) : (item as TimelineEntry).group_count ? (
-              <LogGroupCard key={`group-${(item as TimelineEntry).id}`} entry={item as TimelineEntry} />
+              <LogGroupCard key={`group-${(item as TimelineEntry).id}`} entry={item as TimelineEntry} currentUser={user} onReply={handleLogReply} onLike={handleLogLike} />
             ) : (
               <LogCard key={`log-${item.id}`} entry={item as TimelineEntry} currentUser={user} onReply={handleLogReply} onLike={handleLogLike} />
             )
