@@ -3,6 +3,7 @@ import type { User } from '../types';
 import { formatHours } from '../utils';
 import {
   getImportJob,
+  cancelImportJob,
   letterboxdPreview,
   letterboxdImport,
   steamPreview,
@@ -150,9 +151,12 @@ const ImportPage = ({ user }: ImportPageProps) => {
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pollCancelledRef = useRef(false);
+  const jobIdRef = useRef<string | null>(null);
+  const cancellingRef = useRef(false);
+  const [cancelling, setCancelling] = useState(false);
 
   const importing = phase === 'importing';
-  usePrompt(importing ? 'Uma importação está em andamento. Sair da página interrompe o acompanhamento do progresso. Deseja continuar?' : null);
+  usePrompt(importing ? 'Uma importação está em andamento. Sair irá cancelar a importação. Deseja continuar?' : null);
 
   useEffect(() => {
     if (!importing) return;
@@ -167,6 +171,10 @@ const ImportPage = ({ user }: ImportPageProps) => {
   useEffect(() => {
     return () => {
       pollCancelledRef.current = true;
+      if (jobIdRef.current && !cancellingRef.current) {
+        cancellingRef.current = true;
+        cancelImportJob(jobIdRef.current).catch(() => {});
+      }
     };
   }, []);
 
@@ -332,6 +340,8 @@ const ImportPage = ({ user }: ImportPageProps) => {
     setPhase('importing');
     setImportProgress({ current: 0, total: selected.length, etaSeconds: null });
     setError(null);
+    setCancelling(false);
+    cancellingRef.current = false;
     try {
       let res;
       const cleanItems = selected.map(({ selected: _, ...rest }) => rest);
@@ -351,12 +361,32 @@ const ImportPage = ({ user }: ImportPageProps) => {
         setTimeout(() => setPhase('done'), 600);
         return;
       }
+      jobIdRef.current = jobId;
       await pollJob(jobId, selected.length);
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { detail?: string } } };
       setError(axiosErr.response?.data?.detail || 'Erro ao importar.');
       setPhase('preview');
+    } finally {
+      jobIdRef.current = null;
     }
+  };
+
+  const handleCancel = async () => {
+    const jobId = jobIdRef.current;
+    if (!jobId || cancellingRef.current) return;
+    cancellingRef.current = true;
+    setCancelling(true);
+    pollCancelledRef.current = true;
+    try {
+      await cancelImportJob(jobId);
+    } catch {
+      // ignore
+    }
+    setResult({ created: 0, updated: 0, skipped: 0, total: 0, imported_items: [], skipped_items: [] });
+    setImportProgress(prev => ({ ...prev, etaSeconds: 0 }));
+    setPhase('done');
+    setCancelling(false);
   };
 
   const pollJob = async (jobId: string, total: number) => {
@@ -372,6 +402,12 @@ const ImportPage = ({ user }: ImportPageProps) => {
       if (job.status === 'done') {
         setResult(job.result);
         setImportProgress({ current: job.total ?? total, total: job.total ?? total, etaSeconds: 0 });
+        setTimeout(() => setPhase('done'), 600);
+        return;
+      }
+      if (job.status === 'cancelled') {
+        setResult(job.result);
+        setImportProgress(prev => ({ ...prev, etaSeconds: 0 }));
         setTimeout(() => setPhase('done'), 600);
         return;
       }
@@ -670,6 +706,19 @@ const ImportPage = ({ user }: ImportPageProps) => {
               />
             </div>
           </div>
+          <button
+            onClick={handleCancel}
+            disabled={cancelling}
+            className="px-5 py-2.5 rounded-xl text-sm font-bold transition-all"
+            style={{
+              background: 'rgba(248,113,113,0.15)',
+              color: '#f87171',
+              border: '1px solid rgba(248,113,113,0.3)',
+              opacity: cancelling ? 0.5 : 1,
+            }}
+          >
+            {cancelling ? 'Cancelando...' : 'Cancelar importacao'}
+          </button>
         </div>
       )}
 

@@ -328,6 +328,8 @@ def _run_letterboxd_import(job, db, user_id: int, items: list) -> dict:
     media_crud = CRUDMediaItem(MediaItem)
 
     for idx, item in enumerate(items):
+        if job.cancelled:
+            break
         title = item.get("title", "").strip()
         if not title:
             skipped += 1
@@ -614,6 +616,8 @@ def _run_steam_import(job, db, user_id: int, resolved_steam_id: str, items: list
                 cover_map[appid] = None
 
     for idx, item in enumerate(items):
+        if job.cancelled:
+            break
         title = item.get("title", "").strip()
         if not title:
             skipped += 1
@@ -942,6 +946,8 @@ def _run_trakt_import(job, db, user_id: int, items: list) -> dict:
     media_crud = CRUDMediaItem(MediaItem)
 
     for idx, item in enumerate(items):
+        if job.cancelled:
+            break
         title = item.get("title", "").strip()
         if not title:
             skipped += 1
@@ -1446,6 +1452,8 @@ def _run_tvtime_import(job, db, user_id: int, selected_titles: set, data: dict, 
     media_crud = CRUDMediaItem(MediaItem)
 
     for show_name, show_data in data["shows"].items():
+        if job.cancelled:
+            break
         processed += 1
         job.progress(current=processed, created=created, skipped=skipped, updated=updated)
         if show_name.lower().strip() not in selected_titles:
@@ -1631,6 +1639,8 @@ def _run_tvtime_import(job, db, user_id: int, selected_titles: set, data: dict, 
             db.add(log)
 
     for movie in data["movies"]:
+        if job.cancelled:
+            break
         processed += 1
         job.progress(current=processed, created=created, skipped=skipped, updated=updated)
         if movie["title"].lower().strip() not in selected_titles:
@@ -1725,6 +1735,8 @@ def _run_tvtime_import(job, db, user_id: int, selected_titles: set, data: dict, 
             db.add(log)
 
     for wl_name, wl_data in data.get("wishlist_series", {}).items():
+        if job.cancelled:
+            break
         processed += 1
         job.progress(current=processed, created=created, skipped=skipped, updated=updated)
         if wl_name.lower().strip() not in selected_titles:
@@ -1800,6 +1812,8 @@ def _run_tvtime_import(job, db, user_id: int, selected_titles: set, data: dict, 
                 pass
 
     for wl_movie in data.get("wishlist_movies", []):
+        if job.cancelled:
+            break
         processed += 1
         job.progress(current=processed, created=created, skipped=skipped, updated=updated)
         if wl_movie["title"].lower().strip() not in selected_titles:
@@ -1903,3 +1917,11 @@ def get_import_job(job_id: str):
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     return job.to_dict()
+
+
+@router.post("/jobs/{job_id}/cancel")
+def cancel_import_job(job_id: str):
+    from app.services.import_jobs import cancel_job
+    if not cancel_job(job_id):
+        raise HTTPException(status_code=404, detail="Job not found or not running")
+    return {"status": "cancelled"}

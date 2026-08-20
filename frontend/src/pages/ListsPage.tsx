@@ -323,7 +323,7 @@ const ListsPage = ({ currentUser }: ListsPageProps) => {
           ) : (
             <>
               <div className="hidden lg:grid grid-cols-11 gap-2">
-                {(expanded ? g.items : g.items.slice(0, 20)).map((l) => (
+                {(expanded ? g.items : g.items.slice(0, 33)).map((l) => (
                   <YgpCard key={l.id} log={l} />
                 ))}
               </div>
@@ -342,7 +342,6 @@ const ListsPage = ({ currentUser }: ListsPageProps) => {
 
       {(() => {
         const wishlistExpanded = expandedSections['wishlist'] === true;
-        const visibleWishlist = wishlistExpanded ? filteredWishlist : filteredWishlist.slice(0, 20);
         return (
         <section>
           <div className="flex items-baseline justify-between mb-3">
@@ -362,7 +361,7 @@ const ListsPage = ({ currentUser }: ListsPageProps) => {
           ) : (
             <>
               <div className="hidden lg:grid grid-cols-11 gap-2">
-                {visibleWishlist.map((l) => (
+                {(wishlistExpanded ? filteredWishlist : filteredWishlist.slice(0, 33)).map((l) => (
                   <YgpCard key={l.id} log={l} actions={
                     isOwnProfile ? (
                     <>
@@ -380,7 +379,7 @@ const ListsPage = ({ currentUser }: ListsPageProps) => {
                 ))}
               </div>
               <div className="scrollbar-hide -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 lg:hidden">
-                {visibleWishlist.map((l) => (
+                {(wishlistExpanded ? filteredWishlist : filteredWishlist.slice(0, 20)).map((l) => (
                   <div key={l.id} className="w-[28%] shrink-0">
                     <YgpCard log={l} actions={
                       isOwnProfile ? (
@@ -473,7 +472,7 @@ const ListsPage = ({ currentUser }: ListsPageProps) => {
                     ) : (
                       <>
                         <div className="hidden lg:grid grid-cols-11 gap-2">
-                          {(expandedSections[`list-${cl.id}`] === true ? filteredItems : filteredItems.slice(0, 20)).map((item) => {
+                          {(expandedSections[`list-${cl.id}`] === true ? filteredItems : filteredItems.slice(0, 33)).map((item) => {
                           if (!item.media_item) return null;
                           return (
                             <YgpCard key={item.id} log={{ id: item.id, media_item: item.media_item }} actions={

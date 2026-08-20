@@ -167,6 +167,10 @@ export const getImportJob = (jobId: string) => {
   return api.get(`/import/jobs/${jobId}`);
 };
 
+export const cancelImportJob = (jobId: string) => {
+  return api.post(`/import/jobs/${jobId}/cancel`);
+};
+
 export const letterboxdPreview = (formData: FormData) => {
   return uploadApi.post('/import/letterboxd/preview', formData);
 };

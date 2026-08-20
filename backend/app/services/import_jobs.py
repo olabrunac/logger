@@ -8,7 +8,7 @@ class ImportJob:
     def __init__(self, source: str, total: int, baseline_seconds_per_item: float):
         self.id = uuid.uuid4().hex[:8]
         self.source = source
-        self.status = "running"  # running | done | error
+        self.status = "running"  # running | done | error | cancelled
         self.total = total
         self.baseline_seconds_per_item = baseline_seconds_per_item
         self.current = 0
@@ -22,6 +22,16 @@ class ImportJob:
         self.result: Optional[dict] = None
         self.started_at = time.time()
         self._lock = threading.Lock()
+        self._cancelled = threading.Event()
+
+    @property
+    def cancelled(self) -> bool:
+        return self._cancelled.is_set()
+
+    def cancel(self):
+        self._cancelled.set()
+        with self._lock:
+            self.status = "cancelled"
 
     def progress(
         self,
@@ -80,6 +90,7 @@ class ImportJob:
                 "error": self.error,
                 "result": self.result,
                 "eta_seconds": self.eta_seconds(),
+                "cancelled": self.cancelled,
             }
 
 
@@ -97,16 +108,20 @@ def start_job(source: str, total: int, baseline_seconds_per_item: float, fn: Cal
         db = SessionLocal()
         try:
             result = fn(job, db) or {}
-            # The per-item lists are collected on the job; surface them in the
-            # result dict so the frontend can render imported/skipped lists.
-            result.setdefault("imported_items", list(job.imported_items))
-            result.setdefault("skipped_items", list(job.skipped_items))
-            job.result = result
-            job.current = job.total
-            job.status = "done"
+            if not job.cancelled:
+                result.setdefault("imported_items", list(job.imported_items))
+                result.setdefault("skipped_items", list(job.skipped_items))
+                job.result = result
+                job.current = job.total
+                job.status = "done"
+            else:
+                result.setdefault("imported_items", list(job.imported_items))
+                result.setdefault("skipped_items", list(job.skipped_items))
+                job.result = result
         except Exception as e:
-            job.status = "error"
-            job.error = str(e)
+            if not job.cancelled:
+                job.status = "error"
+                job.error = str(e)
         finally:
             db.close()
 
@@ -117,6 +132,15 @@ def start_job(source: str, total: int, baseline_seconds_per_item: float, fn: Cal
 def get_job(job_id: str) -> Optional[ImportJob]:
     with JOBS_LOCK:
         return JOBS.get(job_id)
+
+
+def cancel_job(job_id: str) -> bool:
+    with JOBS_LOCK:
+        job = JOBS.get(job_id)
+    if job and job.status == "running":
+        job.cancel()
+        return True
+    return False
 
 
 def clean_old_jobs(max_age_seconds: int = 3600):
