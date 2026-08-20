@@ -600,7 +600,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
     );
   });
 
-  const renderGrid = (title: string, gridLogs: LogEntry[], sortByTitle = false, limit = 12, linkTo?: string) => {
+  const renderGrid = (title: string, gridLogs: LogEntry[], sortByTitle = false, limit = 11, linkTo?: string) => {
     let items = gridLogs;
     if (sortByTitle) {
       items = [...gridLogs].sort((a, b) => (a.media_item?.title || '').localeCompare(b.media_item?.title || '', 'pt-BR', { sensitivity: 'base', numeric: true }));
@@ -629,14 +629,14 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
       ? viewLogs.filter(l => isInGameLibrary(l))
       : viewLogs.filter(l => l.media_item.media_type === type && l.status === status);
     if (sectionLogs.length === 0) return null;
-    return renderGrid(`${label} ${singular}`, sectionLogs, status === 'library', 12, `/profile/${profileUser?.username}/${status}/${TYPE_META[type]?.slug}`);
+    return renderGrid(`${label} ${singular}`, sectionLogs, status === 'library', 11, `/profile/${profileUser?.username}/${status}/${TYPE_META[type]?.slug}`);
   };
 
   const renderAllType = (type: string) => {
     const meta = TYPE_META[type];
     const typeLogs = viewLogs.filter(l => l.media_item.media_type === type);
     if (typeLogs.length === 0) return null;
-    return renderGrid(`Todos ${meta?.label}`, typeLogs, true, 12, `/profile/${profileUser?.username}/all/${meta?.slug}`);
+    return renderGrid(`Todos ${meta?.label}`, typeLogs, true, 11, `/profile/${profileUser?.username}/all/${meta?.slug}`);
   };
 
   const renderCustomListsAll = () => ['game', 'movie', 'series', 'book'].map(type => {
@@ -710,7 +710,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
     reviews: renderReviews,
     posts: renderPosts,
     top_5: renderTop5All,
-    general_all: () => renderGrid('Geral', viewLogs, true, 12, `/profile/${profileUser?.username}/all/all`),
+    general_all: () => renderGrid('Geral', viewLogs, true, 11, `/profile/${profileUser?.username}/all/all`),
     custom_lists: renderCustomListsAll,
   };
 

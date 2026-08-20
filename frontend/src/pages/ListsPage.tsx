@@ -304,7 +304,7 @@ const ListsPage = ({ currentUser }: ListsPageProps) => {
 
       {grouped.map(g => {
         const expanded = expandedSections[`group-${g.key}`] === true;
-        const visibleItems = expanded ? g.items : g.items.slice(0, 12);
+        const visibleItems = expanded ? g.items : g.items.slice(0, 33);
         return (
         <section key={g.key}>
           <div className="flex items-baseline justify-between mb-3">
@@ -338,7 +338,7 @@ const ListsPage = ({ currentUser }: ListsPageProps) => {
 
       {(() => {
         const wishlistExpanded = expandedSections['wishlist'] === true;
-        const visibleWishlist = wishlistExpanded ? filteredWishlist : filteredWishlist.slice(0, 12);
+        const visibleWishlist = wishlistExpanded ? filteredWishlist : filteredWishlist.slice(0, 33);
         return (
         <section>
           <div className="flex items-baseline justify-between mb-3">
@@ -451,7 +451,7 @@ const ListsPage = ({ currentUser }: ListsPageProps) => {
                     ) : (
                       <>
                         <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
-                          {(expandedSections[`list-${cl.id}`] === true ? filteredItems : filteredItems.slice(0, 12)).map((item, i) => {
+                          {(expandedSections[`list-${cl.id}`] === true ? filteredItems : filteredItems.slice(0, 33)).map((item, i) => {
                           if (!item.media_item) return null;
                           return (
                             <div key={item.id} className={i >= 7 ? 'hidden sm:block' : undefined}>
