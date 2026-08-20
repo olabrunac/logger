@@ -168,7 +168,7 @@ const MobileNav = ({ user, onLogout, refreshUnreadTrigger, onOpenAnalytics }: Mo
         <div className="border-t px-5 py-4 text-[10px] text-white/25 safe-bottom flex flex-col gap-3" style={{ borderColor: 'var(--border)' }}>
           <LayoutModeToggle />
           <div className="flex items-center justify-between gap-2">
-            <span>Logger v1.0</span>
+            <span>Logger v1.1</span>
             <span className="text-white/15">Powered by IGDB, TMDB</span>
           </div>
         </div>

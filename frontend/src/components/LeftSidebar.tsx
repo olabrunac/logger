@@ -48,7 +48,7 @@ const LeftSidebar = ({ user, onLogout, refreshUnreadTrigger }: LeftSidebarProps)
 
         <div className="px-3 py-3 border-t text-[10px] text-white/20 space-y-3" style={{ borderColor: 'var(--border)' }}>
           <LayoutModeToggle />
-          <div>Logger v1.0</div>
+          <div>Logger v1.1</div>
         </div>
       </aside>
     );
