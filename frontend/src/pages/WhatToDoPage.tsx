@@ -6,6 +6,7 @@ import type { IncompleteEntry, WhatToDoResponse } from '../types/suggestions';
 import { TYPE_META } from '../constants/designSystem';
 import { Star, Heart, PlayCircle, Gamepad2, BookOpen, Sparkles, ListChecks } from 'lucide-react';
 import { getApiId, getMediaUrl, imageUrl } from '../utils';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 interface WhatToDoPageProps {
   user: User;
@@ -80,6 +81,7 @@ const STATUS_LABELS: Record<string, string> = {
 function PosterTile({ item }: { item: WhatToDoResponse['suggestions'][number] }) {
   const meta = TYPE_META[item.media.media_type] || TYPE_META.game;
   const apiId = getApiId(item.media);
+  const isMobile = useIsMobile();
   return (
     <Link
       key={item.media.id ?? apiId}
@@ -93,13 +95,23 @@ function PosterTile({ item }: { item: WhatToDoResponse['suggestions'][number] })
         ) : (
           <div className="w-full h-full flex items-center justify-center text-3xl">{meta.emoji}</div>
         )}
-        <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide" style={{ background: 'rgba(10,12,16,0.8)', color: meta.color }}>
-          {meta.singular}
-        </span>
-        {item.in_wishlist && (
-          <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold flex items-center gap-0.5" style={{ background: 'rgba(168,85,247,0.9)', color: '#fff' }}>
-            <Star size={9} className="fill-current" /> Na lista
+        {isMobile ? (
+          <div className="absolute bottom-0 left-0 right-0 h-[3px]" style={{ background: meta.color }} />
+        ) : (
+          <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide" style={{ background: 'rgba(10,12,16,0.8)', color: meta.color }}>
+            {meta.singular}
           </span>
+        )}
+        {item.in_wishlist && (
+          isMobile ? (
+            <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: 'rgba(168,85,247,0.9)' }}>
+              <Star size={10} className="text-white fill-current" />
+            </span>
+          ) : (
+            <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold flex items-center gap-0.5" style={{ background: 'rgba(168,85,247,0.9)', color: '#fff' }}>
+              <Star size={9} className="fill-current" /> Na lista
+            </span>
+          )
         )}
         {item.match_genres.length > 0 && (
           <div className="absolute bottom-1.5 left-1.5 right-1.5 flex flex-wrap gap-1">
