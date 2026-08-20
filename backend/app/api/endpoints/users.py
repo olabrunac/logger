@@ -463,9 +463,13 @@ def get_timeline(
     if before:
         try:
             before_dt = datetime.datetime.strptime(before, "%Y-%m-%d")
-            group_q = group_q.filter(LogEntry.created_at < before_dt)
         except ValueError:
-            pass
+            try:
+                before_dt = datetime.datetime.fromisoformat(before)
+            except ValueError:
+                before_dt = None
+        if before_dt:
+            group_q = group_q.filter(LogEntry.created_at < before_dt)
     group_keys = (
         group_q
         .group_by(LogEntry.user_id, MediaItem.media_type, sa_func.date(LogEntry.created_at))
