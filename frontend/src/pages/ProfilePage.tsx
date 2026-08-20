@@ -7,7 +7,6 @@ import ProfileHero from '../components/ProfileHero';
 import MediaTypeProfilePage from './MediaTypeProfilePage';
 import YgpCard from '../components/sections/YgpCard';
 import SectionHeader from '../components/sections/SectionHeader';
-import BadgesSection from '../components/sections/BadgesSection';
 import LayoutEditorModal from '../components/sections/LayoutEditorModal';
 import PostCard from '../components/PostCard';
 import HashtagText from '../components/HashtagText';
@@ -874,10 +873,6 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
             if (!renderer) return null;
             return <div key={section.id}>{renderer()}</div>;
           })}
-
-          <div className="lg:hidden">
-            <BadgesSection userId={profileUser.id} title="Medalhas" />
-          </div>
 
           {editingLayout && (
             <LayoutEditorModal
