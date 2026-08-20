@@ -21,6 +21,7 @@ import LeftSidebar from './components/LeftSidebar';
 import RightSidebar from './components/RightSidebar';
 import MobileNav from './components/MobileNav';
 import FloatingLogButton from './components/FloatingLogButton';
+import { ChevronRight } from 'lucide-react';
 import type { User } from './types';
 
 function MediaTypeRedirect() {
@@ -54,6 +55,11 @@ function AppInner() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [viewedUser, setViewedUser] = useState<User | null>(null);
   const [unreadTrigger, setUnreadTrigger] = useState(0);
+  const [mobileAnalyticsOpen, setMobileAnalyticsOpen] = useState(false);
+
+  useEffect(() => {
+    setMobileAnalyticsOpen(false);
+  }, [location.pathname]);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -148,7 +154,7 @@ function AppInner() {
 
   return (
     <div style={accentStyle} className="min-h-screen flex">
-        {!isLoginRoute && <MobileNav user={user} onLogout={handleLogout} refreshUnreadTrigger={unreadTrigger} />}
+        {!isLoginRoute && <MobileNav user={user} onLogout={handleLogout} refreshUnreadTrigger={unreadTrigger} onOpenAnalytics={isMainProfileRoute ? () => setMobileAnalyticsOpen(true) : undefined} />}
         {!isLoginRoute && <LeftSidebar user={user} onLogout={handleLogout} refreshUnreadTrigger={unreadTrigger} />}
         {user && isMainProfileRoute && !isMediaDetailRoute && (
           <RightSidebar
@@ -156,6 +162,33 @@ function AppInner() {
             isCollapsed={isSidebarCollapsed}
             onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           />
+        )}
+
+        {user && isMainProfileRoute && !isMediaDetailRoute && (
+          <>
+            <div
+              className={`fixed inset-0 z-[60] bg-black/60 transition-opacity duration-300 lg:hidden ${mobileAnalyticsOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+              onClick={() => setMobileAnalyticsOpen(false)}
+            />
+            <div className={`fixed inset-y-0 right-0 z-[61] flex w-[min(340px,85vw)] flex-col border-l bg-[var(--mdf-bg)] transition-transform duration-300 lg:hidden ${mobileAnalyticsOpen ? 'translate-x-0' : 'translate-x-full'}`}
+              style={{ borderColor: 'var(--border)' }}
+            >
+              <div className="flex items-center justify-between px-4 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] pb-3 border-b" style={{ borderColor: 'var(--border)' }}>
+                <h3 className="font-display font-bold text-base">Analytics</h3>
+                <button onClick={() => setMobileAnalyticsOpen(false)} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors text-white/60">
+                  <ChevronRight size={20} />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                <RightSidebar
+                  user={viewedUser || user}
+                  isCollapsed={false}
+                  onToggleCollapse={() => {}}
+                  embedded
+                />
+              </div>
+            </div>
+          </>
         )}
         <main
           className={`flex-1 min-w-0 overflow-y-auto transition-all app-main px-4 lg:px-8 ${isLoginRoute ? '' : 'pt-[calc(3rem+env(safe-area-inset-top,0px))] lg:pt-8'} pb-24 lg:pb-8`}

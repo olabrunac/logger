@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
-import { Home, Clock, Bell, Calendar, List, BookOpen, MessageSquare, Search, Settings, LogOut, LogIn, Menu, Compass } from 'lucide-react';
+import { Home, Clock, Bell, Calendar, List, BookOpen, MessageSquare, Search, Settings, LogOut, LogIn, Menu, Compass, BarChart3 } from 'lucide-react';
 import { getUnreadCount } from '../services/api';
 import type { User as UserType } from '../types';
 import { imageUrl } from '../utils';
@@ -10,9 +10,10 @@ interface MobileNavProps {
   user: UserType | null;
   onLogout: () => void;
   refreshUnreadTrigger?: number;
+  onOpenAnalytics?: () => void;
 }
 
-const MobileNav = ({ user, onLogout, refreshUnreadTrigger }: MobileNavProps) => {
+const MobileNav = ({ user, onLogout, refreshUnreadTrigger, onOpenAnalytics }: MobileNavProps) => {
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const location = useLocation();
@@ -76,18 +77,25 @@ const MobileNav = ({ user, onLogout, refreshUnreadTrigger }: MobileNavProps) => 
 
         <Link to="/" className="font-display font-black tracking-[1.5px] text-xs" style={{ color: 'var(--accent)' }}>LOGGER</Link>
 
-        {user ? (
-          <Link to="/notifications" className="h-11 w-11 flex items-center justify-center relative" aria-label="Notificações">
-            <Bell size={20} />
-            {unreadCount > 0 && (
-              <span className="absolute top-2 right-2 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-bold text-white flex items-center justify-center" style={{ background: '#ef4444' }}>
-                {unreadCount > 99 ? '99+' : unreadCount}
-              </span>
-            )}
-          </Link>
-        ) : (
-          <div className="h-11 w-11" />
-        )}
+        <div className="flex items-center">
+          {onOpenAnalytics && (
+            <button onClick={onOpenAnalytics} className="h-11 w-11 flex items-center justify-center" aria-label="Analytics">
+              <BarChart3 size={20} />
+            </button>
+          )}
+          {user ? (
+            <Link to="/notifications" className="h-11 w-11 flex items-center justify-center relative" aria-label="Notificações">
+              <Bell size={20} />
+              {unreadCount > 0 && (
+                <span className="absolute top-2 right-2 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-bold text-white flex items-center justify-center" style={{ background: '#ef4444' }}>
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </Link>
+          ) : (
+            <div className="h-11 w-11" />
+          )}
+        </div>
       </header>
 
       {/* Overlay */}
