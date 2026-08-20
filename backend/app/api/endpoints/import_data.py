@@ -813,10 +813,10 @@ def _run_steam_import(job, db, user_id: int, resolved_steam_id: str, items: list
             except Exception as e:
                 print(f"Error importing achievements for {title} (appid {appid}): {e}")
 
-        # Games with 100% achievements unlocked are completed
+        # Games with 100% achievements unlocked are platinated
         total_ach = schema_total if schema_total > 0 else player_total
         if total_ach > 0 and unlocked_count >= total_ach:
-            log.status = LogStatus.COMPLETED
+            log.status = LogStatus.PLATINATED
             db.add(log)
 
         # Games with <2h and no achievements go to library (apenas na criação;

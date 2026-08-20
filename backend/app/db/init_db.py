@@ -171,6 +171,19 @@ def init_db() -> None:
         )
     )
 
+    # Auto-upgrade completed games with 100% achievements to platinated
+    _exec("""
+        UPDATE logentry SET status = 'platinated' WHERE id IN (
+            SELECT le.id FROM logentry le
+            JOIN mediaitem mi ON mi.id = le.media_item_id
+            JOIN achievement a ON a.log_id = le.id
+            WHERE mi.media_type = 'game' AND le.status = 'completed'
+            GROUP BY le.id
+            HAVING COUNT(a.id) > 0
+               AND SUM(CASE WHEN a.unlocked = 1 THEN 1 ELSE 0 END) = COUNT(a.id)
+        )
+    """)
+
     # Seed admin user
     admin = crud.user.get_by_username(db, username="admin")
     if not admin:

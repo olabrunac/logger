@@ -29,6 +29,7 @@ const ALL_MEDIA_TYPES = ['game', 'movie', 'series', 'book'] as const;
 const STATUS_GROUP_DEFS = [
   { status: 'in_progress', label: 'Em Progresso' },
   { status: 'completed', label: 'Finalizados' },
+  { status: 'platinated', label: 'Platinados' },
   { status: 'wishlist', label: 'Lista de Desejos' },
   { status: 'library', label: 'Biblioteca' },
   { status: 'dropped', label: 'Abandonados' },

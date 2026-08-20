@@ -42,6 +42,7 @@ const MEDIA_TYPE_URL_MAP: Record<string, string> = {
 const STATUS_SECTIONS = [
   { id: 'in_progress', label: 'Em Progresso', status: 'in_progress', emptyMsg: 'Nenhuma mídia em progresso.' },
   { id: 'completed', label: 'Finalizados', status: 'completed', emptyMsg: 'Nenhuma mídia finalizada.' },
+  { id: 'platinated', label: 'Platinados', status: 'platinated', emptyMsg: 'Nenhum platinado.' },
   { id: 'wishlist', label: 'Na Lista de Desejos', status: 'wishlist', emptyMsg: 'Nenhuma mídia na lista de desejos.' },
   { id: 'library', label: 'Na Biblioteca', status: 'library', emptyMsg: 'Nenhuma mídia na biblioteca.' },
   { id: 'dropped', label: 'Abandonados', status: 'dropped', emptyMsg: 'Nenhuma mídia abandonada.' },

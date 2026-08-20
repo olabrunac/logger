@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { LogStatus } from '../types';
 import type { MediaItem } from '../types/media';
-import { ChevronLeft, ChevronDown, ChevronUp, X, Check, Gamepad2, Film, Tv, Book, Flag, MessageCircle, Skull, Eye, Heart, Clock, Calendar, Star, EyeOff } from 'lucide-react';
+import { ChevronLeft, ChevronDown, ChevronUp, X, Check, Gamepad2, Film, Tv, Book, Flag, MessageCircle, Skull, Eye, Heart, Clock, Calendar, Star, EyeOff, Trophy } from 'lucide-react';
 import { TYPE_META } from '../constants/designSystem';
 import { hoursToInput, parseHoursInput } from '../utils';
 
@@ -17,6 +17,7 @@ const STATUS_CONFIG: Record<string, { options: { value: LogStatus; label: string
   game: {
     options: [
       { value: 'completed', label: 'Finalizado', icon: Flag, color: '#22c55e' },
+      { value: 'platinated', label: 'Platinado', icon: Trophy, color: '#fbbf24' },
       { value: 'in_progress', label: 'Jogando', icon: Gamepad2, color: '#3b82f6' },
       { value: 'wishlist', label: 'Pretendo Jogar', icon: MessageCircle, color: '#a855f7' },
       { value: 'dropped', label: 'Abandonado', icon: Skull, color: '#ef4444' },
