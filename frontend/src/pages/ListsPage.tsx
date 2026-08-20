@@ -304,7 +304,6 @@ const ListsPage = ({ currentUser }: ListsPageProps) => {
 
       {grouped.map(g => {
         const expanded = expandedSections[`group-${g.key}`] === true;
-        const visibleItems = expanded ? g.items : g.items.slice(0, 33);
         return (
         <section key={g.key}>
           <div className="flex items-baseline justify-between mb-3">
@@ -323,9 +322,14 @@ const ListsPage = ({ currentUser }: ListsPageProps) => {
             <div className="mdf-card p-6 text-center text-white/30 text-sm">Nenhum item nesta categoria.</div>
           ) : (
             <>
-              <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
-                {visibleItems.map((l, i) => (
-                  <div key={l.id} className={i >= 7 ? 'hidden sm:block' : undefined}>
+              <div className="hidden lg:grid grid-cols-11 gap-2">
+                {(expanded ? g.items : g.items.slice(0, 20)).map((l) => (
+                  <YgpCard key={l.id} log={l} />
+                ))}
+              </div>
+              <div className="scrollbar-hide -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 lg:hidden">
+                {(expanded ? g.items : g.items.slice(0, 20)).map((l) => (
+                  <div key={l.id} className="w-[28%] shrink-0">
                     <YgpCard log={l} />
                   </div>
                 ))}
@@ -338,7 +342,7 @@ const ListsPage = ({ currentUser }: ListsPageProps) => {
 
       {(() => {
         const wishlistExpanded = expandedSections['wishlist'] === true;
-        const visibleWishlist = wishlistExpanded ? filteredWishlist : filteredWishlist.slice(0, 33);
+        const visibleWishlist = wishlistExpanded ? filteredWishlist : filteredWishlist.slice(0, 20);
         return (
         <section>
           <div className="flex items-baseline justify-between mb-3">
@@ -357,9 +361,27 @@ const ListsPage = ({ currentUser }: ListsPageProps) => {
             <div className="mdf-card p-6 text-center text-white/30 text-sm">Nenhum item na lista de desejos.</div>
           ) : (
             <>
-              <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
-                {visibleWishlist.map((l, i) => (
-                  <div key={l.id} className={i >= 7 ? 'hidden sm:block' : undefined}>
+              <div className="hidden lg:grid grid-cols-11 gap-2">
+                {visibleWishlist.map((l) => (
+                  <YgpCard key={l.id} log={l} actions={
+                    isOwnProfile ? (
+                    <>
+                      <Link to={`/new-log?edit=${l.id}`} onClick={(e) => e.stopPropagation()}
+                        className="w-6 h-6 rounded flex items-center justify-center bg-black/70 text-white/70 hover:text-white backdrop-blur-sm transition-colors" title="Editar">
+                        <Pencil size={12} />
+                      </Link>
+                      <button onClick={(e) => { e.stopPropagation(); deleteWishlistItem(l.id); }}
+                        className="w-6 h-6 rounded flex items-center justify-center bg-black/70 text-white/70 hover:text-red-400 backdrop-blur-sm transition-colors" title="Remover">
+                        <Trash2 size={12} />
+                      </button>
+                    </>
+                    ) : undefined
+                  } />
+                ))}
+              </div>
+              <div className="scrollbar-hide -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 lg:hidden">
+                {visibleWishlist.map((l) => (
+                  <div key={l.id} className="w-[28%] shrink-0">
                     <YgpCard log={l} actions={
                       isOwnProfile ? (
                       <>
@@ -450,12 +472,11 @@ const ListsPage = ({ currentUser }: ListsPageProps) => {
                       <div className="text-center text-white/30 text-xs py-4">Nenhum item ainda</div>
                     ) : (
                       <>
-                        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-11 gap-2">
-                          {(expandedSections[`list-${cl.id}`] === true ? filteredItems : filteredItems.slice(0, 33)).map((item, i) => {
+                        <div className="hidden lg:grid grid-cols-11 gap-2">
+                          {(expandedSections[`list-${cl.id}`] === true ? filteredItems : filteredItems.slice(0, 20)).map((item) => {
                           if (!item.media_item) return null;
                           return (
-                            <div key={item.id} className={i >= 7 ? 'hidden sm:block' : undefined}>
-                            <YgpCard log={{ id: item.id, media_item: item.media_item }} actions={
+                            <YgpCard key={item.id} log={{ id: item.id, media_item: item.media_item }} actions={
                               isOwnProfile ? (
                               <button onClick={(e) => { e.stopPropagation(); handleRemoveItem(cl.id, item.id); }}
                                 className="w-6 h-6 rounded flex items-center justify-center bg-black/70 text-white/70 hover:text-red-400 backdrop-blur-sm transition-colors" title="Remover da lista">
@@ -463,6 +484,22 @@ const ListsPage = ({ currentUser }: ListsPageProps) => {
                               </button>
                               ) : undefined
                             } />
+                          );
+                        })}
+                        </div>
+                        <div className="scrollbar-hide -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 lg:hidden">
+                          {(expandedSections[`list-${cl.id}`] === true ? filteredItems : filteredItems.slice(0, 20)).map((item) => {
+                          if (!item.media_item) return null;
+                          return (
+                            <div key={item.id} className="w-[28%] shrink-0">
+                              <YgpCard log={{ id: item.id, media_item: item.media_item }} actions={
+                                isOwnProfile ? (
+                                <button onClick={(e) => { e.stopPropagation(); handleRemoveItem(cl.id, item.id); }}
+                                  className="w-6 h-6 rounded flex items-center justify-center bg-black/70 text-white/70 hover:text-red-400 backdrop-blur-sm transition-colors" title="Remover da lista">
+                                  <X size={12} />
+                                </button>
+                                ) : undefined
+                              } />
                             </div>
                           );
                         })}
