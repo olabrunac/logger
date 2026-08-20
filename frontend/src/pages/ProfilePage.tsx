@@ -153,7 +153,7 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
           review_text: l.review,
           rating: l.rating,
           platform: l.platform,
-          created_at: l.log_date,
+          created_at: l.created_at || l.log_date,
         },
         log: l,
       });

@@ -81,6 +81,10 @@ def init_db() -> None:
     _add_column('"user"', 'show_stats', 'ALTER TABLE "user" ADD COLUMN show_stats BOOLEAN DEFAULT TRUE')
     _add_column('logentry', 'family_share', 'ALTER TABLE logentry ADD COLUMN family_share BOOLEAN DEFAULT FALSE')
     _add_column('logentry', 'exclude_from_stats', 'ALTER TABLE logentry ADD COLUMN exclude_from_stats BOOLEAN DEFAULT FALSE')
+    _migrated_created_at = _add_column('logentry', 'created_at', 'ALTER TABLE logentry ADD COLUMN created_at TIMESTAMP')
+    if _migrated_created_at:
+        _exec("UPDATE logentry SET created_at = log_date WHERE created_at IS NULL")
+        _exec("CREATE INDEX IF NOT EXISTS ix_logentry_created_at ON logentry (created_at)")
     _add_column('mediaitem', 'steam_discount_percent', 'ALTER TABLE mediaitem ADD COLUMN steam_discount_percent INTEGER')
     _add_column('mediaitem', 'steam_price_checked_at', 'ALTER TABLE mediaitem ADD COLUMN steam_price_checked_at TIMESTAMP')
     _add_column('notification', 'log_id', 'ALTER TABLE notification ADD COLUMN log_id INTEGER')

@@ -53,6 +53,7 @@ export interface TimelineEntry {
   review: string | null;
   platform: string | null;
   log_date: string | null;
+  created_at?: string | null;
   is_favorite: boolean | null;
   hours_spent: number | null;
   family_share?: boolean;

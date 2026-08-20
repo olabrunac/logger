@@ -108,6 +108,7 @@ class LogEntryUpdate(BaseModel):
 class LogEntryInDB(LogEntryBase):
     id: int
     user_id: int
+    created_at: Optional[datetime] = None
     media_item: MediaItemInDB
     class Config:
         from_attributes = True

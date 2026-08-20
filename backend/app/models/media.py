@@ -67,6 +67,7 @@ class LogEntry(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("user.id"), nullable=False, index=True)
     media_item_id = Column(Integer, ForeignKey("mediaitem.id"), nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, index=True)
     log_date = Column(DateTime, default=datetime.datetime.utcnow, index=True)
     rating = Column(Float, nullable=True)
     is_favorite = Column(Boolean, default=False)

@@ -444,30 +444,32 @@ def get_timeline(
     following_ids = [u.id for u in following_ids_raw]
     user_ids = list(set(following_ids + [user_id]))
 
-    # Paginate GROUPS (user + media_type + day) in SQL so one user with many
-    # logs on a single day cannot push everyone else out of the page.
+    # Paginate GROUPS (user + media_type + day of created_at) in SQL so one
+    # user with many logs on a single day cannot push everyone else out.
+    # Timeline sorts by created_at (when the log was posted), not log_date
+    # (when the media was consumed).
     def _group_base():
         return (
             db.query(
                 LogEntry.user_id,
                 MediaItem.media_type,
-                sa_func.date(LogEntry.log_date).label("gdate"),
+                sa_func.date(LogEntry.created_at).label("gdate"),
             )
             .outerjoin(MediaItem, LogEntry.media_item_id == MediaItem.id)
-            .filter(LogEntry.user_id.in_(user_ids), LogEntry.log_date.isnot(None))
+            .filter(LogEntry.user_id.in_(user_ids), LogEntry.created_at.isnot(None))
         )
 
     group_q = _group_base()
     if before:
         try:
             before_dt = datetime.datetime.strptime(before, "%Y-%m-%d")
-            group_q = group_q.filter(LogEntry.log_date < before_dt)
+            group_q = group_q.filter(LogEntry.created_at < before_dt)
         except ValueError:
             pass
     group_keys = (
         group_q
-        .group_by(LogEntry.user_id, MediaItem.media_type, sa_func.date(LogEntry.log_date))
-        .order_by(sa_func.date(LogEntry.log_date).desc())
+        .group_by(LogEntry.user_id, MediaItem.media_type, sa_func.date(LogEntry.created_at))
+        .order_by(sa_func.date(LogEntry.created_at).desc())
         .limit(limit)
         .all()
     )
@@ -476,9 +478,9 @@ def get_timeline(
         last_date = group_keys[-1].gdate
         extra = (
             _group_base()
-            .filter(sa_func.date(LogEntry.log_date) == last_date)
-            .group_by(LogEntry.user_id, MediaItem.media_type, sa_func.date(LogEntry.log_date))
-            .order_by(sa_func.date(LogEntry.log_date).desc())
+            .filter(sa_func.date(LogEntry.created_at) == last_date)
+            .group_by(LogEntry.user_id, MediaItem.media_type, sa_func.date(LogEntry.created_at))
+            .order_by(sa_func.date(LogEntry.created_at).desc())
             .all()
         )
         existing = {(g[0], g[1], g[2]) for g in group_keys}
@@ -488,7 +490,7 @@ def get_timeline(
 
     conds = []
     for (uid, mt, d) in group_keys:
-        c = and_(LogEntry.user_id == uid, sa_func.date(LogEntry.log_date) == d)
+        c = and_(LogEntry.user_id == uid, sa_func.date(LogEntry.created_at) == d)
         if mt is None:
             c = and_(c, LogEntry.media_item_id.is_(None))
         else:
@@ -589,12 +591,12 @@ def get_timeline(
             .all()
         }
 
-    # Group by (user_id, media_type, log_date without time)
+    # Group by (user_id, media_type, created_at date)
     groups: dict = {}
     for log in logs:
-        if not log.log_date:
+        if not log.created_at:
             continue
-        date_key = log.log_date.date().isoformat()
+        date_key = log.created_at.date().isoformat()
         mt = log.media_item.media_type if log.media_item else "unknown"
         key = (log.user_id, mt, date_key)
 
@@ -608,6 +610,7 @@ def get_timeline(
                 } if user_obj else None,
                 "media_type": mt,
                 "log_date": date_key,
+                "created_at": date_key,
                 "items": [],
             }
 
@@ -621,6 +624,8 @@ def get_timeline(
             "is_favorite": log.is_favorite,
             "family_share": log.family_share,
             "hours_spent": effective_hours(db, log, watched_counts.get(log.id, 0)),
+            "created_at": log.created_at.isoformat() if log.created_at else date_key,
+            "log_date": log.log_date.date().isoformat() if log.log_date else date_key,
         })
 
     result = []
@@ -637,7 +642,8 @@ def get_timeline(
                 "rating": item["rating"],
                 "review": item["review"],
                 "platform": item["platform"],
-                "log_date": g["log_date"],
+                "log_date": item.get("log_date", g["log_date"]),
+                "created_at": item.get("created_at", g["created_at"]),
                 "is_favorite": item["is_favorite"],
                 "family_share": item["family_share"],
                 "hours_spent": item["hours_spent"],
@@ -661,6 +667,7 @@ def get_timeline(
                 "platform": None,
                 "review": None,
                 "log_date": g["log_date"],
+                "created_at": g["created_at"],
                 "is_favorite": False,
                 "hours_spent": None,
                 "group_count": len(items),
@@ -677,7 +684,7 @@ def get_timeline(
                 } for x in items],
             })
 
-    result.sort(key=lambda x: x["log_date"], reverse=True)
+    result.sort(key=lambda x: x.get("created_at") or x.get("log_date"), reverse=True)
 
     # --- Episode timeline events (watched / reviewed) ---
     ep_events = (

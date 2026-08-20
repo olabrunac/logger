@@ -46,7 +46,7 @@ const TimelinePage = ({ user }: TimelinePageProps) => {
     setPostOffset(p.length);
     setHasMorePosts(p.length >= PAGE_SIZE);
     setHasMoreLogs(e.length >= PAGE_SIZE);
-    setBefore(e.length > 0 ? (e[e.length - 1] as TimelineEntry).log_date : null);
+    setBefore(e.length > 0 ? ((e[e.length - 1] as TimelineEntry).created_at || (e[e.length - 1] as TimelineEntry).log_date) : null);
   }, [user.id]);
 
   const loadMore = useCallback(async () => {
@@ -77,7 +77,7 @@ const TimelinePage = ({ user }: TimelinePageProps) => {
             return { ...x, _type: 'log' as const };
           })];
         });
-        setBefore((e[e.length - 1] as TimelineEntry).log_date ?? (e[e.length - 1] as EpisodeTimelineEvent).log_date);
+        setBefore(((e[e.length - 1] as TimelineEntry).created_at || (e[e.length - 1] as TimelineEntry).log_date) ?? ((e[e.length - 1] as EpisodeTimelineEvent).created_at || (e[e.length - 1] as EpisodeTimelineEvent).log_date));
       }
       setPostOffset(o => o + p.length);
       setHasMorePosts(p.length >= PAGE_SIZE);
@@ -298,8 +298,8 @@ const TimelinePage = ({ user }: TimelinePageProps) => {
 
   const merged: FeedItem[] = [
     ...posts.map(p => ({ ...p, _sortDate: parseServerDate(p.created_at).getTime() } as FeedItem & { _sortDate: number })),
-    ...entries.filter(e => e.log_date).map(e => {
-      const sortDate = (e as EpisodeTimelineEvent).created_at || e.log_date!;
+    ...entries.filter(e => e.log_date || e.created_at).map(e => {
+      const sortDate = (e as EpisodeTimelineEvent).created_at || (e as TimelineEntry).created_at || e.log_date!;
       return { ...e, _sortDate: parseServerDate(sortDate).getTime() } as FeedItem & { _sortDate: number };
     }),
   ].sort((a, b) => (b as FeedItem & { _sortDate: number })._sortDate - (a as FeedItem & { _sortDate: number })._sortDate);

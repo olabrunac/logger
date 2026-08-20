@@ -59,6 +59,7 @@ export interface LogEntry {
   user_id: number;
   media_item: import('./media').MediaItem;
   log_date: string;
+  created_at?: string;
   rating?: number;
   is_favorite?: boolean;
   is_relog?: boolean;

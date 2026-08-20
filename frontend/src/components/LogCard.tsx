@@ -156,8 +156,8 @@ const LogCard = ({ entry, currentUser, onReply, onLike }: LogCardProps) => {
             </Link>
 
             <div className="flex items-center gap-3 mt-2 text-sm text-white/30">
-              {entry.log_date && (
-                <span>{new Date(entry.log_date).toLocaleDateString('pt-BR')}</span>
+              {entry.created_at && (
+                <span>{timeAgo(entry.created_at)}</span>
               )}
               {entry.is_favorite && (
                 <span className="flex items-center gap-0.5" style={{ color: 'var(--mdf-pink)' }}>
