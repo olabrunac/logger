@@ -90,9 +90,9 @@ const PostCard = ({ post, currentUser, onReply, onDelete, onLike, onEdit }: Post
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <Link to={`/profile/${post.username}`} className="text-sm font-bold text-white hover:underline">{post.username}</Link>
-            <span className="text-sm text-white/30">{timeAgo(post.created_at)}</span>
+            <span className="text-sm text-white/30 ml-auto flex-shrink-0">{timeAgo(post.created_at)}</span>
             {post.user_id === currentUser.id && (
-              <div className="ml-auto flex items-center gap-0.5">
+              <div className="flex items-center gap-0.5">
                 <button onClick={startEdit} className="p-1 text-white/20 hover:text-white/70 transition-colors" title="Editar post">
                   <Pencil size={14} />
                 </button>

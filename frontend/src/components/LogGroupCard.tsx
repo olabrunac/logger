@@ -114,6 +114,7 @@ const LogGroupCard = ({ entry, currentUser, onReply, onLike }: LogGroupCardProps
               <Link to={`/profile/${entry.user.username}`} className="font-bold text-white hover:underline">{entry.user.username}</Link>
               <span className="text-white/40">{statusLabel} {entry.group_count} {meta.label.toLowerCase()}</span>
               <span className="text-white/40">{meta.emoji}</span>
+              <span className="text-sm text-white/30 ml-auto flex-shrink-0">{timeAgo(entry.created_at)}</span>
             </div>
 
             <div
@@ -155,12 +156,6 @@ const LogGroupCard = ({ entry, currentUser, onReply, onLike }: LogGroupCardProps
                 <ChevronRight size={12} className={`transition-transform ${expanded ? 'rotate-90' : ''}`} />
               </button>
             )}
-
-            <div className="flex items-center gap-3 mt-3 text-sm text-white/30">
-              {entry.created_at && (
-                <span>{timeAgo(entry.created_at)}</span>
-              )}
-            </div>
           </div>
         </div>
       </div>

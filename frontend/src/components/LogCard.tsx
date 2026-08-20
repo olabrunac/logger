@@ -99,6 +99,7 @@ const LogCard = ({ entry, currentUser, onReply, onLike }: LogCardProps) => {
               <Link to={`/profile/${entry.user.username}`} className="font-bold text-white hover:underline">{entry.user.username}</Link>
               <span className="text-white/40">{statusLabel || 'registrou'}</span>
               <span className="text-white/40">{meta.emoji}</span>
+              <span className="text-sm text-white/30 ml-auto flex-shrink-0">{timeAgo(entry.created_at)}</span>
             </div>
 
             <Link to={getLogUrl(entry.media_item)} className="block group rounded-lg p-2 -m-2 hover:bg-white/[0.03] transition-colors">
@@ -156,9 +157,6 @@ const LogCard = ({ entry, currentUser, onReply, onLike }: LogCardProps) => {
             </Link>
 
             <div className="flex items-center gap-3 mt-2 text-sm text-white/30">
-              {entry.created_at && (
-                <span>{timeAgo(entry.created_at)}</span>
-              )}
               {entry.is_favorite && (
                 <span className="flex items-center gap-0.5" style={{ color: 'var(--mdf-pink)' }}>
                   <Heart size={10} fill="currentColor" /> Favorito
