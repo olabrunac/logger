@@ -109,6 +109,7 @@ const EpisodeEventCard = ({ event, currentUser, onReply, onLike, onDelete }: Epi
               <Link to={`/profile/${event.user.username}`} className="font-bold text-white hover:underline">{event.user.username}</Link>
               <span className="text-white/40">{description}</span>
               <span className="text-white/40">{meta.emoji}</span>
+              <span className="text-sm text-white/30 ml-auto flex-shrink-0">{timeAgo(event.created_at)}</span>
             </div>
 
             <Link to={getLogUrl(event.media_item)} className="block group rounded-lg p-2 -m-2 hover:bg-white/[0.03] transition-colors">
