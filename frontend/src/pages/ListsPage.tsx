@@ -193,28 +193,20 @@ const ListsPage = ({ currentUser }: ListsPageProps) => {
   const fetchLogs = useCallback(async () => {
     const requestId = ++fetchIdRef.current;
     try {
-      const response = await api.get('/media/logs', { params: { user_id: targetUser.id, limit: 9999 } });
-      if (requestId === fetchIdRef.current) setLogs(response.data || []);
-    } catch (err) { console.error('Failed to fetch logs', err); }
+      const [logsRes, wishlistRes, customRes] = await Promise.all([
+        api.get('/media/logs', { params: { user_id: targetUser.id, limit: 9999 } }),
+        getUserWishlist(targetUser.id),
+        getUserCustomLists(targetUser.id),
+      ]);
+      if (requestId === fetchIdRef.current) {
+        setLogs(logsRes.data || []);
+        setWishlist(wishlistRes.data || []);
+        setCustomLists(customRes.data || []);
+      }
+    } catch (err) { console.error('Failed to fetch lists data', err); }
   }, [targetUser.id]);
 
-  const fetchWishlist = useCallback(async () => {
-    const requestId = ++fetchIdRef.current;
-    try {
-      const response = await getUserWishlist(targetUser.id);
-      if (requestId === fetchIdRef.current) setWishlist(response.data || []);
-    } catch (err) { console.error('Failed to fetch wishlist', err); }
-  }, [targetUser.id]);
-
-  const fetchCustomLists = useCallback(async () => {
-    const requestId = ++fetchIdRef.current;
-    try {
-      const response = await getUserCustomLists(targetUser.id);
-      if (requestId === fetchIdRef.current) setCustomLists(response.data || []);
-    } catch (err) { console.error('Failed to fetch custom lists', err); }
-  }, [targetUser.id]);
-
-  useEffect(() => { fetchLogs(); fetchWishlist(); fetchCustomLists(); }, [fetchLogs, fetchWishlist, fetchCustomLists]);
+  useEffect(() => { fetchLogs(); }, [fetchLogs]);
 
   const deleteWishlistItem = async (id: number) => {
     try {
