@@ -32,8 +32,10 @@ Site pessoal para registrar e acompanhar filmes, séries, jogos e livros, inspir
 ### ✅ Implementado
 - **Top 5 Lists**: Backend completo (model, CRUD, API), Frontend com reordenção por setas, poster em coluna, adicionar/remover favoritos
 - **Favoritos**: Toggle independente do status (coração no LogForm + badge ❤️ nos poster tiles)
-- **Status por tipo de mídia**: 4 status cada (jogos/filmes/séries/livros)
+- **Status por tipo de mídia**: 8 status cada (jogos: completed, platinated, in_progress, wishlist, dropped, library, soon; filmes/séries/livros: completed, in_progress, wishlist, dropped, library, soon)
 - **Layout fixo**: Left sidebar 203px (não colapsa), Right sidebar 324px → 56px (colapsa), conteúdo central com margens fixas
+- **Sidebar analytics mobile**: Drawer lateral direito com ícone BarChart3 no header do MobileNav, mostra analytics (stats, gêneros, atividade, badges) em overlay滑入
+- **Platinados**: Jogos com 100% de achievements são marcados `platinated` (import Steam + form manual); seção dedicada no perfil e diretórios; migração retroativa para dados existentes
 - **Enriquecimento**: TMDb (filmes/séries), IGDB (jogos), Google Books (livros), Steam (achievements/store)
 - **LogReview**: Histórico de reviews por log (snapshots de review_text, rating, platform, created_at)
 - **LogDetailPage**: Conteúdo centralizado, reviews abaixo de todas as seções, estrelas ao lado da nota nas reviews, barra de progresso de temporadas sempre visível, botão marcar todos os episódios sempre visível
@@ -59,7 +61,7 @@ Site pessoal para registrar e acompanhar filmes, séries, jogos e livros, inspir
 - **Badge de platina via achievements**: conta jogos com status `platinated` **ou** com 100% dos achievements desbloqueados (mesma regra do card 100% e do import Steam)
 
 ### 🔄 Em Andamento / Pendente
-- **Confirmar em produção**: timeline exibindo logs do Doze e lucaswb332 após deploy da PR #61 no Railway; horas/badges do PR #68 (reimport Steam da bruna deve corrigir os minutos das horas)
+- Nenhuma pendência ativa
 
 ### 📦 Arquivadas / Ideias futuras
 - **Lista de jogos por achievement**: viabilidade confirmada (endpoint `IPlayerService/GetTopAchievementsForGames/v1/` em lote), implementação adiada
