@@ -671,7 +671,7 @@ def get_timeline(
                 "platform": None,
                 "review": None,
                 "log_date": g["log_date"],
-                "created_at": g["created_at"],
+                "created_at": max(x["created_at"] for x in items),
                 "is_favorite": False,
                 "hours_spent": None,
                 "group_count": len(items),

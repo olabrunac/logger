@@ -32,8 +32,8 @@ export function sortLogsByDate(logs: LogEntry[]): LogEntry[] {
     const aList = a.status === 'wishlist' || a.status === 'soon';
     const bList = b.status === 'wishlist' || b.status === 'soon';
     if (aList !== bList) return aList ? 1 : -1;
-    const aDate = a.log_date ? parseServerDate(a.log_date).getTime() : 0;
-    const bDate = b.log_date ? parseServerDate(b.log_date).getTime() : 0;
+    const aDate = a.created_at ? parseServerDate(a.created_at).getTime() : (a.log_date ? parseServerDate(a.log_date).getTime() : 0);
+    const bDate = b.created_at ? parseServerDate(b.created_at).getTime() : (b.log_date ? parseServerDate(b.log_date).getTime() : 0);
     if (bDate !== aDate) return bDate - aDate;
     return b.id - a.id;
   });
