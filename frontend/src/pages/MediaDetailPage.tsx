@@ -453,10 +453,10 @@ const MediaDetailPage = () => {
 
   return (
     <div className="mx-auto" style={{ maxWidth: '1500px' }}>
-      <Link to="/" className="mdf-btn-ghost text-sm inline-flex items-center gap-2 mb-5">
+      <button onClick={() => navigate(-1)} className="mdf-btn-ghost text-sm inline-flex items-center gap-2 mb-5">
         <ChevronDown size={16} style={{ transform: 'rotate(90deg)' }} />
         Voltar
-      </Link>
+      </button>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start">
         {/* Main column */}
