@@ -178,6 +178,14 @@ def _create_media_from_api(db: Session, mt: MediaType, api_id: Any) -> Optional[
         return None
 
 
+def _few_similar(similar_json: str) -> bool:
+    """Return True if the stored similar_games list has fewer than 8 entries."""
+    try:
+        return len(json.loads(similar_json)) < 8
+    except Exception:
+        return True
+
+
 def _enrich_media_item(db: Session, mi: MediaItem) -> None:
     """Fill missing details for an existing MediaItem from the external API."""
     try:
@@ -215,13 +223,13 @@ def _enrich_media_item(db: Session, mi: MediaItem) -> None:
                                 if value and not getattr(mi, key, None):
                                     setattr(mi, key, value)
                         changed_game = True
-                if mi.igdb_id and (not mi.time_to_beat or not mi.similar_games):
+                if mi.igdb_id and (not mi.time_to_beat or not mi.similar_games or _few_similar(mi.similar_games)):
                     extra = igdb_service.get_game_extra_data(mi.igdb_id)
                     if extra:
                         if not mi.time_to_beat and extra.get("time_to_beat"):
                             mi.time_to_beat = json.dumps(extra["time_to_beat"])
                             changed_game = True
-                        if not mi.similar_games and extra.get("similar_games"):
+                        if (not mi.similar_games or _few_similar(mi.similar_games)) and extra.get("similar_games"):
                             mi.similar_games = json.dumps(extra["similar_games"])
                             changed_game = True
                 if changed_game:
