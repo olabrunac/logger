@@ -127,6 +127,38 @@ def _create_media_from_api(db: Session, mt: MediaType, api_id: Any) -> Optional[
             details = igdb_service.get_game_by_id(api_id)
             if not details:
                 return None
+            steam_appid = None
+            try:
+                steam_appid = igdb_service.get_steam_appid(api_id)
+            except Exception:
+                pass
+            existing = None
+            if steam_appid:
+                existing = db.query(MediaItem).filter(
+                    MediaItem.media_type == MediaType.GAME,
+                    MediaItem.steam_appid == steam_appid,
+                ).first()
+            if existing:
+                changed = False
+                if not existing.igdb_id:
+                    existing.igdb_id = api_id
+                    changed = True
+                for key in ("title", "cover_image_url", "release_date", "synopsis", "genres"):
+                    val = details.get(key)
+                    if val and not getattr(existing, key, None):
+                        setattr(existing, key, val)
+                        changed = True
+                if not existing.time_to_beat and details.get("time_to_beat"):
+                    existing.time_to_beat = json.dumps(details["time_to_beat"])
+                    changed = True
+                if (not existing.similar_games or _few_similar(existing.similar_games)) and details.get("similar_games"):
+                    existing.similar_games = json.dumps(details["similar_games"])
+                    changed = True
+                if changed:
+                    db.add(existing)
+                    db.commit()
+                    db.refresh(existing)
+                return existing
             item = MediaItem(
                 title=details.get("title"),
                 media_type=mt,
@@ -138,18 +170,17 @@ def _create_media_from_api(db: Session, mt: MediaType, api_id: Any) -> Optional[
                 time_to_beat=json.dumps(details["time_to_beat"]) if details.get("time_to_beat") else None,
                 similar_games=json.dumps(details["similar_games"]) if details.get("similar_games") else None,
             )
-            try:
-                steam_appid = igdb_service.get_steam_appid(api_id)
-                if steam_appid:
-                    item.steam_appid = steam_appid
+            if steam_appid:
+                item.steam_appid = steam_appid
+                try:
                     steam_data = steam_service.get_app_details(steam_appid)
                     if steam_data:
                         parsed = steam_service.parse_steam_game_data(steam_data)
                         for key, value in parsed.items():
                             if value:
                                 setattr(item, key, value)
-            except Exception:
-                pass
+                except Exception:
+                    pass
         elif mt == MediaType.BOOK:
             details = google_books_service.get_book_by_id(str(api_id))
             if not details:
