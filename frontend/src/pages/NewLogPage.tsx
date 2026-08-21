@@ -118,10 +118,17 @@ const NewLogPage: React.FC = () => {
     <div className="space-y-6">
       {!selectedMedia ? (
         <div>
-          <Link to={editingLog ? getLogUrl(editingLog.media_item) : '/'} className="mdf-btn-ghost text-sm inline-flex items-center gap-2">
-            <ChevronLeft size={16} />
-            {editingLog ? 'Voltar ao log' : 'Voltar'}
-          </Link>
+          {editingLog ? (
+            <Link to={getLogUrl(editingLog.media_item)} className="mdf-btn-ghost text-sm inline-flex items-center gap-2">
+              <ChevronLeft size={16} />
+              Voltar ao log
+            </Link>
+          ) : (
+            <button onClick={() => navigate(-1)} className="mdf-btn-ghost text-sm inline-flex items-center gap-2">
+              <ChevronLeft size={16} />
+              Voltar
+            </button>
+          )}
           <SearchMedia onSelectMedia={handleSelectMedia} />
         </div>
       ) : (
