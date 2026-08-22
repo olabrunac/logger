@@ -684,7 +684,7 @@ const MediaDetailPage = () => {
                         <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-1">Gêneros</div>
                         <div className="flex flex-wrap gap-1.5">
                           {md.steam_genres.split(', ').map(g => (
-                            <span key={g} className="text-xs px-2 py-0.5 rounded-full bg-white/5 text-white/60">{g}</span>
+                            <Link key={g} to={`/search?genre=${encodeURIComponent(g)}&media_type=game`} className="text-xs px-2 py-0.5 rounded-full bg-white/5 text-white/60 hover:text-white hover:bg-white/15 transition-colors">{g}</Link>
                           ))}
                         </div>
                       </div>
@@ -724,7 +724,7 @@ const MediaDetailPage = () => {
                         <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-1">Gêneros</div>
                         <div className="flex flex-wrap gap-1.5">
                           {md.genres.split(', ').map(g => (
-                            <span key={g} className="text-xs px-2 py-0.5 rounded-full bg-white/5 text-white/60">{g}</span>
+                            <Link key={g} to={`/search?genre=${encodeURIComponent(g)}&media_type=${md.media_type}`} className="text-xs px-2 py-0.5 rounded-full bg-white/5 text-white/60 hover:text-white hover:bg-white/15 transition-colors">{g}</Link>
                           ))}
                         </div>
                       </div>
@@ -756,7 +756,7 @@ const MediaDetailPage = () => {
                         <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-1">Categorias</div>
                         <div className="flex flex-wrap gap-1.5">
                           {md.book_categories.split(', ').map(c => (
-                            <span key={c} className="text-xs px-2 py-0.5 rounded-full bg-white/5 text-white/60">{c}</span>
+                            <Link key={c} to={`/search?genre=${encodeURIComponent(c)}&media_type=book`} className="text-xs px-2 py-0.5 rounded-full bg-white/5 text-white/60 hover:text-white hover:bg-white/15 transition-colors">{c}</Link>
                           ))}
                         </div>
                       </div>

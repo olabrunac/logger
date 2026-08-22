@@ -224,6 +224,7 @@ def global_search(
     author: Optional[str] = Query(None, max_length=100),
     year: Optional[int] = Query(None, ge=1800, le=datetime.date.today().year + 1),
     isbn: Optional[str] = Query(None, max_length=20),
+    genre: Optional[str] = Query(None, max_length=100),
 ) -> Any:
     query = q.strip()
     only_users = query.startswith("@")
@@ -232,7 +233,7 @@ def global_search(
     media_results: List[dict] = []
     user_results: List[dict] = []
 
-    if query or isbn or author or year:
+    if query or isbn or author or year or genre:
         if not only_users:
             local_results: List[dict] = []
             external_results: List[dict] = []
@@ -245,12 +246,29 @@ def global_search(
                         MediaItem.release_date >= datetime.date(year, 1, 1),
                         MediaItem.release_date < datetime.date(year + 1, 1, 1),
                     )
+                if genre:
+                    local_query = local_query.filter(MediaItem.genres.ilike(f"%{genre}%"))
                 items = local_query.filter(MediaItem.title.ilike(f"%{query}%")).limit(50).all()
                 if author and (type_filter is None or type_filter == MediaType.BOOK):
                     items = [
                         i for i in items
                         if any(author.lower() in (a or "").lower() for a in (i.authors or []))
                     ]
+                has_logs = _batch_has_logs(db, user_id, items)
+                local_results = [_serialize_media(i, db, user_id, i.id in has_logs) for i in items]
+            elif genre:
+                local_query = db.query(MediaItem).filter(
+                    MediaItem.genres.ilike(f"%{genre}%")
+                )
+                if type_filter is not None:
+                    local_query = local_query.filter(MediaItem.media_type == type_filter)
+                if year is not None:
+                    local_query = local_query.filter(
+                        MediaItem.release_date >= datetime.date(year, 1, 1),
+                        MediaItem.release_date < datetime.date(year + 1, 1, 1),
+                    )
+                local_query = local_query.order_by(MediaItem.popularity.desc()).limit(30)
+                items = local_query.all()
                 has_logs = _batch_has_logs(db, user_id, items)
                 local_results = [_serialize_media(i, db, user_id, i.id in has_logs) for i in items]
             elif author and (type_filter is None or type_filter == MediaType.BOOK):

@@ -44,8 +44,11 @@ const toMediaItem = (p: PopularSearchItem): SearchMediaItem => ({
 const SearchPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialQuery = searchParams.get('q') || '';
+  const initialGenre = searchParams.get('genre') || '';
+  const initialMediaType = (searchParams.get('media_type') as MediaType | 'all') || 'all';
   const [query, setQuery] = useState(initialQuery);
-  const [mediaType, setMediaType] = useState<MediaType | 'all'>('all');
+  const [mediaType, setMediaType] = useState<MediaType | 'all'>(initialMediaType);
+  const [genre, setGenre] = useState(initialGenre);
   const [author, setAuthor] = useState('');
   const [year, setYear] = useState('');
   const [isbn, setIsbn] = useState('');
@@ -109,12 +112,13 @@ const SearchPage = () => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     const q = query.trim();
     const isbnVal = isbn.trim();
-    if (q) {
-      setSearchParams({ q }, { replace: true });
-    } else {
-      setSearchParams({}, { replace: true });
-    }
-    if (!q && !isbnVal && !author.trim() && !year.trim()) {
+    const genreVal = genre.trim();
+    const params: Record<string, string> = {};
+    if (q) params.q = q;
+    if (genreVal) params.genre = genreVal;
+    if (mediaType !== 'all') params.media_type = mediaType;
+    setSearchParams(params, { replace: true });
+    if (!q && !isbnVal && !author.trim() && !year.trim() && !genreVal) {
       setResults({ media: [], users: [] });
       setSearched(false);
       return;
@@ -129,6 +133,7 @@ const SearchPage = () => {
         const yearNum = Number(year);
         if (year.trim() && !isNaN(yearNum)) filters.year = yearNum;
         if (isbnVal) filters.isbn = isbnVal;
+        if (genreVal) filters.genre = genreVal;
         const { data } = await globalSearch(q, currentUserId, filters);
         if (requestId !== searchIdRef.current) return;
         setResults({ media: data?.media || [], users: data?.users || [] });
@@ -143,10 +148,10 @@ const SearchPage = () => {
       }
     }, 300);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [query, currentUserId, setSearchParams, mediaType, author, year, isbn]);
+  }, [query, currentUserId, setSearchParams, mediaType, author, year, isbn, genre]);
 
   const hasResults = results.media.length > 0 || results.users.length > 0;
-  const noResults = searched && !isLoading && (query.trim() || isbn.trim() || author.trim() || year.trim()) && !hasResults;
+  const noResults = searched && !isLoading && (query.trim() || isbn.trim() || author.trim() || year.trim() || genre.trim()) && !hasResults;
 
   return (
     <div className="mx-auto" style={{ maxWidth: '900px' }}>
@@ -223,7 +228,19 @@ const SearchPage = () => {
         </div>
       </div>
 
-      {!query.trim() && !isbn.trim() && !author.trim() && !year.trim() && (
+      {genre.trim() && (
+        <div className="flex items-center gap-2 mt-3 mb-4">
+          <span className="text-xs text-white/40">Gênero:</span>
+          <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: 'var(--accent)', color: '#000' }}>
+            {genre.trim()}
+          </span>
+          <button onClick={() => setGenre('')} className="p-0.5 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-colors">
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
+      {!query.trim() && !isbn.trim() && !author.trim() && !year.trim() && !genre.trim() && (
         <div className="space-y-6">
           <div className="mdf-card p-8 text-center text-white/40 text-sm">
             Digite para buscar mídias (filmes, séries, jogos, livros) ou perfis de usuários.

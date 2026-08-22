@@ -118,6 +118,7 @@ export interface GlobalSearchFilters {
   author?: string;
   year?: number;
   isbn?: string;
+  genre?: string;
 }
 export const globalSearch = (query: string, userId?: number, filters?: GlobalSearchFilters) => {
   return api.get('/search', { params: { q: query, user_id: userId, ...(filters || {}) } });
