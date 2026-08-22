@@ -1,5 +1,6 @@
 import secrets
 
+from sqlalchemy import func, case
 from sqlalchemy.orm import Session
 from app import crud, schemas
 from app.db.session import SessionLocal
@@ -184,9 +185,9 @@ def init_db() -> None:
         )
         .group_by(LogEntry.id)
         .having(
-            db.func.count(Achievement.id) > 0,
-            db.func.count(Achievement.id) == db.func.sum(
-                db.case((Achievement.unlocked == True, 1), else_=0)
+            func.count(Achievement.id) > 0,
+            func.count(Achievement.id) == func.sum(
+                case((Achievement.unlocked == True, 1), else_=0)
             ),
         )
         .all()
