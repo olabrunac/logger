@@ -66,10 +66,10 @@ def get_game_extra_data(igdb_id: int) -> dict:
     similar = []
     results = _igdb_post(
         "games",
-        f"fields similar_games(limit:20){{name, cover.url}}; where id = {igdb_id}; limit 1;",
+        f"fields similar_games.name, similar_games.cover.url; where id = {igdb_id}; limit 1;",
     )
     if results:
-        for g in results[0].get("similar_games", []):
+        for g in results[0].get("similar_games", [])[:20]:
             cover = None
             if g.get("cover") and g["cover"].get("url"):
                 cover = g["cover"]["url"].replace("t_thumb", "t_cover_big").lstrip("/")
