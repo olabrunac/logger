@@ -1114,7 +1114,7 @@ const MediaDetailPage = () => {
                   <h3 className="text-sm font-bold" style={{ color: 'var(--text)' }}>Jogos similares</h3>
                 </div>
                 <div className="grid grid-cols-4 gap-2">
-                  {similarGames.slice(0, 8).map(g => (
+                  {similarGames.slice(0, 12).map(g => (
                     <Link key={g.id} to={`/media/game/${g.id}`} title={g.name} className="group block">
                       <div className="aspect-[3/4] bg-white/35 p-px shadow-md shadow-black/50 transition-transform group-hover:scale-[1.03]">
                         <div className="h-full w-full overflow-hidden bg-white/10">
