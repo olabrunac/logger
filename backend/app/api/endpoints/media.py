@@ -138,6 +138,11 @@ def _create_media_from_api(db: Session, mt: MediaType, api_id: Any) -> Optional[
                     MediaItem.media_type == MediaType.GAME,
                     MediaItem.steam_appid == steam_appid,
                 ).first()
+            if not existing:
+                existing = db.query(MediaItem).filter(
+                    MediaItem.media_type == MediaType.GAME,
+                    MediaItem.title.ilike(details.get("title", "")),
+                ).first()
             if existing:
                 changed = False
                 if not existing.igdb_id:
@@ -171,6 +176,25 @@ def _create_media_from_api(db: Session, mt: MediaType, api_id: Any) -> Optional[
                 similar_games=json.dumps(details["similar_games"]) if details.get("similar_games") else None,
             )
             if steam_appid:
+                existing_by_appid = db.query(MediaItem).filter(
+                    MediaItem.media_type == MediaType.GAME,
+                    MediaItem.steam_appid == steam_appid,
+                ).first()
+                if existing_by_appid:
+                    if not existing_by_appid.igdb_id:
+                        existing_by_appid.igdb_id = api_id
+                    for key in ("title", "cover_image_url", "release_date", "synopsis", "genres"):
+                        val = details.get(key)
+                        if val and not getattr(existing_by_appid, key, None):
+                            setattr(existing_by_appid, key, val)
+                    if not existing_by_appid.time_to_beat and details.get("time_to_beat"):
+                        existing_by_appid.time_to_beat = json.dumps(details["time_to_beat"])
+                    if (not existing_by_appid.similar_games or _few_similar(existing_by_appid.similar_games)) and details.get("similar_games"):
+                        existing_by_appid.similar_games = json.dumps(details["similar_games"])
+                    db.add(existing_by_appid)
+                    db.commit()
+                    db.refresh(existing_by_appid)
+                    return existing_by_appid
                 item.steam_appid = steam_appid
                 try:
                     steam_data = steam_service.get_app_details(steam_appid)
@@ -204,7 +228,8 @@ def _create_media_from_api(db: Session, mt: MediaType, api_id: Any) -> Optional[
         db.commit()
         db.refresh(item)
         return item
-    except Exception:
+    except Exception as exc:
+        print(f"[media] _create_media_from_api error: media_type={mt} api_id={api_id} -> {exc}")
         db.rollback()
         return None
 

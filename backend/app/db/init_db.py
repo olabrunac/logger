@@ -172,17 +172,35 @@ def init_db() -> None:
     )
 
     # Auto-upgrade completed games with 100% achievements to platinated
-    _exec("""
-        UPDATE logentry SET status = 'platinated' WHERE id IN (
-            SELECT le.id FROM logentry le
-            JOIN mediaitem mi ON mi.id = le.media_item_id
-            JOIN achievement a ON a.log_id = le.id
-            WHERE mi.media_type = 'game' AND le.status = 'completed'
-            GROUP BY le.id
-            HAVING COUNT(a.id) > 0
-               AND SUM(CASE WHEN a.unlocked = 1 THEN 1 ELSE 0 END) = COUNT(a.id)
+    # Usa ORM: media_type é enum nativo no Postgres, SQL cru com 'game' quebra.
+    from app.models.media import Achievement
+    platinados = (
+        db.query(LogEntry.id)
+        .join(MediaItem, MediaItem.id == LogEntry.media_item_id)
+        .join(Achievement, Achievement.log_id == LogEntry.id)
+        .filter(
+            MediaItem.media_type == MediaType.GAME,
+            LogEntry.status == "completed",
         )
-    """)
+        .group_by(LogEntry.id)
+        .having(
+            db.func.count(Achievement.id) > 0,
+            db.func.count(Achievement.id) == db.func.sum(
+                db.case((Achievement.unlocked == True, 1), else_=0)
+            ),
+        )
+        .all()
+    )
+    if platinados:
+        log_ids = [row[0] for row in platinados]
+        try:
+            db.query(LogEntry).filter(LogEntry.id.in_(log_ids)).update(
+                {LogEntry.status: "platinated"}, synchronize_session=False
+            )
+            db.commit()
+        except Exception as exc:
+            db.rollback()
+            print(f"[init_db] platinados migration skipped: {exc}")
 
     # Seed admin user
     admin = crud.user.get_by_username(db, username="admin")
