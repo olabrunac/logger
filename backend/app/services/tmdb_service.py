@@ -175,25 +175,27 @@ _genre_maps_cache = {"movie": None, "tv": None}
 
 
 def _tmdb_genre_map(media_type: str):
-    """Nome do gênero (minúsculo) -> id no TMDB, em pt-BR (casa com os gêneros
-    gravados no banco via get_movie_details/get_tv_details)."""
+    """Nome do gênero (minúsculo) -> id no TMDB, em pt-BR e EN
+    (casa com gêneros gravados no banco de qualquer idioma)."""
     if media_type not in _genre_maps_cache:
         return {}
     if _genre_maps_cache[media_type] is None:
         _genre_maps_cache[media_type] = {}
         if settings.TMDB_API_KEY:
-            try:
-                r = requests.get(
-                    f"{BASE_URL}/genre/{media_type}/list",
-                    params={"api_key": settings.TMDB_API_KEY, "language": "pt-BR"},
-                    timeout=10,
-                )
-                r.raise_for_status()
-                _genre_maps_cache[media_type] = {
-                    g["name"].lower(): g["id"] for g in r.json().get("genres", [])
-                }
-            except requests.exceptions.RequestException as e:
-                print(f"Error fetching TMDb genre list: {e}")
+            for lang in ("pt-BR", "en-US"):
+                try:
+                    r = requests.get(
+                        f"{BASE_URL}/genre/{media_type}/list",
+                        params={"api_key": settings.TMDB_API_KEY, "language": lang},
+                        timeout=10,
+                    )
+                    r.raise_for_status()
+                    for g in r.json().get("genres", []):
+                        name = g["name"].lower()
+                        if name not in _genre_maps_cache[media_type]:
+                            _genre_maps_cache[media_type][name] = g["id"]
+                except requests.exceptions.RequestException as e:
+                    print(f"Error fetching TMDb genre list ({lang}): {e}")
     return _genre_maps_cache[media_type]
 
 

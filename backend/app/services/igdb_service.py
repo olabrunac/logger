@@ -109,6 +109,17 @@ def get_game_by_id(igdb_id: int) -> dict | None:
 
 _igdb_genre_map = None
 
+_PT_EN_GENRES = {
+    "ação": "action", "aventura": "adventure", "rpg": "rpg",
+    "estratégia": "strategy", "simulação": "simulation", "esportes": "sport",
+    "corrida": "racing", "tiro": "shooter", "plataforma": "platformer",
+    "puzzle": "puzzle", "terror": "horror", "suspense": "thriller",
+    "ficção científica": "science fiction", "fantasia": "fantasy",
+    "casual": "casual", "indie": "indie", "música": "music",
+    "luta": "fighting", "arta marcial": "martial arts", "stealth": "stealth",
+    "sobrevivência": "survival", "battle royale": "battle royale",
+}
+
 
 def _get_igdb_genre_map():
     global _igdb_genre_map
@@ -122,7 +133,10 @@ def _get_igdb_genre_map():
 
 def discover_games(genre_name: str, limit: int = 4, offset: int = 0):
     """Descobre jogos por nome de gênero (fallback das sugestões)."""
-    gid = _get_igdb_genre_map().get((genre_name or "").strip().lower())
+    name = (genre_name or "").strip().lower()
+    gid = _get_igdb_genre_map().get(name)
+    if gid is None:
+        gid = _get_igdb_genre_map().get(_PT_EN_GENRES.get(name, ""))
     if gid is None:
         return []
     return _igdb_post(
