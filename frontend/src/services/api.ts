@@ -120,8 +120,8 @@ export interface GlobalSearchFilters {
   isbn?: string;
   genre?: string;
 }
-export const globalSearch = (query: string, userId?: number, filters?: GlobalSearchFilters) => {
-  return api.get('/search', { params: { q: query, user_id: userId, ...(filters || {}) } });
+export const globalSearch = (query: string, userId?: number, filters?: GlobalSearchFilters, offset?: number) => {
+  return api.get('/search', { params: { q: query, user_id: userId, offset: offset || 0, ...(filters || {}) } });
 };
 
 export interface PopularSearchItem {

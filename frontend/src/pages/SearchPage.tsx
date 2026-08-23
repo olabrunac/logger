@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Search, User, X, Clock, TrendingUp } from 'lucide-react';
 import type { MediaItem, MediaType } from '../types/media';
@@ -57,9 +57,12 @@ const SearchPage = () => {
   const [searched, setSearched] = useState(false);
   const [popular, setPopular] = useState<PopularSearchItem[]>([]);
   const [recent, setRecent] = useState<SearchMediaItem[]>(loadRecent);
+  const [totalMedia, setTotalMedia] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const searchIdRef = useRef(0);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   const currentUserId = (() => {
     try {
@@ -120,6 +123,7 @@ const SearchPage = () => {
     setSearchParams(params, { replace: true });
     if (!q && !isbnVal && !author.trim() && !year.trim() && !genreVal) {
       setResults({ media: [], users: [] });
+      setTotalMedia(0);
       setSearched(false);
       return;
     }
@@ -137,6 +141,7 @@ const SearchPage = () => {
         const { data } = await globalSearch(q, currentUserId, filters);
         if (requestId !== searchIdRef.current) return;
         setResults({ media: data?.media || [], users: data?.users || [] });
+        setTotalMedia(data?.total || 0);
         setSearched(true);
       } catch (err) {
         if (requestId !== searchIdRef.current) return;
@@ -149,6 +154,39 @@ const SearchPage = () => {
     }, 300);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [query, currentUserId, setSearchParams, mediaType, author, year, isbn, genre]);
+
+  const hasMore = results.media.length < totalMedia;
+
+  const fetchMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const filters: GlobalSearchFilters = {};
+      if (mediaType !== 'all') filters.media_type = mediaType;
+      if (author.trim()) filters.author = author.trim();
+      const yearNum = Number(year);
+      if (year.trim() && !isNaN(yearNum)) filters.year = yearNum;
+      if (isbn.trim()) filters.isbn = isbn.trim();
+      if (genre.trim()) filters.genre = genre.trim();
+      const { data } = await globalSearch(query.trim(), currentUserId, filters, results.media.length);
+      if (data?.media) {
+        setResults(prev => ({ ...prev, media: [...prev.media, ...data.media] }));
+        setTotalMedia(data?.total || 0);
+      }
+    } catch { /* ignore */ }
+    setLoadingMore(false);
+  }, [query, currentUserId, mediaType, author, year, isbn, genre, results.media.length, loadingMore, hasMore]);
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || !hasMore) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) fetchMore(); },
+      { rootMargin: '200px' },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [hasMore, fetchMore]);
 
   const hasResults = results.media.length > 0 || results.users.length > 0;
   const noResults = searched && !isLoading && (query.trim() || isbn.trim() || author.trim() || year.trim() || genre.trim()) && !hasResults;
@@ -348,6 +386,8 @@ const SearchPage = () => {
               );
             })}
           </div>
+          {hasMore && <div ref={sentinelRef} className="h-4" />}
+          {loadingMore && <p className="text-center text-white/40 text-sm py-4">Carregando mais...</p>}
         </div>
       )}
 

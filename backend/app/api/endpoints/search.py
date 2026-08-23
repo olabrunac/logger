@@ -225,6 +225,8 @@ def global_search(
     year: Optional[int] = Query(None, ge=1800, le=datetime.date.today().year + 1),
     isbn: Optional[str] = Query(None, max_length=20),
     genre: Optional[str] = Query(None, max_length=100),
+    offset: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=50),
 ) -> Any:
     query = q.strip()
     only_users = query.startswith("@")
@@ -232,6 +234,8 @@ def global_search(
     type_filter = media_type
     media_results: List[dict] = []
     user_results: List[dict] = []
+    total_media = 0
+    is_genre_only = genre and not query and not isbn and not author and not year
 
     if query or isbn or author or year or genre:
         if not only_users:
@@ -267,7 +271,8 @@ def global_search(
                         MediaItem.release_date >= datetime.date(year, 1, 1),
                         MediaItem.release_date < datetime.date(year + 1, 1, 1),
                     )
-                local_query = local_query.order_by(MediaItem.popularity.desc()).limit(30)
+                total_media = local_query.count()
+                local_query = local_query.order_by(MediaItem.popularity.desc()).offset(offset).limit(limit)
                 items = local_query.all()
                 has_logs = _batch_has_logs(db, user_id, items)
                 local_results = [_serialize_media(i, db, user_id, i.id in has_logs) for i in items]
@@ -366,7 +371,7 @@ def global_search(
             user_results.sort(key=lambda r: _fuzzy_score(query, r.get("display_name") or r.get("username") or ""), reverse=True)
             user_results = user_results[:8]
 
-    return {"media": media_results, "users": user_results}
+    return {"media": media_results, "users": user_results, "total": total_media}
 
 
 class TrackSearchRequest(BaseModel):
