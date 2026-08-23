@@ -140,8 +140,9 @@ const SearchPage = () => {
         if (genreVal) filters.genre = genreVal;
         const { data } = await globalSearch(q, currentUserId, filters);
         if (requestId !== searchIdRef.current) return;
+        const isGenreOnly = !!genreVal && !q;
         setResults({ media: data?.media || [], users: data?.users || [] });
-        setHasMore((data?.media?.length || 0) >= PAGE_SIZE);
+        setHasMore(!isGenreOnly && (data?.media?.length || 0) >= PAGE_SIZE);
         setSearched(true);
       } catch (err) {
         if (requestId !== searchIdRef.current) return;
