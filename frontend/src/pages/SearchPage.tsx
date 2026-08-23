@@ -437,7 +437,7 @@ const SearchPage = () => {
 
       {noResults && (
         <div className="mdf-card p-8 text-center text-white/40 text-sm">
-          Nenhum resultado para "{query.trim()}"
+          Nenhum resultado para "{query.trim() || genre.trim() || author.trim() || isbn.trim() || year.trim()}"
         </div>
       )}
     </div>

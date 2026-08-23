@@ -2,7 +2,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from app import schemas
 from app.api import deps
 from app.models.media import MediaType, MediaItem, LogEntry
@@ -262,7 +262,10 @@ def global_search(
                 local_results = [_serialize_media(i, db, user_id, i.id in has_logs) for i in items]
             elif genre:
                 local_query = db.query(MediaItem).filter(
-                    MediaItem.genres.ilike(f"%{genre}%")
+                    or_(
+                        MediaItem.genres.ilike(f"%{genre}%"),
+                        MediaItem.steam_genres.ilike(f"%{genre}%"),
+                    )
                 )
                 if type_filter is not None:
                     local_query = local_query.filter(MediaItem.media_type == type_filter)
