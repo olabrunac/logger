@@ -261,28 +261,31 @@ def global_search(
                 has_logs = _batch_has_logs(db, user_id, items)
                 local_results = [_serialize_media(i, db, user_id, i.id in has_logs) for i in items]
             elif genre:
+                page_num = offset + 1
+                per_api = 20
+                api_skip = offset * per_api
                 if type_filter in (None, MediaType.MOVIE):
                     try:
-                        raw = tmdb_service.discover_media("movie", genre, limit=20) or []
+                        raw = tmdb_service.discover_media("movie", genre, limit=per_api, page=page_num) or []
                         external_results += [_tmdb_to_media(it, MediaType.MOVIE) for it in raw]
                     except Exception:
                         pass
                 if type_filter in (None, MediaType.SERIES):
                     try:
-                        raw = tmdb_service.discover_media("tv", genre, limit=20) or []
+                        raw = tmdb_service.discover_media("tv", genre, limit=per_api, page=page_num) or []
                         external_results += [_tmdb_to_media(it, MediaType.SERIES) for it in raw]
                     except Exception:
                         pass
                 if type_filter in (None, MediaType.GAME):
                     try:
-                        raw = igdb_service.discover_games(genre, limit=20) or []
+                        raw = igdb_service.discover_games(genre, limit=per_api, offset=api_skip) or []
                         external_results += [_igdb_to_media(it) for it in raw]
                     except Exception:
                         pass
                 if type_filter in (None, MediaType.BOOK):
                     try:
-                        raw = google_books_service.search_books(query=genre) or []
-                        external_results += [_book_to_media(it) for it in raw[:20]]
+                        raw = google_books_service.search_books(query=genre, startIndex=api_skip) or []
+                        external_results += [_book_to_media(it) for it in raw[:per_api]]
                     except Exception:
                         pass
             elif author and (type_filter is None or type_filter == MediaType.BOOK):

@@ -59,6 +59,7 @@ const SearchPage = () => {
   const [recent, setRecent] = useState<SearchMediaItem[]>(loadRecent);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
+  const [genrePage, setGenrePage] = useState(0);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const searchIdRef = useRef(0);
@@ -133,6 +134,7 @@ const SearchPage = () => {
     if (!q && !isbnVal && !author.trim() && !year.trim() && !genreVal) {
       setResults({ media: [], users: [] });
       setHasMore(false);
+      setGenrePage(0);
       setSearched(false);
       return;
     }
@@ -151,7 +153,8 @@ const SearchPage = () => {
         if (requestId !== searchIdRef.current) return;
         const isGenreOnly = !!genreVal && !q;
         setResults({ media: data?.media || [], users: data?.users || [] });
-        setHasMore(!isGenreOnly && (data?.media?.length || 0) >= PAGE_SIZE);
+        setHasMore((data?.media?.length || 0) >= PAGE_SIZE);
+        setGenrePage(1);
         setSearched(true);
       } catch (err) {
         if (requestId !== searchIdRef.current) return;
@@ -178,16 +181,19 @@ const SearchPage = () => {
       if (year.trim() && !isNaN(yearNum)) filters.year = yearNum;
       if (isbn.trim()) filters.isbn = isbn.trim();
       if (genre.trim()) filters.genre = genre.trim();
-      const { data } = await globalSearch(query.trim(), currentUserId, filters, results.media.length);
+      const isGenreOnly = !!genre.trim() && !query.trim();
+      const offset = isGenreOnly ? genrePage : results.media.length;
+      const { data } = await globalSearch(query.trim(), currentUserId, filters, offset);
       if (data?.media) {
         setResults(prev => ({ ...prev, media: [...prev.media, ...data.media] }));
         setHasMore(data.media.length >= PAGE_SIZE);
+        if (isGenreOnly) setGenrePage(p => p + 1);
       } else {
         setHasMore(false);
       }
     } catch { setHasMore(false); }
     setLoadingMore(false);
-  }, [query, currentUserId, mediaType, author, year, isbn, genre, results.media.length, loadingMore, hasMore]);
+  }, [query, currentUserId, mediaType, author, year, isbn, genre, results.media.length, loadingMore, hasMore, genrePage]);
 
   useEffect(() => {
     const el = sentinelRef.current;

@@ -197,7 +197,7 @@ def _tmdb_genre_map(media_type: str):
     return _genre_maps_cache[media_type]
 
 
-def discover_media(media_type: str, genre_name: str, limit: int = 4):
+def discover_media(media_type: str, genre_name: str, limit: int = 4, page: int = 1):
     """Descobre filmes/séries por nome de gênero (fallback das sugestões)."""
     gid = _tmdb_genre_map(media_type).get((genre_name or "").strip().lower())
     if not gid:
@@ -209,7 +209,7 @@ def discover_media(media_type: str, genre_name: str, limit: int = 4):
         "with_genres": gid,
         "sort_by": "popularity.desc",
         "include_adult": "false",
-        "page": 1,
+        "page": page,
     }
     try:
         r = requests.get(url, params=params, timeout=10)

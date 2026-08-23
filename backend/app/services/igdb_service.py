@@ -120,7 +120,7 @@ def _get_igdb_genre_map():
     return _igdb_genre_map
 
 
-def discover_games(genre_name: str, limit: int = 4):
+def discover_games(genre_name: str, limit: int = 4, offset: int = 0):
     """Descobre jogos por nome de gênero (fallback das sugestões)."""
     gid = _get_igdb_genre_map().get((genre_name or "").strip().lower())
     if gid is None:
@@ -128,7 +128,7 @@ def discover_games(genre_name: str, limit: int = 4):
     return _igdb_post(
         "games",
         f"fields name, cover.url, first_release_date, rating_count, summary; "
-        f"where genres = {gid} & cover.url != null; sort rating_count desc; limit {limit};",
+        f"where genres = {gid} & cover.url != null; sort rating_count desc; limit {limit}; offset {offset};",
     )
 
 

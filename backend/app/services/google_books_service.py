@@ -45,7 +45,7 @@ def _cover_url(vi: dict) -> str | None:
     return None
 
 
-def search_books(query: str, author: str = None, year: int = None, isbn: str = None, use_intitle: bool = True):
+def search_books(query: str, author: str = None, year: int = None, isbn: str = None, use_intitle: bool = True, startIndex: int = 0):
     if not settings.GOOGLE_BOOKS_API_KEY:
         return []
     isbn = _normalize_isbn(isbn) if isbn else (_normalize_isbn(query) if _looks_like_isbn(query) else None)
@@ -63,6 +63,7 @@ def search_books(query: str, author: str = None, year: int = None, isbn: str = N
     params = {
         "q": q_str,
         "maxResults": 20,
+        "startIndex": startIndex,
         "printType": "books",
         "key": settings.GOOGLE_BOOKS_API_KEY,
     }
