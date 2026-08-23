@@ -174,6 +174,17 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
   const [bio, setBio] = useState(user.bio || '');
   const [editingDisplayName, setEditingDisplayName] = useState(false);
   const [editingBio, setEditingBio] = useState(false);
+  const [editingUsername, setEditingUsername] = useState(false);
+  const [usernameValue, setUsernameValue] = useState(user.username);
+  const [changingUsername, setChangingUsername] = useState(false);
+
+  const usernameNextChangeAt = user.username_changed_at
+    ? new Date(new Date(user.username_changed_at).getTime() + 30 * 24 * 60 * 60 * 1000)
+    : null;
+  const usernameLocked = !!usernameNextChangeAt && usernameNextChangeAt > new Date();
+  const usernameAvailableStr = usernameNextChangeAt && usernameLocked
+    ? usernameNextChangeAt.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', year: 'numeric' })
+    : null;
 
   const [visibility, setVisibility] = useState({
     profile_public: user.profile_public ?? true,
@@ -510,6 +521,31 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
     }
   };
 
+  const handleChangeUsername = async () => {
+    const newUsername = usernameValue.trim().toLowerCase().replace(/[^a-z0-9._-]/g, '');
+    if (!newUsername || newUsername === user.username) {
+      setEditingUsername(false);
+      setUsernameValue(user.username);
+      return;
+    }
+    if (newUsername.length < 3) {
+      showError('Username deve ter pelo menos 3 caracteres.');
+      return;
+    }
+    setChangingUsername(true);
+    try {
+      const res = await api.put(`/users/${user.id}/profile`, { username: newUsername });
+      onUserUpdate(res.data);
+      setEditingUsername(false);
+      showSuccess('Username alterado com sucesso!');
+    } catch (err: any) {
+      showError(err.response?.data?.detail || 'Erro ao alterar username.');
+      setUsernameValue(user.username);
+    } finally {
+      setChangingUsername(false);
+    }
+  };
+
   const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmNewPassword) {
       showError('Preencha todos os campos.');
@@ -589,15 +625,37 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
           </div>
         </div>
         <div className="flex items-center justify-between rounded-xl border border-white/10 bg-[var(--mdf-bg)] p-4">
-          <div>
-            <p className="text-xs text-white/50">Username</p>
-            <p className="mt-0.5 text-sm font-medium text-white">{user.username}</p>
-            <p className="mt-1 text-xs text-white/40">Próxima alteração disponível em 13 de ago. de 2026</p>
-          </div>
-          <button disabled className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-medium text-white/50 transition-colors disabled:opacity-50">
-            <Pencil className="h-3.5 w-3.5" />
-            Alterar
-          </button>
+          {editingUsername ? (
+            <div className="flex items-center gap-2 w-full">
+              <input
+                type="text"
+                value={usernameValue}
+                onChange={(e) => setUsernameValue(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ''))}
+                placeholder={user.username}
+                className="flex-1 rounded-lg border border-white/10 bg-[var(--mdf-surface)] px-3 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:border-[var(--accent)]"
+                autoFocus
+                onKeyDown={(e) => { if (e.key === 'Enter') handleChangeUsername(); if (e.key === 'Escape') { setUsernameValue(user.username); setEditingUsername(false); } }}
+              />
+              <button onClick={handleChangeUsername} disabled={changingUsername} className="rounded-lg bg-[var(--accent)] px-3 py-2 text-xs font-medium text-white disabled:opacity-50">{changingUsername ? 'Salvando...' : 'Salvar'}</button>
+              <button onClick={() => { setUsernameValue(user.username); setEditingUsername(false); }} className="rounded-lg border border-white/10 px-3 py-2 text-xs font-medium text-white/50 hover:text-white">Cancelar</button>
+            </div>
+          ) : (
+            <>
+              <div>
+                <p className="text-xs text-white/50">Username</p>
+                <p className="mt-0.5 text-sm font-medium text-white">{user.username}</p>
+                {usernameLocked && usernameAvailableStr ? (
+                  <p className="mt-1 text-xs text-white/40">Próxima alteração disponível em {usernameAvailableStr}</p>
+                ) : (
+                  <p className="mt-1 text-xs text-white/40">Você pode alterar seu username agora.</p>
+                )}
+              </div>
+              <button disabled={usernameLocked} onClick={() => setEditingUsername(true)} className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-medium text-white/50 transition-colors hover:border-white/20 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed">
+                <Pencil className="h-3.5 w-3.5" />
+                Alterar
+              </button>
+            </>
+          )}
         </div>
       </div>
 

@@ -13,6 +13,7 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     birth_date = Column(Date, nullable=True)
     birth_date_updated_at = Column(DateTime, nullable=True)
+    username_changed_at = Column(DateTime, nullable=True)
     
     banner_url = Column(String, nullable=True)
     banner_position = Column(String, nullable=True)

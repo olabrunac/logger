@@ -90,6 +90,7 @@ class User(UserBase):
     trophy_showcase: Optional[str] = '[]'
     birth_date: Optional[date] = None
     birth_date_updated_at: Optional[datetime] = None
+    username_changed_at: Optional[datetime] = None
     profile_public: Optional[bool] = True
     show_game_library: Optional[bool] = True
     show_achievements: Optional[bool] = True

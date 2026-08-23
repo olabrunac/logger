@@ -35,6 +35,17 @@ def update_user_profile(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     update_data = user_in.model_dump(exclude_unset=True)
+    username_in = update_data.pop("username", None)
+    if username_in is not None and username_in != user.username:
+        if user.username_changed_at is not None:
+            days_since = (datetime.datetime.utcnow() - user.username_changed_at).days
+            if days_since < 30:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Nome de usuário pode ser alterado uma vez por mês. Próxima alteração disponível em {(user.username_changed_at + datetime.timedelta(days=30)).strftime('%d/%m/%Y')}."
+                )
+        user.username = username_in
+        user.username_changed_at = datetime.datetime.utcnow()
     birth_date_in = update_data.pop("birth_date", None)
     if birth_date_in is not None:
         if user.birth_date_updated_at is not None:

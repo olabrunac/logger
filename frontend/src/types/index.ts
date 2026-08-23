@@ -19,6 +19,7 @@ export interface User {
   trophy_showcase?: string;
   birth_date?: string;
   birth_date_updated_at?: string;
+  username_changed_at?: string;
   profile_public?: boolean;
   show_game_library?: boolean;
   show_achievements?: boolean;
