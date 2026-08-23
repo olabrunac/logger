@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: logger
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: TMDB_API_KEY
+        sync: false
+      - key: IGDB_CLIENT_ID
+        sync: false
+      - key: IGDB_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_BOOKS_API_KEY
+        sync: false
+      - key: STEAM_API_KEY
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: DEV_BYPASS_LOGIN
+        value: "false"
+    healthCheckPath: /api/v1/openapi.json
+    autoDeploy: true
