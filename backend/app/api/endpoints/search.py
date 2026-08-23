@@ -2,7 +2,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from sqlalchemy import func, or_
+from sqlalchemy import func
 from app import schemas
 from app.api import deps
 from app.models.media import MediaType, MediaItem, LogEntry
@@ -261,24 +261,6 @@ def global_search(
                 has_logs = _batch_has_logs(db, user_id, items)
                 local_results = [_serialize_media(i, db, user_id, i.id in has_logs) for i in items]
             elif genre:
-                local_query = db.query(MediaItem).filter(
-                    or_(
-                        MediaItem.genres.ilike(f"%{genre}%"),
-                        MediaItem.steam_genres.ilike(f"%{genre}%"),
-                    )
-                )
-                if type_filter is not None:
-                    local_query = local_query.filter(MediaItem.media_type == type_filter)
-                if year is not None:
-                    local_query = local_query.filter(
-                        MediaItem.release_date >= datetime.date(year, 1, 1),
-                        MediaItem.release_date < datetime.date(year + 1, 1, 1),
-                    )
-                local_query = local_query.order_by(MediaItem.popularity.desc())
-                items = local_query.all()
-                has_logs = _batch_has_logs(db, user_id, items)
-                local_results = [_serialize_media(i, db, user_id, i.id in has_logs) for i in items]
-
                 if type_filter in (None, MediaType.MOVIE):
                     try:
                         raw = tmdb_service.discover_media("movie", genre, limit=20) or []
