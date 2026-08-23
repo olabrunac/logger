@@ -78,6 +78,15 @@ const SearchPage = () => {
     getPopularSearches().then(r => setPopular(r.data || [])).catch(() => {});
   }, []);
 
+  useEffect(() => {
+    const g = searchParams.get('genre') || '';
+    const mt = (searchParams.get('media_type') as MediaType | 'all') || 'all';
+    const q = searchParams.get('q') || '';
+    if (g !== genre) setGenre(g);
+    if (mt !== mediaType) setMediaType(mt);
+    if (q !== query) setQuery(q);
+  }, [searchParams]);
+
   const rememberSearch = (item: SearchMediaItem) => {
     const title = item?.title?.trim();
     if (!title || title.length < 2) return;
