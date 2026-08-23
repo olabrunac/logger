@@ -108,16 +108,31 @@ def get_game_by_id(igdb_id: int) -> dict | None:
 
 
 _igdb_genre_map = None
+_igdb_theme_map = None
 
 _PT_EN_GENRES = {
-    "ação": "action", "aventura": "adventure", "rpg": "rpg",
-    "estratégia": "strategy", "simulação": "simulation", "esportes": "sport",
-    "corrida": "racing", "tiro": "shooter", "plataforma": "platformer",
+    "ação": "action", "aventura": "adventure", "rpg": "role-playing (rpg)",
+    "estratégia": "strategy", "simulação": "simulator", "esportes": "sport",
+    "corrida": "racing", "tiro": "shooter", "plataforma": "platform",
     "puzzle": "puzzle", "terror": "horror", "suspense": "thriller",
     "ficção científica": "science fiction", "fantasia": "fantasy",
-    "casual": "casual", "indie": "indie", "música": "music",
-    "luta": "fighting", "arta marcial": "martial arts", "stealth": "stealth",
-    "sobrevivência": "survival", "battle royale": "battle royale",
+    "casual": None, "indie": "indie", "música": "music",
+    "luta": "fighting", "arta marcial": "hack and slash/beat 'em up",
+    "stealth": "stealth", "sobrevivência": "survival",
+    "battle royale": None, "drama": "drama", "mistério": "mystery",
+    "mundo aberto": "open world", "partida": None,
+    "jogos de cartas": "card & board game",
+}
+
+_STEAM_IGDB_NAME = {
+    "rpg": "role-playing (rpg)",
+    "simulation": "simulator",
+    "hack and slash": "hack and slash/beat 'em up",
+    "visual novel": "visual novel",
+    "card game": "card & board game",
+    "board game": "card & board game",
+    "turn-based strategy": "turn-based strategy (tbs)",
+    "real time strategy": "real time strategy (rts)",
 }
 
 
@@ -131,18 +146,46 @@ def _get_igdb_genre_map():
     return _igdb_genre_map
 
 
+def _get_igdb_theme_map():
+    global _igdb_theme_map
+    if _igdb_theme_map is None:
+        _igdb_theme_map = {}
+        rows = _igdb_post("themes", "fields name; limit 500;")
+        for g in rows:
+            _igdb_theme_map[g.get("name", "").lower()] = g.get("id")
+    return _igdb_theme_map
+
+
+def _resolve_igdb_name(name: str) -> str:
+    """Resolve a Steam/PT-BR genre name to an IGDB genre/theme name."""
+    en = _PT_EN_GENRES.get(name)
+    if en is not None:
+        return en
+    return _STEAM_IGDB_NAME.get(name, name)
+
+
 def discover_games(genre_name: str, limit: int = 4, offset: int = 0):
-    """Descobre jogos por nome de gênero (fallback das sugestões)."""
+    """Descobre jogos por nome de gênero/tema (fallback das sugestões).
+
+    Steam genres like "Action", "Horror" map to IGDB *themes*, not genres.
+    We check both maps and use whichever matches.
+    """
     name = (genre_name or "").strip().lower()
-    gid = _get_igdb_genre_map().get(name)
-    if gid is None:
-        gid = _get_igdb_genre_map().get(_PT_EN_GENRES.get(name, ""))
-    if gid is None:
-        return []
+    resolved = _resolve_igdb_name(name)
+
+    gid = _get_igdb_genre_map().get(resolved)
+    if gid is not None:
+        where = f"genres = {gid}"
+    else:
+        tid = _get_igdb_theme_map().get(resolved)
+        if tid is None:
+            return []
+        where = f"themes = {tid}"
+
     return _igdb_post(
         "games",
         f"fields name, cover.url, first_release_date, rating_count, summary; "
-        f"where genres = {gid} & cover.url != null; sort rating_count desc; limit {limit}; offset {offset};",
+        f"where {where} & cover.url != null; sort rating_count desc; limit {limit}; offset {offset};",
     )
 
 
