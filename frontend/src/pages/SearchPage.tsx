@@ -57,8 +57,8 @@ const SearchPage = () => {
   const [searched, setSearched] = useState(false);
   const [popular, setPopular] = useState<PopularSearchItem[]>([]);
   const [recent, setRecent] = useState<SearchMediaItem[]>(loadRecent);
-  const [totalMedia, setTotalMedia] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const searchIdRef = useRef(0);
@@ -123,7 +123,7 @@ const SearchPage = () => {
     setSearchParams(params, { replace: true });
     if (!q && !isbnVal && !author.trim() && !year.trim() && !genreVal) {
       setResults({ media: [], users: [] });
-      setTotalMedia(0);
+      setHasMore(false);
       setSearched(false);
       return;
     }
@@ -141,7 +141,7 @@ const SearchPage = () => {
         const { data } = await globalSearch(q, currentUserId, filters);
         if (requestId !== searchIdRef.current) return;
         setResults({ media: data?.media || [], users: data?.users || [] });
-        setTotalMedia(data?.total || 0);
+        setHasMore((data?.media?.length || 0) >= PAGE_SIZE);
         setSearched(true);
       } catch (err) {
         if (requestId !== searchIdRef.current) return;
@@ -155,7 +155,7 @@ const SearchPage = () => {
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [query, currentUserId, setSearchParams, mediaType, author, year, isbn, genre]);
 
-  const hasMore = results.media.length < totalMedia;
+  const PAGE_SIZE = 20;
 
   const fetchMore = useCallback(async () => {
     if (loadingMore || !hasMore) return;
@@ -171,9 +171,11 @@ const SearchPage = () => {
       const { data } = await globalSearch(query.trim(), currentUserId, filters, results.media.length);
       if (data?.media) {
         setResults(prev => ({ ...prev, media: [...prev.media, ...data.media] }));
-        setTotalMedia(data?.total || 0);
+        setHasMore(data.media.length >= PAGE_SIZE);
+      } else {
+        setHasMore(false);
       }
-    } catch { /* ignore */ }
+    } catch { setHasMore(false); }
     setLoadingMore(false);
   }, [query, currentUserId, mediaType, author, year, isbn, genre, results.media.length, loadingMore, hasMore]);
 
