@@ -17,6 +17,7 @@ export interface User {
   display_name?: string;
   bio?: string;
   trophy_showcase?: string;
+  steam_id?: string;
   birth_date?: string;
   birth_date_updated_at?: string;
   username_changed_at?: string;

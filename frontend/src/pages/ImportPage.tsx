@@ -122,9 +122,11 @@ const ImportPage = ({ user }: ImportPageProps) => {
   const [items, setItems] = useState<ImportItem[]>([]);
   const [steamId, setSteamId] = useState(() => {
     if (typeof window !== 'undefined') {
+      // Prioriza o link salvo no perfil (backend); fallback para localStorage
+      if (user?.steam_id) return user.steam_id;
       return localStorage.getItem('steam_import_id') || '';
     }
-    return '';
+    return user?.steam_id || '';
   });
 
   // Persist steamId to localStorage

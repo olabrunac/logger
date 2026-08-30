@@ -172,6 +172,7 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
   // Profile tab state
   const [displayName, setDisplayName] = useState(user.display_name || '');
   const [bio, setBio] = useState(user.bio || '');
+  const [steamId, setSteamId] = useState(user.steam_id || '');
   const [editingDisplayName, setEditingDisplayName] = useState(false);
   const [editingBio, setEditingBio] = useState(false);
   const [editingUsername, setEditingUsername] = useState(false);
@@ -447,6 +448,7 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
         state,
         display_name: displayName || null,
         bio: bio || null,
+        steam_id: steamId || null,
         section_order: sectionOrderData,
       });
       onUserUpdate(res.data);
@@ -797,6 +799,27 @@ const SettingsPage = ({ user, onUserUpdate, onDeleteAccount }: SettingsPageProps
               </button>
             </div>
           )}
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-white/5 bg-[var(--mdf-surface)] p-5">
+        <div className="mb-4">
+          <h2 className="text-base font-semibold text-white">Steam ID</h2>
+          <p className="text-xs text-white/50 mt-0.5">Seu link ou ID do Steam. Usado para preencher o importador de jogos. Você pode mudar a qualquer momento.</p>
+        </div>
+        <div className="rounded-xl border border-white/10 bg-[var(--mdf-bg)] p-4">
+          <div className="flex items-center gap-2 w-full">
+            <input
+              type="text"
+              value={steamId}
+              onChange={(e) => setSteamId(e.target.value)}
+              placeholder="https://steamcommunity.com/id/..."
+              className="flex-1 rounded-lg border border-white/10 bg-[var(--mdf-surface)] px-3 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:border-[var(--accent)]"
+            />
+            <button onClick={handleSaveProfile} disabled={saving} className="rounded-lg bg-[var(--accent)] px-3 py-2 text-xs font-medium text-white disabled:opacity-50">
+              Salvar
+            </button>
+          </div>
         </div>
       </div>
 

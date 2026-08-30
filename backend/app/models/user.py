@@ -27,6 +27,8 @@ class User(Base):
     bio = Column(String, nullable=True)
     trophy_showcase = Column(Text, default='[]')
 
+    steam_id = Column(String, nullable=True)
+
     profile_public = Column(Boolean, default=True, nullable=False)
     show_game_library = Column(Boolean, default=True, nullable=False)
     show_achievements = Column(Boolean, default=True, nullable=False)

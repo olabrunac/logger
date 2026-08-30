@@ -571,6 +571,7 @@ async def steam_preview(
 @router.post("/steam/import")
 async def steam_import(
     *,
+    db: Session = Depends(deps.get_db),
     user_id: int = Form(...),
     steam_id: str = Form(...),
     items_json: str = Form(...),
@@ -584,6 +585,18 @@ async def steam_import(
     if not resolved_steam_id:
         raise HTTPException(status_code=400, detail="Steam ID invÃ¡lido.")
 
+    # Salva o link/ID do Steam no perfil do usuário para uso futuro (o usuário
+    # pode mudar quando quiser via Settings → Perfil).
+    try:
+        from app import crud
+        user = crud.user.get(db, id=user_id)
+        if user:
+            user.steam_id = steam_id.strip()
+            db.add(user)
+            db.commit()
+    except Exception as exc:
+        print(f"[steam_import] failed to save steam_id: {exc}")
+
     from app.services.import_jobs import start_job
     job_id = start_job(
         source="steam",
@@ -592,6 +605,49 @@ async def steam_import(
         fn=lambda job, db: _run_steam_import(job, db, user_id, resolved_steam_id, items),
     )
     return {"job_id": job_id}
+
+
+def _steam_fetch_details(appid: int, resolved_steam_id: str) -> Dict:
+    """Fetch all Steam network data for a single appid in parallel (app details,
+    player achievements, achievement schema). Returns a dict with the raw data."""
+    result: Dict = {"details": None, "achievements": None, "schema": []}
+    try:
+        result["details"] = steam_service.get_app_details(appid)
+    except Exception:
+        result["details"] = None
+    if resolved_steam_id:
+        try:
+            ach_r = requests.get(
+                "https://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v1/",
+                params={
+                    "key": settings.STEAM_API_KEY,
+                    "steamid": resolved_steam_id,
+                    "appid": appid,
+                    "l": "pt-br",
+                },
+                timeout=15,
+            )
+            ach_r.raise_for_status()
+            ach_data = ach_r.json().get("playerstats", {})
+            result["achievements"] = ach_data.get("achievements")
+        except Exception:
+            result["achievements"] = None
+        try:
+            schema_r = requests.get(
+                "https://api.steampowered.com/ISteamUserStats/GetSchemaForGame/v1/",
+                params={"key": settings.STEAM_API_KEY, "appid": appid, "l": "pt-br"},
+                timeout=15,
+            )
+            schema_r.raise_for_status()
+            game_data = schema_r.json().get("game", {})
+            if isinstance(game_data, dict):
+                stats_data = game_data.get("availableGameStats", {})
+                if isinstance(stats_data, dict):
+                    raw_list = stats_data.get("achievements", [])
+                    result["schema"] = raw_list if isinstance(raw_list, list) else []
+        except Exception:
+            result["schema"] = []
+    return result
 
 
 def _run_steam_import(job, db, user_id: int, resolved_steam_id: str, items: list) -> dict:
@@ -614,6 +670,36 @@ def _run_steam_import(job, db, user_id: int, resolved_steam_id: str, items: list
                 cover_map[appid] = future.result()
             except Exception:
                 cover_map[appid] = None
+
+    # Pre-fetch ALL per-game Steam network data in parallel (app details,
+    # achievements, schema). Each game used to make 3 serial HTTP calls + 1s of
+    # sleep in the write loop; now everything is fetched upfront with bounded
+    # concurrency so the DB write loop below does zero network I/O.
+    steam_data_map: Dict[int, Dict] = {}
+    fetchable = [appid for appid in unique_appids if appid]
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        future_to_appid = {executor.submit(_steam_fetch_details, appid, resolved_steam_id): appid for appid in fetchable}
+        for future in as_completed(future_to_appid):
+            appid = future_to_appid[future]
+            try:
+                steam_data_map[appid] = future.result()
+            except Exception:
+                steam_data_map[appid] = {"details": None, "achievements": None, "schema": []}
+
+    # Preload existing media items (by steam_appid) and existing logs for this
+    # user in single queries, so the write loop does no per-item SELECTs.
+    steam_appids = [appid for appid in unique_appids if appid]
+    media_by_appid: Dict[int, MediaItem] = {}
+    if steam_appids:
+        for mi in db.query(MediaItem).filter(MediaItem.media_type == MediaType.GAME, MediaItem.steam_appid.in_(steam_appids)).all():
+            if mi.steam_appid:
+                media_by_appid[mi.steam_appid] = mi
+
+    existing_logs: Dict[int, LogEntry] = {}
+    if media_by_appid:
+        media_ids = [m.id for m in media_by_appid.values()]
+        for lg in db.query(LogEntry).filter(LogEntry.user_id == user_id, LogEntry.media_item_id.in_(media_ids)).all():
+            existing_logs[lg.media_item_id] = lg
 
     for idx, item in enumerate(items):
         if job.cancelled:
@@ -652,8 +738,7 @@ def _run_steam_import(job, db, user_id: int, resolved_steam_id: str, items: list
             job.add_skipped({"title": title, "reason": "no_cover"})
             job.progress(current=idx + 1, created=created, skipped=skipped)
             continue
-        steam_details = steam_service.get_app_details(appid)
-        time.sleep(0.5)
+        steam_details = steam_data_map.get(appid, {}).get("details")
 
         media_in = schemas.MediaItemCreate(
             title=title,
@@ -661,7 +746,10 @@ def _run_steam_import(job, db, user_id: int, resolved_steam_id: str, items: list
             steam_appid=appid,
             cover_image_url=cover_url,
         )
-        media_item = media_crud.get_or_create(db, obj_in=media_in)
+        media_item = media_by_appid.get(appid)
+        if media_item is None:
+            media_item = media_crud.create(db, obj_in=media_in)
+            media_by_appid[appid] = media_item
 
         if cover_url:
             media_item.cover_image_url = cover_url
@@ -680,10 +768,7 @@ def _run_steam_import(job, db, user_id: int, resolved_steam_id: str, items: list
             except Exception:
                 pass
 
-        existing_log = db.query(LogEntry).filter(
-            LogEntry.user_id == user_id,
-            LogEntry.media_item_id == media_item.id,
-        ).first()
+        existing_log = existing_logs.get(media_item.id)
 
         status_str = item.get("status", "completed")
         try:
@@ -737,85 +822,54 @@ def _run_steam_import(job, db, user_id: int, resolved_steam_id: str, items: list
         player_total = 0
         schema_total = 0
 
-        # Import Steam achievements
-        if resolved_steam_id and appid:
-            try:
-                ach_url = "https://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v1/"
-                ach_r = requests.get(ach_url, params={
-                    "key": settings.STEAM_API_KEY,
-                    "steamid": resolved_steam_id,
-                    "appid": appid,
-                    "l": "pt-br",
-                }, timeout=15)
-                ach_r.raise_for_status()
-                ach_data = ach_r.json().get("playerstats", {})
-                achievements = ach_data.get("achievements")
-                if isinstance(achievements, list):
-                    achievements_checked = True
-                    player_total = len(achievements)
-                    for a in achievements:
-                        if not isinstance(a, dict):
-                            continue
-                        ext_id = a.get("apiname", "")
-                        if not ext_id:
-                            continue
-                        if a.get("achieved", 0) == 1:
-                            unlocked_count += 1
-                        existing_ach = db.query(Achievement).filter(
-                            Achievement.log_id == log.id,
-                            Achievement.external_id == ext_id,
-                        ).first()
-                        if existing_ach:
-                            # Re-import: atualiza o estado de unlocked dos achievements existentes
-                            new_unlocked = a.get("achieved", 0) == 1
-                            if existing_ach.unlocked != new_unlocked:
-                                existing_ach.unlocked = new_unlocked
-                            continue
-                        ach_count += 1
-                        db.add(Achievement(
-                            log_id=log.id,
-                            external_id=ext_id,
-                            name=a.get("name", ext_id),
-                            description=a.get("description", ""),
-                            unlocked=a.get("achieved", 0) == 1,
-                        ))
-                time.sleep(0.5)
-                # Also fetch schema for achievement icons
-                schema_url = "https://api.steampowered.com/ISteamUserStats/GetSchemaForGame/v1/"
-                schema_r = requests.get(schema_url, params={
-                    "key": settings.STEAM_API_KEY,
-                    "appid": appid,
-                    "l": "pt-br",
-                }, timeout=15)
-                schema_r.raise_for_status()
-                game_data = schema_r.json().get("game", {})
-                achievements_list = []
-                if isinstance(game_data, dict):
-                    stats_data = game_data.get("availableGameStats", {})
-                    if isinstance(stats_data, dict):
-                        raw_list = stats_data.get("achievements", [])
-                        if isinstance(raw_list, list):
-                            achievements_list = raw_list
-                if isinstance(achievements_list, list):
-                    schema_total = len(achievements_list)
-                    schema_map = {}
-                    for sa in achievements_list:
-                        if not isinstance(sa, dict):
-                            continue
-                        icon = sa.get("icon") or sa.get("icon_gray", "")
-                        if icon:
-                            schema_map[sa.get("name", "")] = f"https://cdn.akamai.steamstatic.com/steamcommunity/public/images/apps/{appid}/{icon}"
-                    if schema_map:
-                        for ach in db.query(Achievement).filter(Achievement.log_id == log.id).all():
-                            icon_url = schema_map.get(ach.external_id)
-                            if icon_url:
-                                ach.image_url = icon_url
-                        db.flush()
-            except requests.HTTPError as e:
-                if e.response.status_code not in (400, 403):
-                    print(f"Error importing achievements for {title} (appid {appid}): {e}")
-            except Exception as e:
-                print(f"Error importing achievements for {title} (appid {appid}): {e}")
+        # Import Steam achievements (data pre-fetched in parallel)
+        sdata = steam_data_map.get(appid, {})
+        achievements = sdata.get("achievements")
+        achievements_list = sdata.get("schema") or []
+        if isinstance(achievements, list):
+            achievements_checked = True
+            player_total = len(achievements)
+            for a in achievements:
+                if not isinstance(a, dict):
+                    continue
+                ext_id = a.get("apiname", "")
+                if not ext_id:
+                    continue
+                if a.get("achieved", 0) == 1:
+                    unlocked_count += 1
+                existing_ach = db.query(Achievement).filter(
+                    Achievement.log_id == log.id,
+                    Achievement.external_id == ext_id,
+                ).first()
+                if existing_ach:
+                    # Re-import: atualiza o estado de unlocked dos achievements existentes
+                    new_unlocked = a.get("achieved", 0) == 1
+                    if existing_ach.unlocked != new_unlocked:
+                        existing_ach.unlocked = new_unlocked
+                    continue
+                ach_count += 1
+                db.add(Achievement(
+                    log_id=log.id,
+                    external_id=ext_id,
+                    name=a.get("name", ext_id),
+                    description=a.get("description", ""),
+                    unlocked=a.get("achieved", 0) == 1,
+                ))
+        if isinstance(achievements_list, list):
+            schema_total = len(achievements_list)
+            schema_map = {}
+            for sa in achievements_list:
+                if not isinstance(sa, dict):
+                    continue
+                icon = sa.get("icon") or sa.get("icon_gray", "")
+                if icon:
+                    schema_map[sa.get("name", "")] = f"https://cdn.akamai.steamstatic.com/steamcommunity/public/images/apps/{appid}/{icon}"
+            if schema_map:
+                for ach in db.query(Achievement).filter(Achievement.log_id == log.id).all():
+                    icon_url = schema_map.get(ach.external_id)
+                    if icon_url:
+                        ach.image_url = icon_url
+                db.flush()
 
         # Games with 100% achievements unlocked are platinated
         total_ach = schema_total if schema_total > 0 else player_total

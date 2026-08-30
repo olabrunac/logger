@@ -81,6 +81,7 @@ def init_db() -> None:
     _add_column('"user"', 'show_hours', 'ALTER TABLE "user" ADD COLUMN show_hours BOOLEAN DEFAULT FALSE')
     _add_column('"user"', 'show_stats', 'ALTER TABLE "user" ADD COLUMN show_stats BOOLEAN DEFAULT TRUE')
     _add_column('"user"', 'username_changed_at', 'ALTER TABLE "user" ADD COLUMN username_changed_at TIMESTAMP')
+    _add_column('"user"', 'steam_id', 'ALTER TABLE "user" ADD COLUMN steam_id VARCHAR')
     _add_column('logentry', 'family_share', 'ALTER TABLE logentry ADD COLUMN family_share BOOLEAN DEFAULT FALSE')
     _add_column('logentry', 'exclude_from_stats', 'ALTER TABLE logentry ADD COLUMN exclude_from_stats BOOLEAN DEFAULT FALSE')
     _migrated_created_at = _add_column('logentry', 'created_at', 'ALTER TABLE logentry ADD COLUMN created_at TIMESTAMP')

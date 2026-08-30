@@ -26,6 +26,7 @@ class UserUpdate(BaseModel):
     display_name: Optional[str] = None
     bio: Optional[str] = None
     trophy_showcase: Optional[str] = None
+    steam_id: Optional[str] = None
     birth_date: Optional[date] = None
     profile_public: Optional[bool] = None
     show_game_library: Optional[bool] = None
@@ -88,6 +89,7 @@ class User(UserBase):
     display_name: Optional[str] = None
     bio: Optional[str] = None
     trophy_showcase: Optional[str] = '[]'
+    steam_id: Optional[str] = None
     birth_date: Optional[date] = None
     birth_date_updated_at: Optional[datetime] = None
     username_changed_at: Optional[datetime] = None
