@@ -655,7 +655,6 @@ def _run_steam_import(job, db, user_id: int, resolved_steam_id: str, items: list
     created = 0
     skipped = 0
     updated = 0
-    media_crud = CRUDMediaItem(MediaItem)
 
     # Pre-resolve cover URLs for all appids in parallel (each HEAD ~1s, so
     # 276 games ≈ 5min serial → ~30s with 10 workers).
@@ -701,6 +700,15 @@ def _run_steam_import(job, db, user_id: int, resolved_steam_id: str, items: list
         for lg in db.query(LogEntry).filter(LogEntry.user_id == user_id, LogEntry.media_item_id.in_(media_ids)).all():
             existing_logs[lg.media_item_id] = lg
 
+    # Preload existing achievements for all existing logs in ONE query, grouped
+    # by log_id → {external_id: Achievement}. This kills the per-achievement N+1
+    # (1 round-trip per achievement per game) against the remote Postgres.
+    achievement_cache: Dict[int, Dict[str, Achievement]] = {}
+    if existing_logs:
+        log_ids = [lg.id for lg in existing_logs.values()]
+        for ach in db.query(Achievement).filter(Achievement.log_id.in_(log_ids)).all():
+            achievement_cache.setdefault(ach.log_id, {})[ach.external_id or ""] = ach
+
     for idx, item in enumerate(items):
         if job.cancelled:
             break
@@ -740,15 +748,16 @@ def _run_steam_import(job, db, user_id: int, resolved_steam_id: str, items: list
             continue
         steam_details = steam_data_map.get(appid, {}).get("details")
 
-        media_in = schemas.MediaItemCreate(
-            title=title,
-            media_type=MediaType.GAME,
-            steam_appid=appid,
-            cover_image_url=cover_url,
-        )
         media_item = media_by_appid.get(appid)
         if media_item is None:
-            media_item = media_crud.create(db, obj_in=media_in)
+            media_item = MediaItem(
+                title=title,
+                media_type=MediaType.GAME,
+                steam_appid=appid,
+                cover_image_url=cover_url,
+            )
+            db.add(media_item)
+            db.flush()
             media_by_appid[appid] = media_item
 
         if cover_url:
@@ -826,6 +835,7 @@ def _run_steam_import(job, db, user_id: int, resolved_steam_id: str, items: list
         sdata = steam_data_map.get(appid, {})
         achievements = sdata.get("achievements")
         achievements_list = sdata.get("schema") or []
+        log_ach_cache = achievement_cache.setdefault(log.id, {})
         if isinstance(achievements, list):
             achievements_checked = True
             player_total = len(achievements)
@@ -837,10 +847,7 @@ def _run_steam_import(job, db, user_id: int, resolved_steam_id: str, items: list
                     continue
                 if a.get("achieved", 0) == 1:
                     unlocked_count += 1
-                existing_ach = db.query(Achievement).filter(
-                    Achievement.log_id == log.id,
-                    Achievement.external_id == ext_id,
-                ).first()
+                existing_ach = log_ach_cache.get(ext_id)
                 if existing_ach:
                     # Re-import: atualiza o estado de unlocked dos achievements existentes
                     new_unlocked = a.get("achieved", 0) == 1
@@ -848,13 +855,15 @@ def _run_steam_import(job, db, user_id: int, resolved_steam_id: str, items: list
                         existing_ach.unlocked = new_unlocked
                     continue
                 ach_count += 1
-                db.add(Achievement(
+                new_ach = Achievement(
                     log_id=log.id,
                     external_id=ext_id,
                     name=a.get("name", ext_id),
                     description=a.get("description", ""),
                     unlocked=a.get("achieved", 0) == 1,
-                ))
+                )
+                db.add(new_ach)
+                log_ach_cache[ext_id] = new_ach
         if isinstance(achievements_list, list):
             schema_total = len(achievements_list)
             schema_map = {}
@@ -865,7 +874,7 @@ def _run_steam_import(job, db, user_id: int, resolved_steam_id: str, items: list
                 if icon:
                     schema_map[sa.get("name", "")] = f"https://cdn.akamai.steamstatic.com/steamcommunity/public/images/apps/{appid}/{icon}"
             if schema_map:
-                for ach in db.query(Achievement).filter(Achievement.log_id == log.id).all():
+                for ach in log_ach_cache.values():
                     icon_url = schema_map.get(ach.external_id)
                     if icon_url:
                         ach.image_url = icon_url
