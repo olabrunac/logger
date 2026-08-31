@@ -547,6 +547,8 @@ async def steam_preview(
         ABANDONED_SECONDS = body.abandoned_days * 24 * 3600
         if playtime_minutes > 0 and rtime and (datetime.datetime.now().timestamp() - rtime) > ABANDONED_SECONDS:
             status = "dropped"
+        elif playtime_minutes >= 120:
+            status = "in_progress"
         else:
             status = "library"
         if rtime:
@@ -890,6 +892,13 @@ def _run_steam_import(job, db, user_id: int, resolved_steam_id: str, items: list
         # no re-import o status manual do usuário não é rebaixado)
         if not is_update and hours is not None and hours < 2 and achievements_checked and ach_count == 0:
             log.status = LogStatus.LIBRARY
+            db.add(log)
+
+        # Jogos jogados de verdade (>= 2h), que não são platinados nem abandonados,
+        # vão para in_progress (apenas na criação — no re-import o status manual
+        # do usuário não é sobrescrito).
+        if not is_update and log.status == LogStatus.LIBRARY and hours is not None and hours >= 2:
+            log.status = LogStatus.IN_PROGRESS
             db.add(log)
 
         if is_update:
