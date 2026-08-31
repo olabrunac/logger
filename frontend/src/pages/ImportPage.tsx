@@ -686,11 +686,13 @@ const ImportPage = ({ user }: ImportPageProps) => {
           <div className="w-full max-w-md mx-auto">
             <div className="flex justify-between text-xs mb-1.5" style={{ color: 'var(--text-dim)' }}>
               <span>
-                {importProgress.total > 0
+                {importProgress.total > 0 && importProgress.current > 0
                   ? `Processando ${Math.min(importProgress.current, importProgress.total)} de ${importProgress.total} itens...`
-                  : 'Preparando...'}
+                  : importProgress.total > 0
+                    ? `Pré-carregando dados de ${importProgress.total} itens...`
+                    : 'Preparando...'}
               </span>
-              {importProgress.etaSeconds != null && importProgress.etaSeconds > 0 && (
+              {importProgress.etaSeconds != null && importProgress.etaSeconds > 0 && importProgress.current > 0 && (
                 <span>
                   ~{Math.ceil(importProgress.etaSeconds / 60)} min restantes
                 </span>
