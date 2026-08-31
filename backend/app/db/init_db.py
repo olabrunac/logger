@@ -84,6 +84,8 @@ def init_db() -> None:
     _add_column('"user"', 'steam_id', 'ALTER TABLE "user" ADD COLUMN steam_id VARCHAR')
     _add_column('logentry', 'family_share', 'ALTER TABLE logentry ADD COLUMN family_share BOOLEAN DEFAULT FALSE')
     _add_column('logentry', 'exclude_from_stats', 'ALTER TABLE logentry ADD COLUMN exclude_from_stats BOOLEAN DEFAULT FALSE')
+    _add_column('logentry', 'is_infinite', 'ALTER TABLE logentry ADD COLUMN is_infinite BOOLEAN DEFAULT FALSE')
+    _add_column('logentry', 'story_completed', 'ALTER TABLE logentry ADD COLUMN story_completed BOOLEAN')
     _migrated_created_at = _add_column('logentry', 'created_at', 'ALTER TABLE logentry ADD COLUMN created_at TIMESTAMP')
     if _migrated_created_at:
         _exec("UPDATE logentry SET created_at = log_date WHERE created_at IS NULL")

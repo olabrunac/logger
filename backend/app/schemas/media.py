@@ -88,6 +88,8 @@ class LogEntryBase(BaseModel):
     pages_read: Optional[int] = None
     review: Optional[str] = None
     status: LogStatus
+    is_infinite: Optional[bool] = False
+    story_completed: Optional[bool] = None
 
 class LogEntryCreate(LogEntryBase):
     media_item: MediaItemCreate
@@ -104,6 +106,8 @@ class LogEntryUpdate(BaseModel):
     pages_read: Optional[int] = None
     review: Optional[str] = None
     status: Optional[LogStatus] = None
+    is_infinite: Optional[bool] = None
+    story_completed: Optional[bool] = None
 
 class LogEntryInDB(LogEntryBase):
     id: int

@@ -73,6 +73,8 @@ export interface LogEntry {
   pages_read?: number;
   review?: string;
   status: LogStatus;
+  is_infinite?: boolean;
+  story_completed?: boolean | null;
   watched_episodes?: number;
   total_episodes?: number;
   unlocked_achievements?: number;

@@ -80,6 +80,8 @@ class LogEntry(Base):
     pages_read = Column(Integer, nullable=True)
     review = Column(Text, nullable=True)
     status = Column(Enum(LogStatus), nullable=False)
+    is_infinite = Column(Boolean, default=False)
+    story_completed = Column(Boolean, nullable=True)
     user = relationship("User", back_populates="logs")
     media_item = relationship("MediaItem", back_populates="logs")
     episodes = relationship("EpisodeWatched", back_populates="log", cascade="all, delete-orphan")

@@ -901,6 +901,29 @@ def _run_steam_import(job, db, user_id: int, resolved_steam_id: str, items: list
             log.status = LogStatus.IN_PROGRESS
             db.add(log)
 
+        # Heurística de fim de história: marca story_completed se o usuário
+        # desbloqueou um achievement de fim (por nome/descrição). Só preenche
+        # quando ainda não há valor (não sobrescreve marcação manual).
+        if log_ach_cache and log.story_completed is None:
+            from app.services.story_completion import detect_story_completed
+            log.story_completed = detect_story_completed(
+                {
+                    "name": (a.name or ""),
+                    "description": (a.description or ""),
+                    "unlocked": a.unlocked,
+                }
+                for a in log_ach_cache.values()
+            )
+            db.add(log)
+
+        # Jogo parado (dropped) mas com a história completada → vira completed,
+        # exceto jogos sem fim (is_infinite), que nunca terão "fim de história".
+        # Só na criação — no re-import o status manual do usuário não muda.
+        if not is_update and log_status == LogStatus.DROPPED and log.status == LogStatus.DROPPED:
+            if log.story_completed and not log.is_infinite:
+                log.status = LogStatus.COMPLETED
+                db.add(log)
+
         if is_update:
             updated += 1
             job.add_imported({"title": title, "action": "updated"})

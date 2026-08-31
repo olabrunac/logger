@@ -226,6 +226,34 @@ const MediaDetailPage = () => {
     }
   };
 
+  const handleSetStoryCompleted = async (value: boolean) => {
+    if (!log) return;
+    const patch: Record<string, unknown> = { story_completed: value };
+    if (value && log.status === 'dropped' && !log.is_infinite) {
+      patch.status = 'completed';
+    }
+    const prev = log;
+    setLog({ ...log, ...patch } as LogEntry);
+    try {
+      const { data } = await api.patch('/media/logs/' + log.id, patch);
+      setLog(data);
+    } catch (err) {
+      console.error('Failed to set story_completed', err);
+      setLog(prev);
+    }
+  };
+
+  const handleSetInfinite = async (value: boolean) => {
+    if (!log) return;
+    setLog({ ...log, is_infinite: value });
+    try {
+      const { data } = await api.patch('/media/logs/' + log.id, { is_infinite: value });
+      setLog(data);
+    } catch (err) {
+      console.error('Failed to set is_infinite', err);
+    }
+  };
+
   const handleBookmark = async () => {
     if (!log || bookmarking) return;
     setBookmarking(true);
@@ -551,6 +579,30 @@ const MediaDetailPage = () => {
                         title={log.is_favorite ? 'Remover dos favoritos' : 'Favoritar'}>
                         <Heart size={14} fill={log.is_favorite ? '#FA3380' : 'none'} />
                       </button>
+                      {isGame && (
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <button onClick={() => handleSetStoryCompleted(!log.story_completed)}
+                            className="px-3 py-1.5 rounded-full text-xs font-bold border transition-colors"
+                            style={{
+                              borderColor: log.story_completed ? 'rgba(34,197,94,0.6)' : 'rgba(255,255,255,0.15)',
+                              background: log.story_completed ? 'rgba(34,197,94,0.15)' : 'transparent',
+                              color: log.story_completed ? '#22c55e' : 'rgba(255,255,255,0.6)',
+                            }}
+                            title={log.story_completed ? 'Desmarcar como história finalizada' : 'Marcar que completei a história deste jogo'}>
+                            {log.story_completed ? '✓ História finalizada' : 'Zerei a história'}
+                          </button>
+                          <button onClick={() => handleSetInfinite(!log.is_infinite)}
+                            className="px-3 py-1.5 rounded-full text-xs font-bold border transition-colors"
+                            style={{
+                              borderColor: log.is_infinite ? 'rgba(168,85,247,0.6)' : 'rgba(255,255,255,0.15)',
+                              background: log.is_infinite ? 'rgba(168,85,247,0.15)' : 'transparent',
+                              color: log.is_infinite ? '#a855f7' : 'rgba(255,255,255,0.6)',
+                            }}
+                            title={log.is_infinite ? 'Remover marca de jogo sem fim' : 'Marcar como jogo sem fim (ex.: Warframe, Sea of Thieves)'}>
+                            {log.is_infinite ? '∞ Jogo sem fim' : 'Jogo sem fim'}
+                          </button>
+                        </div>
+                      )}
                       {log.status === 'completed' && (
                         <button onClick={handleBookmark} disabled={bookmarking}
                           className="w-10 h-10 rounded-full border flex items-center justify-center transition-colors"
