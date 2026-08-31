@@ -60,7 +60,7 @@ const ProfileHero = ({
   const locationText = [countryName, stateCode].filter(Boolean).join(' - ');
 
   const totalLogs = logs.length;
-  const finishedCount = logs.filter(l => l.status === 'completed').length;
+  const finishedCount = logs.filter(l => l.status === 'completed' || l.status === 'platinated').length;
   const ratedCount = logs.filter(l => l.rating != null && l.rating > 0).length;
   const favoriteCount = logs.filter(l => l.is_favorite).length;
   const totalHours = logs.filter(l => !l.exclude_from_stats).reduce((sum, l) => sum + (l.hours_spent || 0), 0);
@@ -68,7 +68,7 @@ const ProfileHero = ({
   const [listModal, setListModal] = useState<'followers' | 'following' | null>(null);
 
   const tabCounts: Record<string, number> = {};
-  const activeMediaTypes = logs.filter(l => l.status === 'completed' || l.status === 'in_progress' || l.status === 'dropped');
+  const activeMediaTypes = logs.filter(l => l.status === 'completed' || l.status === 'in_progress' || l.status === 'dropped' || l.status === 'platinated');
   activeMediaTypes.forEach(l => {
     const key = l.media_item.media_type;
     tabCounts[key] = (tabCounts[key] || 0) + 1;

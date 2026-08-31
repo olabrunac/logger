@@ -507,7 +507,9 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
     const { label, status, emptyMsg } = entry;
     const sectionLogs = statusId === 'library' && mediaType === 'game'
       ? filteredLogs.filter(l => isInGameLibrary(l))
-      : filteredLogs.filter(l => l.status === status);
+      : statusId === 'completed'
+        ? filteredLogs.filter(l => l.status === 'completed' || l.status === 'platinated')
+        : filteredLogs.filter(l => l.status === status);
     const expanded = showExpanded[statusId];
     return (
       <section key={statusId}>

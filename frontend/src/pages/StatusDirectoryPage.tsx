@@ -139,6 +139,8 @@ const StatusDirectoryPage = ({ currentUser }: StatusDirectoryPageProps) => {
       statusOk = l.media_item?.media_type === 'game'
         ? (l.status !== 'wishlist' && l.status !== 'soon')
         : l.status === 'library';
+    } else if (statusKey === 'completed') {
+      statusOk = l.status === 'completed' || l.status === 'platinated';
     } else {
       statusOk = l.status === statusKey;
     }

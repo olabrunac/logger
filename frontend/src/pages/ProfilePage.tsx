@@ -627,7 +627,9 @@ const ProfilePage = ({ currentUser, onUserUpdate }: ProfilePageProps) => {
     const singular = TYPE_META[type]?.singular || type;
     const sectionLogs = status === 'library' && type === 'game'
       ? viewLogs.filter(l => isInGameLibrary(l))
-      : viewLogs.filter(l => l.media_item.media_type === type && l.status === status);
+      : status === 'completed'
+        ? viewLogs.filter(l => l.media_item.media_type === type && (l.status === 'completed' || l.status === 'platinated'))
+        : viewLogs.filter(l => l.media_item.media_type === type && l.status === status);
     if (sectionLogs.length === 0) return null;
     return renderGrid(`${label} ${singular}`, sectionLogs, status === 'library', 11, `/profile/${profileUser?.username}/${status}/${TYPE_META[type]?.slug}`);
   };
