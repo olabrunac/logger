@@ -3,7 +3,9 @@
 Site pessoal para registrar e acompanhar filmes, séries, jogos e livros, inspirado em plataformas como YourGamerProfile, Letterboxd e TV Time.
 
 ## 🚀 Detalhes Técnicos
-- **Arquitetura**: Monorepo (Backend: FastAPI/SQLite, Frontend: React/Vite/TS).
+- **Arquitetura**: Monorepo (Backend: FastAPI + SQLAlchemy, Frontend: React/Vite/TS).
+- **Banco**: SQLite (local) / **PostgreSQL (Neon free)** em produção.
+- **Deploy**: **Render** (Dockerfile multi-stage serve backend + frontend) + **Neon PostgreSQL** — stack 100% free, auto-deploy no `git push origin main`. Live: `https://logger-dwtr.onrender.com`.
 - **Enriquecimento**: Auto-popula metadados via TMDb, IGDB, Steam e Google Books.
 - **Design**: Inspirado no padrão MDF/YGP, com temas baseados em variáveis CSS e cores de destaque customizáveis.
 - **Desenvolvimento**:
@@ -30,6 +32,12 @@ Site pessoal para registrar e acompanhar filmes, séries, jogos e livros, inspir
 ## 📋 Status Atual
 
 ### ✅ Implementado
+- **Migração para Render + Neon (stack 100% free)**: deploy único no Render (Dockerfile multi-stage) com PostgreSQL Neon no lugar do Railway. Auto-deploy no push da main.
+- **Import Steam otimizado**: N+1 de achievements eliminado (cache em lote de `GetPlayerAchievements`) e commits em lote — 276 jogos em ~30s (antes ~5min serial). ETA real no progresso.
+- **Status do import Steam (regras novas)**: jogos próprios → `library`; parados >120d → `dropped`; **jogados ≥2h não-abandonados → `in_progress`** (antes iam a `library`); 100% achievements → `platinated`.
+- **Platinados contam como finalizados**: seções "Finalizados" e contadores (`ProfileHero`/tabs/`StatsSection`) incluem `completed || platinated`; a seção "Platinados" separada continua.
+- **História completada (`story_completed`)**: heurística `story_completion.py` (padrões pt+en de fim-de-jogo) + flags manuais `is_infinite`/`story_completed` (botões "Zerei a história"/"Jogo sem fim"). Regra `dropped→completed` na criação para jogos com história zerada e não-infinitos.
+- **Pre-load message + ETA** no ImportPage (ETA oculta em `current === 0`).
 - **Top 5 Lists**: Backend completo (model, CRUD, API), Frontend com reordenção por setas, poster em coluna, adicionar/remover favoritos
 - **Favoritos**: Toggle independente do status (coração no LogForm + badge ❤️ nos poster tiles)
 - **Status por tipo de mídia**: 8 status cada (jogos: completed, platinated, in_progress, wishlist, dropped, library, soon; filmes/séries/livros: completed, in_progress, wishlist, dropped, library, soon)
