@@ -2,6 +2,7 @@ import os
 import asyncio
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -66,6 +67,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Comprime respostas acima de 500 bytes (JSON de timeline/posts/stats, etc.).
+# Reduz payload em ~70-80% sem mudar o contrato (o navegador negocia via
+# Accept-Encoding e envia Content-Encoding: gzip).
+app.add_middleware(GZipMiddleware, minimum_size=500)
+
 
 def serve_upload(filename: str):
     safe_name = os.path.basename(filename.replace("\\", "/"))
@@ -74,13 +80,17 @@ def serve_upload(filename: str):
         from app.crud.crud_upload import get_file
         record = get_file(db, safe_name)
         if record:
-            return Response(content=bytes(record.data), media_type=record.content_type)
+            return Response(
+                content=bytes(record.data),
+                media_type=record.content_type,
+                headers={"Cache-Control": "public, max-age=86400"},
+            )
     finally:
         db.close()
 
     filepath = os.path.join("uploads", safe_name)
     if os.path.isfile(filepath):
-        return FileResponse(filepath)
+        return FileResponse(filepath, headers={"Cache-Control": "public, max-age=86400"})
 
     raise HTTPException(status_code=404, detail="File not found")
 
@@ -93,6 +103,18 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 frontend_dist = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "frontend", "dist")
 if os.path.isdir(frontend_dist):
     app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dist, "assets")), name="frontend_assets")
+
+    # Assets do Vite têm hash content-based no nome do arquivo (ex. index-Lz1QGHPC.js),
+    # entao podem ser cacheados para sempre: o navegador nao re-downloada JS/CSS ao
+    # navegar ou recarregar (o hash muda quando o conteudo muda). Maior ganho de cache.
+    class AssetCacheMiddleware(BaseHTTPMiddleware):
+        async def dispatch(self, request: Request, call_next):
+            response: Response = await call_next(request)
+            if request.url.path.startswith("/assets/"):
+                response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+            return response
+
+    app.add_middleware(AssetCacheMiddleware)
 
     class SpaFallbackMiddleware(BaseHTTPMiddleware):
         async def dispatch(self, request: Request, call_next):

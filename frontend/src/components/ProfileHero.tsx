@@ -112,7 +112,7 @@ const tabs = [
               }}
             >
               {avatarUrl ? (
-                <img src={avatarUrl} alt={profileUser.username} className="w-full h-full object-cover" />
+                <img src={avatarUrl} alt={profileUser.username} fetchPriority="high" decoding="async" className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center font-display text-2xl lg:text-6xl font-black text-white/60">
                   {profileUser.username.charAt(0).toUpperCase()}

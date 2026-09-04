@@ -46,7 +46,7 @@ const DiaryPage = ({ currentUser }: DiaryPageProps) => {
         targetUser = await resolveUserByUsername(username);
       }
       if (requestId !== fetchIdRef.current) return;
-      const response = await api.get('/media/logs', { params: { user_id: targetUser.id, limit: 9999 } });
+      const response = await api.get('/media/logs', { params: { user_id: targetUser.id, limit: 9999, light: true } });
       if (requestId !== fetchIdRef.current) return;
       setLogs(response.data || []);
     } catch (err) {
@@ -92,7 +92,7 @@ const DiaryPage = ({ currentUser }: DiaryPageProps) => {
                     className="mdf-card mdf-card-hover flex items-stretch gap-4 p-3 transition-colors">
                     <div className="w-[72px] -my-3 -ml-3 flex-shrink-0 overflow-hidden bg-white/5" style={{borderBottom: '3px solid ' + (TYPE_META[l.media_item.media_type]?.color || '#666')}}>
                       {l.media_item.cover_image_url ? (
-                        <img src={l.media_item.cover_image_url} alt="" className="w-full h-full object-cover" />
+                        <img src={l.media_item.cover_image_url} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-xs text-white/40">{l.media_item.title.charAt(0).toUpperCase()}</div>
                       )}

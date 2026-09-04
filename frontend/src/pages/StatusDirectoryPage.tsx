@@ -89,7 +89,7 @@ const StatusDirectoryPage = ({ currentUser }: StatusDirectoryPageProps) => {
       if (requestId !== fetchIdRef.current) return;
       setTargetUser(target);
       const [logsRes, wishlistRes] = await Promise.all([
-        api.get('/media/logs', { params: { user_id: target.id, limit: 9999 } }),
+        api.get('/media/logs', { params: { user_id: target.id, limit: 9999, light: true } }),
         api.get('/media/wishlist', { params: { user_id: target.id } }),
       ]);
       if (requestId !== fetchIdRef.current) return;

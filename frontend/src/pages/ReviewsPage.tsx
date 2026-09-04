@@ -36,7 +36,7 @@ const ReviewsPage = ({ currentUser }: ReviewsPageProps) => {
       let targetUser = currentUser;
       targetUser = await resolveUserByUsername(displayUsername);
       if (requestId !== fetchIdRef.current) return;
-      const response = await api.get('/media/logs', { params: { user_id: targetUser.id, limit: 9999 } });
+      const response = await api.get('/media/logs', { params: { user_id: targetUser.id, limit: 9999, light: true } });
       if (requestId !== fetchIdRef.current) return;
       const allLogs = response.data || [];
       setLogs(allLogs);
@@ -111,7 +111,7 @@ const ReviewsPage = ({ currentUser }: ReviewsPageProps) => {
                     className="mdf-card mdf-card-hover flex items-stretch gap-4 p-3 transition-colors">
                     <div className="w-[72px] -my-3 -ml-3 flex-shrink-0 overflow-hidden bg-white/5" style={{borderBottom: '3px solid ' + (meta?.color || '#666')}}>
                       {e.media_item.cover_image_url ? (
-                        <img src={e.media_item.cover_image_url} alt="" className="w-full h-full object-cover" />
+                        <img src={e.media_item.cover_image_url} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-xs text-white/40">{e.media_item.title.charAt(0).toUpperCase()}</div>
                       )}

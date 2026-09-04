@@ -128,7 +128,7 @@ const LogGroupCard = ({ entry, currentUser, onReply, onLike }: LogGroupCardProps
                   <Link key={item.id} to={groupItemUrl(item)} className="group/log-item flex items-center gap-2 bg-white/[0.03] hover:bg-white/[0.06] rounded-lg px-3 py-2 transition-colors border" style={{ borderColor: 'var(--border)' }}>
                     {item.cover_image_url ? (
                       <div className="w-8 h-11 rounded overflow-hidden flex-shrink-0">
-                        <img src={imageUrl(item.cover_image_url) || ''} alt="" className="w-full h-full object-cover" />
+                        <img src={imageUrl(item.cover_image_url) || ''} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
                       </div>
                     ) : (
                       <div className="w-8 h-11 rounded flex items-center justify-center flex-shrink-0 text-sm" style={{ background: meta.color + '22' }}>

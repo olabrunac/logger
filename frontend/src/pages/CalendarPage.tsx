@@ -44,7 +44,7 @@ const CalendarPage = ({ currentUser }: CalendarPageProps) => {
         targetUser = await resolveUserByUsername(username);
       }
       if (requestId !== fetchIdRef.current) return;
-      const response = await api.get('/media/logs', { params: { user_id: targetUser.id, limit: 9999 } });
+      const response = await api.get('/media/logs', { params: { user_id: targetUser.id, limit: 9999, light: true } });
       if (requestId !== fetchIdRef.current) return;
       setLogs(response.data || []);
     } catch (err) {
@@ -147,7 +147,7 @@ const CalendarPage = ({ currentUser }: CalendarPageProps) => {
                   <li key={it.id}>
                     <Link to={getLogUrl(it.media_item)} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors">
                       {it.media_item.cover_image_url ? (
-                        <img src={it.media_item.cover_image_url} alt="" className="w-10 h-14 rounded object-cover flex-shrink-0" />
+                        <img src={it.media_item.cover_image_url} alt="" loading="lazy" decoding="async" className="w-10 h-14 rounded object-cover flex-shrink-0" />
                       ) : (
                         <div className="w-10 h-14 rounded flex items-center justify-center flex-shrink-0"
                           style={{ background: typeColor + '22' }}>
