@@ -116,7 +116,7 @@ const EpisodeEventCard = ({ event, currentUser, onReply, onLike, onDelete }: Epi
               <div className="flex gap-3 items-start">
                 {coverUrl ? (
                   <div className="w-14 h-20 rounded-lg overflow-hidden flex-shrink-0" style={{ borderBottom: '3px solid ' + meta.color }}>
-                    <img src={coverUrl} alt={event.media_item.title} className="w-full h-full object-cover" />
+                    <img src={coverUrl} alt={event.media_item.title} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                   </div>
                 ) : (
                   <div className="w-14 h-20 rounded-lg flex items-center justify-center flex-shrink-0 text-xl" style={{ background: meta.color + '22', borderBottom: '3px solid ' + meta.color }}>

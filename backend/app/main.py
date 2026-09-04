@@ -2,6 +2,7 @@ import os
 import asyncio
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -65,6 +66,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Comprime respostas acima de 500 bytes (JSON de timeline/posts/stats, etc.).
+# Reduz payload em ~70-80% sem mudar o contrato (o navegador negocia via
+# Accept-Encoding e envia Content-Encoding: gzip).
+app.add_middleware(GZipMiddleware, minimum_size=500)
 
 
 def serve_upload(filename: str):
