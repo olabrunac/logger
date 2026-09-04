@@ -1,21 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import api, { resolveUserByUsername } from './services/api';
 import LoginPage from './pages/LoginPage';
-import NewLogPage from './pages/NewLogPage';
-import CalendarPage from './pages/CalendarPage';
-import ProfilePage from './pages/ProfilePage';
-import MediaDetailPage from './pages/MediaDetailPage';
-import SearchPage from './pages/SearchPage';
-import SettingsPage from './pages/SettingsPage';
-import ListsPage from './pages/ListsPage';
-import DiaryPage from './pages/DiaryPage';
-import ReviewsPage from './pages/ReviewsPage';
-import StatusDirectoryPage from './pages/StatusDirectoryPage';
-import TimelinePage from './pages/TimelinePage';
-import NotificationsPage from './pages/NotificationsPage';
-import ImportPage from './pages/ImportPage';
-import WhatToDoPage from './pages/WhatToDoPage';
 import ErrorBoundary from './components/ErrorBoundary';
 import LeftSidebar from './components/LeftSidebar';
 import RightSidebar from './components/RightSidebar';
@@ -23,6 +9,32 @@ import MobileNav from './components/MobileNav';
 import FloatingLogButton from './components/FloatingLogButton';
 import { ChevronRight } from 'lucide-react';
 import type { User } from './types';
+
+// Code-splitting por rota: cada página vira um chunk separado carregado sob
+// demanda (e cacheado após o primeiro acesso). Reduz o bundle inicial
+// (~700KB / 185KB gzip -> só o shell + LoginPage no primeiro paint).
+const NewLogPage = lazy(() => import('./pages/NewLogPage'));
+const CalendarPage = lazy(() => import('./pages/CalendarPage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const MediaDetailPage = lazy(() => import('./pages/MediaDetailPage'));
+const SearchPage = lazy(() => import('./pages/SearchPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const ListsPage = lazy(() => import('./pages/ListsPage'));
+const DiaryPage = lazy(() => import('./pages/DiaryPage'));
+const ReviewsPage = lazy(() => import('./pages/ReviewsPage'));
+const StatusDirectoryPage = lazy(() => import('./pages/StatusDirectoryPage'));
+const TimelinePage = lazy(() => import('./pages/TimelinePage'));
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
+const ImportPage = lazy(() => import('./pages/ImportPage'));
+const WhatToDoPage = lazy(() => import('./pages/WhatToDoPage'));
+
+function PageFallback() {
+  return (
+    <div className="flex items-center justify-center py-24">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-[var(--accent)]" />
+    </div>
+  );
+}
 
 function MediaTypeRedirect() {
   const { username, mediaType } = useParams<{ username: string; mediaType: string }>();
@@ -199,6 +211,7 @@ function AppInner() {
         >
           {user && <FloatingLogButton user={user} />}
           <ErrorBoundary>
+          <Suspense fallback={<PageFallback />}>
           <Routes>
             <Route
               path="/login"
@@ -321,6 +334,7 @@ function AppInner() {
               }
             />
           </Routes>
+          </Suspense>
           </ErrorBoundary>
         </main>
       </div>
