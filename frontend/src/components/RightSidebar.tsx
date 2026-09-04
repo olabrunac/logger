@@ -3,13 +3,12 @@ import { useLocation, Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import api from '../services/api';
 import StatsSection from './sections/StatsSection';
-import { getLogUrl, sortLogsByDate } from '../utils';
 import RatingDistribution from './sections/RatingDistribution';
 import GenreChart from './sections/GenreChart';
 import ActivityGraph from './sections/ActivityGraph';
 import HoursPieChart from './sections/HoursPieChart';
 import BadgesSection from './sections/BadgesSection';
-import type { LogEntry, TopListItem, User } from '../types';
+import type { SidebarData, TopListItem, User, SidebarRecentMedia } from '../types';
 
 interface RightSidebarProps {
   user: User;
@@ -47,8 +46,19 @@ const MEDIA_COLORS: Record<string, string> = {
   book: '#4ade80',
 };
 
+const recentMediaUrl = (media: SidebarRecentMedia): string => {
+  if (!media.media_type) return '/';
+  let apiId: string | null = null;
+  if (media.steam_appid) apiId = String(media.steam_appid);
+  else if (media.igdb_id) apiId = String(media.igdb_id);
+  else if (media.tmdb_id) apiId = String(media.tmdb_id);
+  else if (media.google_books_id) apiId = media.google_books_id;
+  else apiId = String(media.id);
+  return `/media/${media.media_type}/${apiId}`;
+};
+
 const RightSidebar = ({ user, isCollapsed, onToggleCollapse, previewOrder, embedded = false }: RightSidebarProps) => {
-  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [data, setData] = useState<SidebarData | null>(null);
   const [topListItems, setTopListItems] = useState<TopListItem[]>([]);
   const location = useLocation();
 
@@ -60,17 +70,19 @@ const RightSidebar = ({ user, isCollapsed, onToggleCollapse, previewOrder, embed
 
   useEffect(() => {
     if (user?.id) {
-      api.get('/media/logs', { params: { user_id: user.id, limit: 9999 } })
-        .then((res) => setLogs(res.data || []))
-        .catch((err) => console.error('Failed to fetch logs for right sidebar', err));
+      const params: Record<string, unknown> = { user_id: user.id };
+      if (activeMediaType) params.media_type = activeMediaType;
+      api.get('/media/users/' + user.id + '/sidebar', { params })
+        .then((res) => setData(res.data || null))
+        .catch((err) => console.error('Failed to fetch sidebar data', err));
       api.get(`/media/users/${user.id}/top-list`)
         .then((res) => setTopListItems(res.data || []))
         .catch((err) => console.error('Failed to fetch favorites for right sidebar', err));
     } else {
-      setLogs([]);
+      setData(null);
       setTopListItems([]);
     }
-  }, [user?.id]);
+  }, [user?.id, activeMediaType]);
 
   const orderedTopList = useMemo(() => {
     const order = ['game', 'movie', 'series', 'book'];
@@ -128,7 +140,7 @@ const RightSidebar = ({ user, isCollapsed, onToggleCollapse, previewOrder, embed
     const media = item.media_item;
     if (!media) return null;
     return (
-      <Link key={item.id} to={getLogUrl(media)} className="w-[44px] h-[60px] rounded-md overflow-hidden flex-shrink-0 relative group border" style={{ borderColor: 'var(--border)', borderBottom: '3px solid ' + (MEDIA_COLORS[media.media_type] || '#666') }} title={media.title}>
+      <Link key={item.id} to={`/media/${media.media_type}/${media.igdb_id ?? media.steam_appid ?? media.tmdb_id ?? media.google_books_id ?? media.id}`} className="w-[44px] h-[60px] rounded-md overflow-hidden flex-shrink-0 relative group border" style={{ borderColor: 'var(--border)', borderBottom: '3px solid ' + (MEDIA_COLORS[media.media_type] || '#666') }} title={media.title}>
         {media.cover_image_url ? (
           <img src={media.cover_image_url} alt={media.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
         ) : (
@@ -140,6 +152,24 @@ const RightSidebar = ({ user, isCollapsed, onToggleCollapse, previewOrder, embed
       </Link>
     );
   };
+
+  const renderRecentItem = (item: SidebarRecentMedia) => (
+    <Link
+      key={item.id}
+      to={recentMediaUrl(item)}
+      className="w-[44px] h-[60px] rounded-md overflow-hidden flex-shrink-0 relative group border"
+      style={{ borderColor: 'var(--border)', borderBottom: '3px solid ' + (MEDIA_COLORS[item.media_type || ''] || '#666') }}
+      title={item.title}
+    >
+      {item.cover_image_url ? (
+        <img src={item.cover_image_url} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center text-[10px] text-center p-1 bg-white/5">
+          {item.title}
+        </div>
+      )}
+    </Link>
+  );
 
   const renderBlock = (id: string) => {
     switch (id) {
@@ -170,40 +200,27 @@ const RightSidebar = ({ user, isCollapsed, onToggleCollapse, previewOrder, embed
           </>
         );
       case 'stats':
-        return <StatsSection logs={logs} accentColor={currentMediaColor} mediaType={activeMediaType} />;
+        return data ? <StatsSection stats={data.stats} accentColor={currentMediaColor} mediaType={activeMediaType} /> : null;
       case 'rating_distribution':
-        return <RatingDistribution logs={logs} color={currentMediaColor} mediaType={activeMediaType} />;
+        return data ? <RatingDistribution rating={data.rating} color={currentMediaColor} mediaType={activeMediaType} /> : null;
       case 'top_genres':
-        return <GenreChart logs={logs} accentColor={currentMediaColor} mediaType={activeMediaType} />;
+        return data ? <GenreChart genres={data.genres} accentColor={currentMediaColor} mediaType={activeMediaType} /> : null;
       case 'hours':
-        return !activeMediaType ? <HoursPieChart logs={logs} /> : null;
+        return !activeMediaType && data ? <HoursPieChart hours_by_type={data.hours_by_type} /> : null;
       case 'activity_map':
         return (
           <>
             <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-2">Mapa de Atividade</div>
-            <ActivityGraph logs={logs} mediaType={activeMediaType} />
+            {data ? <ActivityGraph activity={data.activity} mediaType={activeMediaType} /> : null}
           </>
         );
       case 'recent_activity':
         return (
           <>
             <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-2">Logs recentes</div>
-            {logs.length > 0 ? (
+            {data && data.recent.length > 0 ? (
               <div className="flex gap-1.5 overflow-x-auto pb-1">
-                {sortLogsByDate(logs)
-                  .filter(l => !activeMediaType || l.media_item.media_type === activeMediaType)
-                  .slice(0, 5)
-                  .map(log => (
-                    <Link key={log.id} to={getLogUrl(log.media_item)} className="w-[44px] h-[60px] rounded-md overflow-hidden flex-shrink-0 relative group border" style={{ borderColor: 'var(--border)', borderBottom: '3px solid ' + (MEDIA_COLORS[log.media_item.media_type] || '#666') }} title={log.media_item.title}>
-                      {log.media_item.cover_image_url ? (
-                        <img src={log.media_item.cover_image_url} alt={log.media_item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-[10px] text-center p-1 bg-white/5">
-                          {log.media_item.title}
-                        </div>
-                      )}
-                    </Link>
-                  ))}
+                {data.recent.map((r) => renderRecentItem(r.media_item))}
               </div>
             ) : (
               <div className="text-[11px] text-white/40 py-2 text-center">Nenhum log recente</div>

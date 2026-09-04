@@ -1,8 +1,7 @@
-import { useMemo } from 'react';
-import type { LogEntry } from '../../types';
+import type { SidebarRating } from '../../types';
 
 interface RatingDistributionProps {
-  logs: LogEntry[];
+  rating: SidebarRating;
   mediaType?: string;
   color: string;
 }
@@ -28,21 +27,11 @@ const STAR_VALUES = [5, 4.5, 4, 3.5, 3, 2.5, 2, 1.5, 1, 0.5];
 
 const formatStar = (star: number) => (Number.isInteger(star) ? String(star) : star.toFixed(1));
 
-const RatingDistribution = ({ logs, mediaType, color }: RatingDistributionProps) => {
-  const data = useMemo(() => {
-    const filtered = logs.filter((l) => l.rating && l.rating > 0 && (!mediaType || l.media_item.media_type === mediaType));
-    const buckets = new Array(STAR_VALUES.length).fill(0);
-    filtered.forEach((l) => {
-      const r = Math.round((l.rating || 0) * 2) / 2;
-      const idx = STAR_VALUES.indexOf(r);
-      if (idx >= 0) buckets[idx]++;
-    });
-    const total = buckets.reduce((s, c) => s + c, 0);
-    const maxCount = Math.max(...buckets, 1);
-    return { buckets, total, maxCount };
-  }, [logs, mediaType]);
+const RatingDistribution = ({ rating, mediaType: _mediaType, color }: RatingDistributionProps) => {
+  const buckets = rating.buckets;
+  const total = rating.total;
 
-  if (data.total === 0) {
+  if (total === 0) {
     return (
       <div>
         <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-2">Avaliações</div>
@@ -52,8 +41,7 @@ const RatingDistribution = ({ logs, mediaType, color }: RatingDistributionProps)
   }
 
   const { h: hue, s } = hexToHsl(color);
-
-  const avg = logs.filter((l) => l.rating && l.rating > 0 && (!mediaType || l.media_item.media_type === mediaType)).reduce((s, l) => s + (l.rating || 0), 0) / Math.max(data.total, 1);
+  const maxCount = Math.max(...buckets, 1);
 
   return (
     <div>
@@ -62,8 +50,8 @@ const RatingDistribution = ({ logs, mediaType, color }: RatingDistributionProps)
         <div className="flex items-end gap-1 h-20 pt-2.5">
           {STAR_VALUES.map((star) => {
             const idx = STAR_VALUES.indexOf(star);
-            const count = data.buckets[idx];
-            const pct = data.maxCount > 0 ? (count / data.maxCount) * 100 : 0;
+            const count = buckets[idx];
+            const pct = maxCount > 0 ? (count / maxCount) * 100 : 0;
             const isFull = Number.isInteger(star);
             const barPct = Math.max(count > 0 ? 8 : 2, pct);
             return (
@@ -104,7 +92,7 @@ const RatingDistribution = ({ logs, mediaType, color }: RatingDistributionProps)
         </div>
       </div>
       <div className="mt-2 text-[10px] text-white/30">
-        Média: {avg.toFixed(1)} · {data.total} total
+        Média: {rating.avg.toFixed(1)} · {total} total
       </div>
     </div>
   );
