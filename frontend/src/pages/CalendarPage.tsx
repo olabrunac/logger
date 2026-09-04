@@ -44,7 +44,7 @@ const CalendarPage = ({ currentUser }: CalendarPageProps) => {
         targetUser = await resolveUserByUsername(username);
       }
       if (requestId !== fetchIdRef.current) return;
-      const response = await api.get('/media/logs', { params: { user_id: targetUser.id, limit: 9999 } });
+      const response = await api.get('/media/logs', { params: { user_id: targetUser.id, limit: 9999, light: true } });
       if (requestId !== fetchIdRef.current) return;
       setLogs(response.data || []);
     } catch (err) {

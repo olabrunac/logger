@@ -194,7 +194,7 @@ const ListsPage = ({ currentUser }: ListsPageProps) => {
     const requestId = ++fetchIdRef.current;
     try {
       const [logsRes, wishlistRes, customRes] = await Promise.all([
-        api.get('/media/logs', { params: { user_id: targetUser.id, limit: 9999 } }),
+        api.get('/media/logs', { params: { user_id: targetUser.id, limit: 9999, light: true } }),
         getUserWishlist(targetUser.id),
         getUserCustomLists(targetUser.id),
       ]);

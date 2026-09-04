@@ -36,7 +36,7 @@ const ReviewsPage = ({ currentUser }: ReviewsPageProps) => {
       let targetUser = currentUser;
       targetUser = await resolveUserByUsername(displayUsername);
       if (requestId !== fetchIdRef.current) return;
-      const response = await api.get('/media/logs', { params: { user_id: targetUser.id, limit: 9999 } });
+      const response = await api.get('/media/logs', { params: { user_id: targetUser.id, limit: 9999, light: true } });
       if (requestId !== fetchIdRef.current) return;
       const allLogs = response.data || [];
       setLogs(allLogs);

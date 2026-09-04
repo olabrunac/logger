@@ -94,7 +94,7 @@ const MediaTypeProfilePage = ({ currentUser, mediaType: propMediaType, profileUs
         setProfileUser(targetUser);
 
         const [logsRes, wishlistRes, customListsRes, topListRes] = await Promise.all([
-          api.get('/media/logs', { params: { user_id: targetUser.id, limit: 9999 } }),
+          api.get('/media/logs', { params: { user_id: targetUser.id, limit: 9999, light: true } }),
           api.get('/media/wishlist', { params: { user_id: targetUser.id } }),
           getUserCustomLists(targetUser.id),
           api.get(`/media/users/${targetUser.id}/top-list`),

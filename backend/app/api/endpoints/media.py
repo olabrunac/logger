@@ -586,8 +586,17 @@ def create_log_entry(*, db: Session = Depends(deps.get_db), payload: schemas.Log
 
     return log
 
+# Campos mínimos do media_item necessários para tiles/pôsteres e links
+# (YgpCard, getLogUrl/getApiId). Usados quando read_logs é chamado com light=true,
+# evitando serializar synopsis/cast/steam_genres/screenshots/etc. que inflam o payload
+# (ex.: biblioteca de 277 jogos = 1.4MB -> ~150KB).
+LIGHT_MEDIA_FIELDS = (
+    "id", "title", "media_type", "cover_image_url",
+    "steam_appid", "igdb_id", "tmdb_id", "google_books_id",
+)
+
 @router.get("/logs", response_model=List[schemas.LogEntryWithStats])
-def read_logs(*, db: Session = Depends(deps.get_db), user_id: int, skip: int = 0, limit: int = 100, viewer_id: Optional[int] = None) -> Any:
+def read_logs(*, db: Session = Depends(deps.get_db), user_id: int, skip: int = 0, limit: int = 100, viewer_id: Optional[int] = None, light: bool = False) -> Any:
     from sqlalchemy import func as sa_func
     from app.models.media import LogReply, LogLike
     from app.models.user import User
@@ -684,6 +693,9 @@ def read_logs(*, db: Session = Depends(deps.get_db), user_id: int, skip: int = 0
             stats["unlocked_achievements"] = unlocked_counts.get(log.id, 0)
             stats["total_achievements"] = total_achievement_counts.get(log.id, 0)
         log_dict = schemas.LogEntryInDB.model_validate(log).model_dump()
+        if light:
+            mi = log_dict.get("media_item") or {}
+            log_dict["media_item"] = {k: mi.get(k) for k in LIGHT_MEDIA_FIELDS if k in mi}
         log_dict.update(stats)
         log_dict["hours_spent"] = effective_hours(db, log, watched_counts.get(log.id))
         log_dict["replies_count"] = replies_count.get(log.id, 0)
