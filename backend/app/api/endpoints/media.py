@@ -637,11 +637,14 @@ def read_logs(*, db: Session = Depends(deps.get_db), user_id: int, skip: int = 0
         )
         total_achievement_counts = {log_id: count for log_id, count in rows_total}
 
+    # Em modo light (grids do perfil/diario/calendario/reviews/listas/home) nao
+    # exibimos likes/replies de log - pula as queries e os campos, cortando CPU
+    # e payload. (Timeline/feed usam o fetch sem light, que mantem tudo.)
     replies_count: dict[int, int] = {}
     likes_count: dict[int, int] = {}
     liked_by: dict[int, list] = {}
     is_liked_set: set = set()
-    if log_ids:
+    if log_ids and not light:
         replies_count = {
             log_id: count
             for log_id, count in db.query(LogReply.log_id, sa_func.count())
@@ -675,7 +678,7 @@ def read_logs(*, db: Session = Depends(deps.get_db), user_id: int, skip: int = 0
             lid: [{"username": user_map[uid].username, "avatar_url": user_map[uid].avatar_url} for uid in lst if uid in user_map]
             for lid, lst in likers.items()
         }
-        if viewer_id:
+        if viewer_id and not light:
             is_liked_set = {
                 lid
                 for (lid,) in db.query(LogLike.log_id)
@@ -872,7 +875,7 @@ def read_log_reviews(*, db: Session = Depends(deps.get_db), log_id: int) -> Any:
         "review_text": log.review,
         "rating": log.rating,
         "platform": log.platform,
-        "created_at": log.created_at.isoformat() if log.created_at else (log.log_date.isoformat() if log.log_date else datetime.datetime.utcnow().isoformat()),
+        "created_at": log.log_date.isoformat() if log.log_date else (log.created_at.isoformat() if log.created_at else datetime.datetime.utcnow().isoformat()),
     }]
 
 
@@ -890,7 +893,7 @@ def read_logs_reviews_batch(*, db: Session = Depends(deps.get_db), log_ids: List
                 "review_text": log.review,
                 "rating": log.rating,
                 "platform": log.platform,
-                "created_at": log.created_at.isoformat() if log.created_at else (log.log_date.isoformat() if log.log_date else datetime.datetime.utcnow().isoformat()),
+                "created_at": log.log_date.isoformat() if log.log_date else (log.created_at.isoformat() if log.created_at else datetime.datetime.utcnow().isoformat()),
             }]
     return result
 
