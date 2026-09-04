@@ -875,7 +875,7 @@ def read_log_reviews(*, db: Session = Depends(deps.get_db), log_id: int) -> Any:
         "review_text": log.review,
         "rating": log.rating,
         "platform": log.platform,
-        "created_at": log.created_at.isoformat() if log.created_at else (log.log_date.isoformat() if log.log_date else datetime.datetime.utcnow().isoformat()),
+        "created_at": log.log_date.isoformat() if log.log_date else (log.created_at.isoformat() if log.created_at else datetime.datetime.utcnow().isoformat()),
     }]
 
 
@@ -893,7 +893,7 @@ def read_logs_reviews_batch(*, db: Session = Depends(deps.get_db), log_ids: List
                 "review_text": log.review,
                 "rating": log.rating,
                 "platform": log.platform,
-                "created_at": log.created_at.isoformat() if log.created_at else (log.log_date.isoformat() if log.log_date else datetime.datetime.utcnow().isoformat()),
+                "created_at": log.log_date.isoformat() if log.log_date else (log.created_at.isoformat() if log.created_at else datetime.datetime.utcnow().isoformat()),
             }]
     return result
 
