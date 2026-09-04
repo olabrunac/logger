@@ -139,7 +139,7 @@ const AddMediaModal = ({ open, onClose, userId, listId, onAdded }: {
           {results.map((item, i) => (
             <div key={`${item.id}-${i}`} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors group">
               {item.cover_image_url ? (
-                <img src={item.cover_image_url} alt={item.title} className="w-10 h-14 rounded object-cover flex-shrink-0" />
+                <img src={item.cover_image_url} alt={item.title} loading="lazy" decoding="async" className="w-10 h-14 rounded object-cover flex-shrink-0" />
               ) : (
                 <div className="w-10 h-14 rounded flex items-center justify-center text-lg flex-shrink-0" style={{ background: 'var(--mdf-surface-2)' }}>
                   {TYPE_META[item.media_type]?.emoji || '📄'}

@@ -142,7 +142,7 @@ const RightSidebar = ({ user, isCollapsed, onToggleCollapse, previewOrder, embed
     return (
       <Link key={item.id} to={`/media/${media.media_type}/${media.igdb_id ?? media.steam_appid ?? media.tmdb_id ?? media.google_books_id ?? media.id}`} className="w-[44px] h-[60px] rounded-md overflow-hidden flex-shrink-0 relative group border" style={{ borderColor: 'var(--border)', borderBottom: '3px solid ' + (MEDIA_COLORS[media.media_type] || '#666') }} title={media.title}>
         {media.cover_image_url ? (
-          <img src={media.cover_image_url} alt={media.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+          <img src={media.cover_image_url} alt={media.title} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-[10px] text-center p-1 bg-white/5">{media.title}</div>
         )}
@@ -162,7 +162,7 @@ const RightSidebar = ({ user, isCollapsed, onToggleCollapse, previewOrder, embed
       title={item.title}
     >
       {item.cover_image_url ? (
-        <img src={item.cover_image_url} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+        <img src={item.cover_image_url} alt={item.title} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
       ) : (
         <div className="w-full h-full flex items-center justify-center text-[10px] text-center p-1 bg-white/5">
           {item.title}

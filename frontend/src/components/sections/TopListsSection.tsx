@@ -188,7 +188,7 @@ const TopListsSection = ({ profileUser, currentUser }: TopListsSectionProps) => 
                         )}
                         <div className="relative rounded-md overflow-hidden bg-white/5" style={{ width: '100%', aspectRatio: '2/3' }}>
                           {media?.cover_image_url ? (
-                            <img src={media.cover_image_url} alt={media.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            <img src={media.cover_image_url} alt={media.title} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-white/20 text-xs">?</div>
                           )}
@@ -226,7 +226,7 @@ const TopListsSection = ({ profileUser, currentUser }: TopListsSectionProps) => 
                               className={`w-full flex items-center gap-3 p-2 rounded text-left transition-colors group ${alreadyAdded ? 'bg-white/[0.02] opacity-40 cursor-default' : 'bg-white/5 hover:bg-white/10'}`}
                             >
                               {m.cover_image_url && (
-                                <img src={m.cover_image_url} alt={m.title} className="w-10 h-15 object-cover rounded flex-shrink-0" />
+                                <img src={m.cover_image_url} alt={m.title} loading="lazy" decoding="async" className="w-10 h-15 object-cover rounded flex-shrink-0" />
                               )}
                               <span className="flex-1 truncate text-sm">{m.title}</span>
                               {alreadyAdded ? (
