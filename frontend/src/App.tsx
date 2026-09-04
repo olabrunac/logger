@@ -69,6 +69,13 @@ function AppInner() {
   const [unreadTrigger, setUnreadTrigger] = useState(0);
   const [mobileAnalyticsOpen, setMobileAnalyticsOpen] = useState(false);
 
+  // Preload do ProfilePage: a rota inicial redireciona para /profile/:username,
+  // entao ja comeca o download desse chunk (lazy) em paralelo ao shell, antes
+  // do primeiro navigate resolver.
+  useEffect(() => {
+    import('./pages/ProfilePage').catch(() => {});
+  }, []);
+
   useEffect(() => {
     setMobileAnalyticsOpen(false);
   }, [location.pathname]);
