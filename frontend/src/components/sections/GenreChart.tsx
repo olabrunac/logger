@@ -1,41 +1,13 @@
-import { useMemo } from 'react';
-import type { LogEntry } from '../../types';
+import type { SidebarGenre } from '../../types';
 
 interface GenreChartProps {
-  logs: LogEntry[];
+  genres: SidebarGenre[];
   accentColor: string;
   mediaType?: string;
 }
 
-const GenreChart = ({ logs, accentColor, mediaType }: GenreChartProps) => {
-  const genreData = useMemo(() => {
-    const genreCounts: Record<string, number> = {};
-    const filtered = logs.filter((l) => !mediaType || l.media_item.media_type === mediaType);
-
-    filtered.forEach((log) => {
-      const gStr = log.media_item.genres || log.media_item.steam_genres || log.media_item.book_categories;
-      if (gStr) {
-        gStr.split(', ').forEach((genre: string) => {
-          const trimmed = genre.trim();
-          if (trimmed) {
-            genreCounts[trimmed] = (genreCounts[trimmed] || 0) + 1;
-          }
-        });
-      }
-    });
-
-    const total = Object.values(genreCounts).reduce((sum, c) => sum + c, 0);
-    return Object.entries(genreCounts)
-      .map(([genre, count]) => ({
-        genre,
-        count,
-        percentage: total > 0 ? (count / total) * 100 : 0,
-      }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5);
-  }, [logs, mediaType]);
-
-  if (genreData.length === 0) {
+const GenreChart = ({ genres, accentColor, mediaType: _mediaType }: GenreChartProps) => {
+  if (genres.length === 0) {
     return (
       <div>
         <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-2">Gêneros / Categorias</div>
@@ -61,7 +33,7 @@ const GenreChart = ({ logs, accentColor, mediaType }: GenreChartProps) => {
     <div>
       <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-2">Gêneros / Categorias</div>
       <div className="flex flex-col gap-1.5">
-        {genreData.map((item, index) => (
+        {genres.map((item, index) => (
           <div key={item.genre} className="flex items-center gap-2">
             <span className="w-20 text-right text-[11px] text-white/50 truncate flex-shrink-0" title={item.genre}>
               {item.genre}

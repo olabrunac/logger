@@ -1,10 +1,9 @@
 import { useMemo, useState } from 'react';
-import type { LogEntry } from '../../types';
 import { formatHours } from '../../utils';
 import { TYPE_META } from '../../constants/designSystem';
 
 interface HoursPieChartProps {
-  logs: LogEntry[];
+  hours_by_type: { [type: string]: number };
   mediaType?: string;
 }
 
@@ -24,18 +23,12 @@ const describeArc = (cx: number, cy: number, r: number, startAngle: number, endA
   return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 0 ${end.x} ${end.y}`;
 };
 
-const HoursPieChart = ({ logs, mediaType }: HoursPieChartProps) => {
+const HoursPieChart = ({ hours_by_type, mediaType: _mediaType }: HoursPieChartProps) => {
   const [hovered, setHovered] = useState<string | null>(null);
 
   const data = useMemo(() => {
-    const filtered = logs.filter((l) => !l.exclude_from_stats && (!mediaType || l.media_item.media_type === mediaType));
-    const hoursMap: Record<string, number> = {};
-    filtered.forEach((l) => {
-      const type = l.media_item.media_type;
-      hoursMap[type] = (hoursMap[type] || 0) + (l.hours_spent || 0);
-    });
-    const total = Object.values(hoursMap).reduce((s, h) => s + h, 0);
-    return Object.entries(hoursMap)
+    const total = Object.values(hours_by_type).reduce((s, h) => s + h, 0);
+    return Object.entries(hours_by_type)
       .map(([type, hours]) => ({
         type,
         hours,
@@ -44,7 +37,7 @@ const HoursPieChart = ({ logs, mediaType }: HoursPieChartProps) => {
       }))
       .filter((d) => d.hours > 0)
       .sort((a, b) => b.hours - a.hours);
-  }, [logs, mediaType]);
+  }, [hours_by_type]);
 
   if (data.length === 0) {
     return (

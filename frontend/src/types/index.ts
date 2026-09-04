@@ -198,3 +198,56 @@ export interface AppNotification {
   read: boolean;
   created_at: string;
 }
+
+// Dados agregados da barra lateral direita (computados no servidor).
+// Substitui o fetch de todos os logs (`limit: 9999`) que recalcularia as
+// estatísticas no navegador a cada navegação.
+export interface SidebarStats {
+  total: number;
+  hours: number;
+  wishlist_hours: number;
+  media_completion: number;
+}
+
+export interface SidebarRating {
+  buckets: number[];
+  total: number;
+  avg: number;
+}
+
+export interface SidebarGenre {
+  genre: string;
+  count: number;
+  percentage: number;
+}
+
+export interface SidebarRecentMedia {
+  id: number;
+  title: string;
+  media_type?: string;
+  cover_image_url?: string | null;
+  steam_appid?: number | null;
+  igdb_id?: number | null;
+  tmdb_id?: number | null;
+  google_books_id?: string | null;
+}
+
+export interface SidebarRecent {
+  log_id: number;
+  media_item: SidebarRecentMedia;
+}
+
+export interface SidebarActivityDay {
+  date: string;
+  counts: { [type: string]: number };
+  total: number;
+}
+
+export interface SidebarData {
+  stats: SidebarStats;
+  rating: SidebarRating;
+  genres: SidebarGenre[];
+  hours_by_type: { [type: string]: number };
+  activity: SidebarActivityDay[];
+  recent: SidebarRecent[];
+}

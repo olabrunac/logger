@@ -1,8 +1,7 @@
-import { useMemo } from 'react';
-import type { LogEntry } from '../../types';
+import type { SidebarActivityDay } from '../../types';
 
 interface ActivityGraphProps {
-  logs: LogEntry[];
+  activity: SidebarActivityDay[];
   mediaType?: string;
 }
 
@@ -13,53 +12,24 @@ const TYPE_COLORS: Record<string, string> = {
   book: '#4ade80',
 };
 
-const ActivityGraph = ({ logs, mediaType }: ActivityGraphProps) => {
-  const filteredLogs = useMemo(() => {
-    return logs.filter((l) => !mediaType || l.media_item.media_type === mediaType);
-  }, [logs, mediaType]);
+const ActivityGraph = ({ activity, mediaType: _mediaType }: ActivityGraphProps) => {
+  const weeks: SidebarActivityDay[][] = [];
+  let currentWeek: SidebarActivityDay[] = [];
 
-  const activityData = useMemo(() => {
-    const dayMap: Record<string, Record<string, number>> = {};
-
-    filteredLogs.forEach((log) => {
-      const date = log.log_date.split('T')[0];
-      const type = log.media_item.media_type;
-      if (!dayMap[date]) dayMap[date] = {};
-      dayMap[date][type] = (dayMap[date][type] || 0) + 1;
-    });
-
-    const now = new Date();
-    const startDate = new Date(now);
-    startDate.setDate(startDate.getDate() - 100);
-    const totalDays = 100;
-    const startOffset = startDate.getDay();
-    const totalSlots = startOffset + totalDays + 1;
-
-    const weeks: { date: string; counts: Record<string, number>; total: number }[][] = [];
-    let currentWeek: { date: string; counts: Record<string, number>; total: number }[] = [];
-
-    for (let i = 0; i < totalSlots; i++) {
-      const d = new Date(startDate);
-      d.setDate(d.getDate() + i - startOffset);
-      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      const counts = dayMap[dateStr] || {};
-      const total = Object.values(counts).reduce((s, c) => s + c, 0);
-      currentWeek.push({ date: dateStr, counts, total });
-      if (currentWeek.length === 7) {
-        weeks.push(currentWeek);
-        currentWeek = [];
-      }
+  activity.forEach((day) => {
+    currentWeek.push(day);
+    if (currentWeek.length === 7) {
+      weeks.push(currentWeek);
+      currentWeek = [];
     }
-    if (currentWeek.length > 0) weeks.push(currentWeek);
+  });
+  if (currentWeek.length > 0) weeks.push(currentWeek);
 
-    return weeks;
-  }, [filteredLogs]);
-
-  const getColor = (counts: Record<string, number>, total: number) => {
-    if (total === 0) return 'rgba(255, 255, 255, 0.05)';
-    const dominant = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+  const getColor = (day: SidebarActivityDay) => {
+    if (day.total === 0) return 'rgba(255, 255, 255, 0.05)';
+    const dominant = Object.entries(day.counts).sort((a, b) => b[1] - a[1])[0];
     const baseColor = TYPE_COLORS[dominant[0]] || '#666';
-    const alpha = total === 1 ? '33' : total === 2 ? '66' : total === 3 ? '99' : 'cc';
+    const alpha = day.total === 1 ? '33' : day.total === 2 ? '66' : day.total === 3 ? '99' : 'cc';
     return baseColor + alpha;
   };
 
@@ -67,7 +37,7 @@ const ActivityGraph = ({ logs, mediaType }: ActivityGraphProps) => {
     <div>
       <div style={{ overflowX: 'auto' }}>
         <div style={{ display: 'flex', gap: '3px' }}>
-          {activityData.map((week, wi) => (
+          {weeks.map((week, wi) => (
             <div key={wi} style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
               {week.map((day, di) => (
                 <div
@@ -77,7 +47,7 @@ const ActivityGraph = ({ logs, mediaType }: ActivityGraphProps) => {
                     width: '13px',
                     height: '13px',
                     borderRadius: '2px',
-                    background: getColor(day.counts, day.total),
+                    background: getColor(day),
                     border: '1px solid rgba(255, 255, 255, 0.03)',
                     transition: 'transform 0.1s ease',
                     cursor: 'pointer',

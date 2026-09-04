@@ -1207,6 +1207,143 @@ def get_user_stats(*, db: Session = Depends(deps.get_db), user_id: int) -> Any:
     wishlist_count = db.query(LogEntry).filter(LogEntry.user_id == user_id, LogEntry.status.in_(non_log)).count()
     return {"total_logs": total_logs, "favorites": favorites, "completed": completed, "hours_total": round(hours_total, 4), "wishlist": wishlist_count}
 
+SIDEBAR_STAR_VALUES = [5, 4.5, 4, 3.5, 3, 2.5, 2, 1.5, 1, 0.5]
+
+@router.get("/users/{user_id}/sidebar")
+def get_sidebar_data(*, db: Session = Depends(deps.get_db), user_id: int, media_type: Optional[str] = None) -> Any:
+    """Dados agregados da barra lateral direita, computados no servidor.
+
+    Substitui o fetch de TODOS os logs (filtro `limit: 9999`) que a sidebar
+    fazia no front para recalcular estatísticas em JS — payload de ~1.4MB e
+    recomputação no navegador a cada navegação. Aqui retornamos apenas os
+    agregados enxutos que cada bloco precisa."""
+    from app.services.hours_service import effective_hours_batch
+
+    mt = None
+    if media_type:
+        try:
+            mt = MediaType(media_type)
+        except ValueError:
+            mt = None
+
+    non_log = [LogStatus.WISHLIST, LogStatus.SOON]
+    q = db.query(LogEntry).options(joinedload(LogEntry.media_item)).filter(
+        LogEntry.user_id == user_id,
+        LogEntry.status.notin_(non_log),
+    )
+    if mt is not None:
+        q = q.filter(LogEntry.media_item.has(media_type=mt))
+    logs = q.all()
+
+    def log_media_type(log):
+        return log.media_item.media_type.value if log.media_item else None
+
+    ####################################################################
+    # stats  — replica StatsSection.tsx (exclui exclude_from_stats)
+    ####################################################################
+    stats_logs = [l for l in logs if not l.exclude_from_stats]
+    hours_map = effective_hours_batch(db, stats_logs)
+    total_hours = round(sum(v or 0 for v in hours_map.values()), 4)
+    wishlist_hours = round(
+        sum(hours_map.get(l.id, 0) or 0 for l in stats_logs if l.status == LogStatus.WISHLIST),
+        4,
+    )
+    completed_count = sum(1 for l in stats_logs if l.status in (LogStatus.COMPLETED, LogStatus.PLATINATED))
+    media_completion = round((completed_count / len(stats_logs)) * 100, 1) if stats_logs else 0
+    stats = {
+        "total": len(stats_logs),
+        "hours": total_hours,
+        "wishlist_hours": wishlist_hours,
+        "media_completion": media_completion,
+    }
+
+    ####################################################################
+    # rating — replica RatingDistribution.tsx (não exclui exclude_from_stats)
+    ####################################################################
+    rating_logs = [l for l in logs if l.rating and l.rating > 0]
+    buckets = [0] * len(SIDEBAR_STAR_VALUES)
+    for l in rating_logs:
+        r = round((l.rating or 0) * 2) / 2
+        if r in SIDEBAR_STAR_VALUES:
+            buckets[SIDEBAR_STAR_VALUES.index(r)] += 1
+    avg = (sum(l.rating for l in rating_logs) / len(rating_logs)) if rating_logs else 0
+    rating = {"buckets": buckets, "total": len(rating_logs), "avg": round(avg, 1)}
+
+    ####################################################################
+    # genres — replica GenreChart.tsx (top 5, não exclui exclude_from_stats)
+    ####################################################################
+    genre_counts = {}
+    for l in logs:
+        gstr = l.media_item.genres or l.media_item.steam_genres or l.media_item.book_categories
+        if not gstr:
+            continue
+        for g in gstr.split(", "):
+            g = g.strip()
+            if g:
+                genre_counts[g] = genre_counts.get(g, 0) + 1
+    genre_total = sum(genre_counts.values())
+    genres = sorted(genre_counts.items(), key=lambda kv: kv[1], reverse=True)[:5]
+    genres = [
+        {"genre": g, "count": c, "percentage": round((c / genre_total) * 100, 1) if genre_total else 0}
+        for g, c in genres
+    ]
+
+    ####################################################################
+    # hours_by_type — replica HoursPieChart.tsx (exclui exclude_from_stats;
+    # usado apenas quando NÃO há media_type filtrado)
+    ####################################################################
+    hours_by_type = {}
+    if mt is None:
+        hours_by_type_logs = [l for l in logs if not l.exclude_from_stats]
+        hm = effective_hours_batch(db, hours_by_type_logs)
+        for l in hours_by_type_logs:
+            t = log_media_type(l)
+            if t:
+                hours_by_type[t] = round(hours_by_type.get(t, 0) + (hm.get(l.id, 0) or 0), 4)
+
+    ####################################################################
+    # activity — replica ActivityGraph.tsx (últimos ~100 dias por data de log)
+    ####################################################################
+    from collections import defaultdict
+    import datetime as _dt
+    day_map = defaultdict(lambda: defaultdict(int))
+    for l in logs:
+        day = l.log_date.strftime("%Y-%m-%d") if l.log_date else None
+        t = log_media_type(l)
+        if day and t:
+            day_map[day][t] += 1
+    today = _dt.date.today()
+    start = today - _dt.timedelta(days=99)
+    activity = []
+    for i in range(100):
+        d = start + _dt.timedelta(days=i)
+        key = d.strftime("%Y-%m-%d")
+        counts = dict(day_map.get(key, {}))
+        activity.append({"date": key, "counts": counts, "total": sum(counts.values())})
+
+    ####################################################################
+    # recent — os 5 logs mais recentes (cover + identificação p/ minitile)
+    ####################################################################
+    recent_logs = sorted(logs, key=lambda l: l.created_at or _dt.datetime.min, reverse=True)[:5]
+    recent = []
+    for l in recent_logs:
+        mi = l.media_item
+        recent.append({
+            "log_id": l.id,
+            "media_item": {
+                "id": l.media_item_id,
+                "title": mi.title if mi else "",
+                "media_type": log_media_type(l),
+                "cover_image_url": mi.cover_image_url if mi else None,
+                "steam_appid": mi.steam_appid if mi else None,
+                "igdb_id": mi.igdb_id if mi else None,
+                "tmdb_id": mi.tmdb_id if mi else None,
+                "google_books_id": mi.google_books_id if mi else None,
+            },
+        })
+
+    return {"stats": stats, "rating": rating, "genres": genres, "hours_by_type": hours_by_type, "activity": activity, "recent": recent}
+
 @router.get("/wishlist", response_model=List[schemas.LogEntryInDB])
 def get_wishlist(*, db: Session = Depends(deps.get_db), user_id: int, media_type: Optional[str] = None) -> Any:
     logs = crud.log_entry.get_wishlist_by_user(db, user_id=user_id)

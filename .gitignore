@@ -15,3 +15,6 @@ __pycache__
 .vscode
 .idea
 render.env
+
+# Export da sessão (arquivo grande do OpenCode — não versionar)
+logger.json
